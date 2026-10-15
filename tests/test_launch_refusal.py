@@ -1,0 +1,62 @@
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend_refusal names why a backend cannot run on the checked days (launcher-gui Task 4) | date: 2026-10-07]
+"""``backend_refusal`` gives ``''`` for a backend that can run on the checked days, else the first refusal (D5)."""
+from __future__ import annotations
+
+from pathlib import Path
+import typing
+from typing import Optional
+
+import pytest
+
+from nems_lbhb.unit_match.contract import registry
+from nems_lbhb.unit_match.contract.backend import Availability
+from nems_lbhb.unit_match.contract.inputs import Input
+from nems_lbhb.unit_match.launch import forms
+from nems_lbhb.unit_match.launch.forms import backend_refusal
+from nems_lbhb.unit_match.project.folder import Project
+
+from .synthetic_day import extracted_project
+
+FL = 'functional_likelihood'
+
+
+def _open(project_dir: Path) -> Project:
+    return Project.open(project_dir.parent, project_dir.name)
+
+
+@pytest.fixture(scope='module')
+def disjoint(tmp_path_factory) -> Project:
+    """D1 with conditions A and B, D2 with C and D: no condition on every day."""
+    return _open(extracted_project(tmp_path_factory.mktemp('disjoint'), conditions={'D2': ('C', 'D')}))
+
+
+@pytest.fixture(scope='module')
+def shared(tmp_path_factory) -> Project:
+    """D1 and D2 with the default conditions A and B on both days."""
+    return _open(extracted_project(tmp_path_factory.mktemp('shared')))
+
+
+def test_backend_refusal_reasons(disjoint, shared, monkeypatch):
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days without a shared condition run without events, so nothing refuses them (event-optional Task 4) | date: 2026-10-09]
+    assert backend_refusal(disjoint, ('D1', 'D2'), FL, interpreter=None) == ''
+    # [AGENT EDIT END]
+    assert backend_refusal(disjoint, ('D2',), FL, interpreter=None) == ''
+    monkeypatch.setattr(registry.get('dant'), 'available', lambda: Availability(False, None, 'missing package'))
+    assert backend_refusal(shared, ('D1', 'D2'), 'dant', interpreter=None) == (
+        'unavailable here: missing package; no verified interpreter')
+    assert backend_refusal(shared, ('D1', 'D2'), 'dant', interpreter='/lab/python') == ''
+
+
+def test_backend_refusal_missing_inputs(monkeypatch):
+    monkeypatch.setattr(forms, 'selection_inputs', lambda project, days: frozenset({Input.UNITS}))
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: functional_likelihood reads timing as an optional input (event-optional Task 9) | date: 2026-10-10]
+    assert backend_refusal(None, ('D1', 'D2'), FL, interpreter=None) == 'missing inputs: features, geometry'
+    # [AGENT EDIT END]
+    assert backend_refusal(None, ('D1', 'D2'), 'deepunitmatch', interpreter=None) == (
+        'missing inputs: geometry, waveform_halves')  # its checkpoint comes from an option
+
+
+def test_backend_refusal_signature():
+    assert typing.get_type_hints(backend_refusal) == {
+        'project': Project, 'days': tuple, 'backend_id': str, 'interpreter': Optional[str], 'return': str}
+# [AGENT EDIT END]

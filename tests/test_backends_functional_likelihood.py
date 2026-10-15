@@ -1,0 +1,399 @@
+# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: failing tests for legacy_fresh as a registered backend (Task 8) | date: 2026-09-22]
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the local matcher is registered as functional_likelihood; old ids are unknown; the backend reads no lab format (Task 3) | date: 2026-09-27]
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: functional_likelihood v2: project references, registered gate, every gated candidate in the mixture (functional-likelihood Task 7) | date: 2026-09-27]
+import copy
+import json
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
+import nems_lbhb.unit_match.backends  # noqa: F401  (registers the built-ins)
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01]
+from nems_lbhb.unit_match_lbhb import prepare_baphy
+# [AGENT EDIT END]
+from nems_lbhb.unit_match.backends.local import functional_likelihood
+from nems_lbhb.unit_match.backends.local.functional_likelihood import run_functional_likelihood
+from nems_lbhb.unit_match.contract import inputs, registry
+from nems_lbhb.unit_match.contract.backend import RunContext
+from nems_lbhb.unit_match.contract.inputs import Input, MatchingInput
+from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
+from nems_lbhb.unit_match.evaluation import evaluate_result
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - provenance and mixture tests check numbers against an independent fit | date: 2026-09-27]
+import dataclasses
+import itertools
+
+import numpy as np
+
+from nems_lbhb.unit_match.backends.local import evidence as ev
+from nems_lbhb.unit_match.backends.local.examples import fit_ensemble, labeled_examples
+from nems_lbhb.unit_match.backends.local.references import group_observations
+# [AGENT EDIT END]
+
+from .synthetic_drift import ground_truth, make_drift_days
+
+
+@pytest.fixture(autouse=True)
+def _in_tmp_path(tmp_path, monkeypatch):
+    # every test runs in its own tmp_path, so a stray relative write never lands in the repo
+    monkeypatch.chdir(tmp_path)
+
+
+def _run(days, **options):
+    return run_functional_likelihood(days.units, days.features, days.geometry, days.timing, **options)
+
+
+@pytest.fixture(scope='module')
+def drift_run():
+    days = make_drift_days(seed=0)
+    return days, _run(days)
+
+
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - provenance and mixture tests check numbers against an independent fit | date: 2026-09-27]
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - the group observed outside the backend, shared by the reference and candidate-set checks | date: 2026-09-27]
+@pytest.fixture(scope='module')
+def observed_group(drift_run):
+    days, _ = drift_run
+    (group,), _ = group_observations(days.units, days.features, days.geometry, days.timing)
+    return group
+
+
+@pytest.fixture(scope='module')
+def references(observed_group):
+    """``(same, diff)`` reference scores of an ensemble fitted here from the same days, outside the backend."""
+    group = observed_group
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fixture fits the streams of an event run with waveform halves, as the backend does (event-optional Task 9) | date: 2026-10-10]
+    ensemble, same_ref, diff_ref = fit_ensemble(
+        labeled_examples(group.observations, group.session_of, group.keys), ev.run_streams(True, waveform=True))
+    # [AGENT EDIT END]
+    return ensemble.reference_scores(same_ref), ensemble.reference_scores(diff_ref)
+# [AGENT EDIT END]
+
+
+def _rows(result, entry):
+    pairs = result.pairs
+    return pairs[(pairs.siteid_a == entry['session_a']) & (pairs.siteid_b == entry['session_b'])]
+
+
+def _rounded(values):
+    values = np.asarray(values, dtype=float)
+    return [round(float(x), 4) for x in values[np.isfinite(values)]]
+# [AGENT EDIT END]
+
+
+def test_functional_likelihood_is_registered_with_feature_inputs():
+    spec = registry.get('functional_likelihood').spec
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: timing is optional, version 3, a min_pairs option and a waveform feature_stream (event-optional Task 9) | date: 2026-10-10]
+    assert spec.requires == {Input.UNITS, Input.FEATURES, Input.GEOMETRY}
+    assert spec.optional == {Input.TIMING}
+    assert spec.version == '3'
+    assert spec.provides.score_kinds == {ScoreKind.UNCALIBRATED} and spec.provides.track_kinds == {TrackKind.COMMON}
+    assert [o.name for o in spec.options] == ['min_repeats', 'min_spikes', 'n_splits', 'seed', 'radius_um',
+                                              'min_pairs', 'registration', 'feature_stream', 'threshold',
+                                              'contradiction_threshold', 'ambiguity_margin']
+    options = {o.name: o for o in spec.options}
+    assert options['min_pairs'].default == 30
+    assert options['feature_stream'].choices == ('combined', 'stimulus', 'physiology', 'waveform')
+    # [AGENT EDIT END]
+    assert options['registration'].choices == ('matches', 'profile', 'none')
+    assert options['registration'].default == 'matches'
+    assert (options['min_repeats'].default, options['min_spikes'].default, options['n_splits'].default,
+            options['seed'].default, options['radius_um'].default) == (5, 200, 20, 0, 80.0)
+
+
+def test_real_days_allowed():
+    spec = registry.get('functional_likelihood').spec
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: version 3 (event-optional Task 9, fix round 1) | date: 2026-10-10]
+    assert spec.version == '3' and spec.real_days is True
+    # [AGENT EDIT END]
+
+
+def test_functional_likelihood_backend_matches_module_function(tmp_path):
+    days = make_drift_days(n_neurons=20, seed=1)
+    direct = _run(days, n_splits=2)
+
+    spec = registry.get('functional_likelihood').spec
+    inp = MatchingInput(days.units, group='g', features=days.features, geometry=days.geometry,
+                        timing=days.timing).validate()
+    result = registry.get('functional_likelihood').run(inp, dict(spec.defaults(), n_splits=2),
+                                                       RunContext('r', tmp_path))
+
+    assert result.tracks == direct.tracks and result.unmatched == direct.unmatched
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: version 3 (event-optional Task 9, fix round 1) | date: 2026-10-10]
+    assert result.backend_id == 'functional_likelihood' and result.version == '3'
+    # [AGENT EDIT END]
+    assert result.provenance.get('evidence_display_name') == 'Functional likelihood'
+    assert result.provenance.get('legacy_shared_input') is None and result.provenance.get('session_pairs') is not None
+    assert result.validate(spec)
+
+
+def test_functional_likelihood_recovers_synthetic_tracks(drift_run):
+    days, result = drift_run
+    scores = evaluate_result(result, ground_truth(days), expected_partition=None)
+    assert scores['pair_precision'] >= 0.9, scores
+    assert scores['pair_recall'] >= 0.6, scores
+
+
+def test_registration_beats_none_on_drift():
+    days = make_drift_days(offsets_um=(0.0, 100.0, -100.0))
+    truth = ground_truth(days)
+    recall = {method: evaluate_result(_run(days, registration=method), truth, expected_partition=None)['pair_recall']
+              for method in ('matches', 'none')}
+    assert recall['matches'] - recall['none'] >= 0.3, recall
+
+
+def test_functional_likelihood_tracks_one_per_day():
+    days = make_drift_days(seed=0)
+    original = days.units.cellid[days.units.session_id == 'day1'].iloc[0]
+    clone = original + '-clone'
+    units = pd.concat([days.units, days.units[days.units.cellid == original].assign(cellid=clone)],
+                      ignore_index=True)
+    features = dict(days.features, **{clone: copy.deepcopy(days.features[original])})
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - margin 0 so the clone's tied links reach the session-uniqueness check instead of being rejected as ambiguous | date: 2026-09-27]
+    result = run_functional_likelihood(units, features, days.geometry, days.timing, ambiguity_margin=0.0)
+    # [AGENT EDIT END]
+    session_of = dict(zip(units.cellid, units.session_id))
+    assert result.tracks
+    assert all(len({session_of[c] for c in track}) == len(track) for track in result.tracks)
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - one of the twin links is selected and its rival is refused for session_collision | date: 2026-09-27]
+    twins = result.pairs[result.pairs.cellid_a.isin([original, clone]) | result.pairs.cellid_b.isin([original, clone])]
+    assert (twins.decision == 'selected').any()
+    assert (twins.decision == 'session_collision').any()
+    assert sum(any(c in track for c in (original, clone)) for track in result.tracks) == 1
+    # [AGENT EDIT END]
+
+
+def test_mixture_fits_every_gated_candidate(drift_run, references, observed_group):
+    days, result = drift_run
+    entries = result.provenance.get('session_pairs')
+    n_units = days.units.session_id.value_counts().to_dict()
+    assert entries and all(e['n_mixture_observations'] == e['n_candidates'] for e in entries)
+    assert any(e['n_candidates'] > n_units[e['session_a']] for e in entries)
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - the candidate set equals an enumeration of the proximity gate on registered depths, made here | date: 2026-09-27]
+    group, gate_um = observed_group, ev.Criteria().gate_um
+    offsets = result.provenance.get('registration')['offsets_um']
+    for entry in entries:
+        sa, sb = entry['session_a'], entry['session_b']
+        rel = offsets[sb] - offsets[sa]
+        expected = {(a, b) for a, x in group.observations.items() if group.session_of[a] == sa
+                    for b, y in group.observations.items() if group.session_of[b] == sb
+                    if abs(x['depth'] - (y['depth'] + rel)) <= gate_um}
+        rows = _rows(result, entry)
+        assert expected and set(zip(rows.cellid_a, rows.cellid_b)) == expected and len(rows) == len(expected)
+    # [AGENT EDIT END]
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the saved fit equals an all-row fit and differs from a per-unit-maxima fit | date: 2026-09-27]
+    same, diff = references
+    fitted, maxima_differ = 0, False
+    for entry in entries:
+        rows = _rows(result, entry)
+        assert len(rows) == entry['n_candidates']
+        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run fits the event, physiology and waveform streams (event-optional Task 9, fix round 1) | date: 2026-10-10]
+        for stream in ('stim', 'phys', 'wave', 'global'):
+            # [AGENT EDIT END]
+            saved, col = entry['streams'][stream], 's_' + stream
+            if 'pi' not in saved:
+                continue
+            every_row = ev.Mixture(same[col], diff[col]).fit(rows[col].to_numpy(dtype=float))
+            assert saved['pi'] == pytest.approx(every_row.pi, abs=1e-9)
+            np.testing.assert_allclose(rows['p_' + stream].to_numpy(dtype=float),
+                                       every_row.posterior(rows[col].to_numpy(dtype=float)), atol=1e-9)
+            maxima = rows.groupby('cellid_a')[col].max().to_numpy(dtype=float)
+            per_unit = ev.Mixture(same[col], diff[col]).fit(maxima)
+            maxima_differ |= not np.isfinite(per_unit.pi) or abs(per_unit.pi - saved['pi']) > 0.01
+            fitted += 1
+    assert fitted and maxima_differ
+    # [AGENT EDIT END]
+
+
+def test_mixture_references_in_provenance(drift_run, references):
+    _, result = drift_run
+    saved_references = result.provenance.get('mixture_references')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - name clash with the fixture | date: 2026-09-27]
+    entries = [e for e in result.provenance.get('session_pairs') if 'streams' in e]
+    assert entries
+    same, diff = references  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    for entry in entries:
+        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run fits the event, physiology and waveform streams (event-optional Task 9, fix round 1) | date: 2026-10-10]
+        for stream in ('stim', 'phys', 'wave', 'global'):
+            # [AGENT EDIT END]
+            assert len(entry['streams'][stream]['observed']) == entry['n_candidates']
+            pile = saved_references[entry['recording_group']]['streams'][stream]
+            assert len(pile['same']) >= 5 and len(pile['diff']) >= 5
+            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - saved arrays are the run's candidate scores and an independent fit's references | date: 2026-09-27]
+            col = 's_' + stream
+            assert entry['streams'][stream]['observed'] == _rounded(_rows(result, entry)[col])
+            assert pile['same'] == _rounded(same[col]) and pile['diff'] == _rounded(diff[col])
+            # [AGENT EDIT END]
+    json.dumps(result.provenance.get('mixture_references'))
+    json.dumps(result.provenance.get('session_pairs'))
+
+
+def test_offsets_in_provenance(drift_run):
+    days, result = drift_run  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    assert set(result.provenance.get('registration')['offsets_um']) == {'day0', 'day1', 'day2'}
+    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - saved offsets recover the injected drift | date: 2026-09-27]
+    # the injected shifts are 40, 60 and 100 µm; 10 µm is half the 20 µm probe row pitch, the
+    # bound the Task 6 match-refinement tests hold registration to
+    offsets = result.provenance.get('registration')['offsets_um']
+    truth = days.truth_offsets
+    errors = {(a, b): abs((offsets[b] - offsets[a]) - (truth[b] - truth[a]))
+              for a, b in itertools.combinations(sorted(truth), 2)}
+    assert max(errors.values()) <= 10.0, errors
+    # [AGENT EDIT END]
+
+
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - misaligned fingerprints refused; a day with no kept unit named | date: 2026-09-27]
+def test_different_bin_widths_are_refused():
+    days = make_drift_days(n_neurons=12, seed=2)
+    features = {c: dict(f, fingerprint_bin_seconds=2 * f['fingerprint_bin_seconds']) if c.startswith('day2') else f
+                for c, f in days.features.items()}
+    with pytest.raises(ValueError, match='bin widths'):
+        run_functional_likelihood(days.units, features, days.geometry, days.timing, n_splits=2)
+
+
+def test_different_condition_lengths_are_refused():
+    days = make_drift_days(n_neurons=12, seed=2)
+    short = days.timing['day2']
+    stimuli = tuple(dict(s, stop=s['start'] + (s['stop'] - s['start']) // 2) for s in short.stimuli)
+    timing = dict(days.timing, day2=dataclasses.replace(short, stimuli=stimuli).validate())
+    with pytest.raises(ValueError, match='fingerprint lengths'):
+        run_functional_likelihood(days.units, days.features, days.geometry, timing, n_splits=2)
+
+
+def test_day_without_kept_units_is_named():
+    days = make_drift_days(n_neurons=20, seed=1)
+    features = {c: dict(f, spike_samples=f['spike_samples'][:10]) if c.startswith('day2') else f
+                for c, f in days.features.items()}
+    result = run_functional_likelihood(days.units, features, days.geometry, days.timing, n_splits=2)
+    named = [s for s in result.provenance.get('skipped_groups') if s.get('session') == 'day2']
+    assert len(named) == 1 and named[0]['group'] == 'synthetic' and '0 of' in named[0]['reason']
+    assert {(e['session_a'], e['session_b']) for e in result.provenance.get('session_pairs')} == {('day0', 'day1')}
+# [AGENT EDIT END]
+
+
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - row spacings are compared with their multiplicities | date: 2026-09-27]
+def test_spacing_multiplicities_must_match():
+    days = make_drift_days(n_neurons=12, seed=2)
+
+    def raised(geometry, rows, step):
+        geometry = np.array(geometry, dtype=float)
+        tail = np.isin(geometry[:, 1], np.unique(geometry[:, 1])[-rows:])
+        geometry[tail, 1] += step
+        return geometry
+
+    # spacings [20 x 22, 40] versus [20 x 21, 40, 40]: the same set of values, different multiplicities
+    one_gap = {s: raised(g, 1, 20.0) for s, g in days.geometry.items()}
+    two_gaps = dict(one_gap, day2=raised(raised(days.geometry['day2'], 2, 20.0), 1, 20.0))
+    assert {tuple(np.unique(np.diff(np.unique(g[:, 1])))) for g in two_gaps.values()} == {(20.0, 40.0)}
+    group_observations(days.units, days.features, one_gap, days.timing, n_splits=2)
+    with pytest.raises(ValueError, match='same channel columns and spacing'):
+        group_observations(days.units, days.features, two_gaps, days.timing, n_splits=2)
+# [AGENT EDIT END]
+
+
+def test_depth_offsets_is_an_unknown_option():
+    assert 'depth_offsets' not in {o.name for o in registry.get('functional_likelihood').spec.options}
+    with pytest.raises(TypeError):
+        run_functional_likelihood(pd.DataFrame(), {}, {}, {}, depth_offsets={'A': 0.0})
+
+
+def test_old_ids_unknown(tmp_path):
+    for old in ('constrained', 'legacy_fresh'):
+        with pytest.raises(KeyError):
+            registry.get(old)
+
+
+def test_backend_reads_no_baphy(tmp_path):
+    text = Path(functional_likelihood.__file__).read_text()
+    assert 'prepare_baphy' not in text and 'recover_baphy_timing' not in text
+    assert callable(prepare_baphy.recover_baphy_timing)
+
+
+def test_trial_timing_name(tmp_path):
+    assert not hasattr(inputs, 'LegacyTiming')
+    assert hasattr(inputs, 'TrialTiming')
+# [AGENT EDIT END]
+# [AGENT EDIT END]
+# [AGENT EDIT END]
+
+
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: functional_likelihood runs with or without events, registers each run on its own streams and tracks a waveform stream (event-optional Task 9) | date: 2026-10-10]
+def _anchored_errors(offsets: dict, truth: dict, anchor: str = 'day0') -> dict:
+    """Each day's offset error once both the run's offsets and the true ones put ``anchor`` at 0."""
+    return {s: abs((offsets[s] - offsets[anchor]) - (truth[s] - truth[anchor])) for s in truth}
+
+
+def test_no_event_drift_recovered():
+    days = make_drift_days(n_neurons=20, seed=1, events=False)
+    result = _run(days)
+    errors = _anchored_errors(result.provenance.get('registration')['offsets_um'], days.truth_offsets)
+    assert max(errors.values()) <= 1.0, errors
+    scores = evaluate_result(result, ground_truth(days), expected_partition=None)
+    assert scores['pair_recall'] >= 0.85, scores
+    assert scores['pair_precision'] >= 0.95, scores
+
+
+def test_event_run_keeps_stim_registration(monkeypatch):
+    real, registrations = functional_likelihood.functional_offsets, []
+
+    def spy(obs_by_session, ensemble, diff_ref, keys, **kwargs):
+        registrations.append((list(ensemble.streams), kwargs.get('aligned', False)))
+        return real(obs_by_session, ensemble, diff_ref, keys, **kwargs)
+
+    monkeypatch.setattr(functional_likelihood, 'functional_offsets', spy)
+    days = make_drift_days(seed=0)
+    result = _run(days)
+    assert registrations == [(['stim', 'phys'], False)]
+    errors = _anchored_errors(result.provenance.get('registration')['offsets_um'], days.truth_offsets)
+    assert max(errors.values()) <= 10.0, errors
+
+
+def test_stimulus_stream_refused_without_events():
+    days = make_drift_days(n_neurons=20, seed=1, events=False)
+    with pytest.raises(ValueError) as caught:
+        _run(days, feature_stream='stimulus')
+    assert str(caught.value) == ("feature_stream 'stimulus' needs events; group synthetic: no events · shared "
+                                 'conditions per day pair: day0+day1 0 · day0+day2 0 · day1+day2 0')
+
+
+def test_waveform_stream_choice():
+    days = make_drift_days(n_neurons=20, seed=1)
+    result = _run(days, n_splits=2, feature_stream='waveform')
+    assert result.provenance.get('score_column') == 'p_wave'
+    pairs = result.pairs
+    assert pairs.p_wave.notna().any()
+    np.testing.assert_array_equal(pairs.match_score.to_numpy(dtype=float), pairs.p_wave.to_numpy(dtype=float))
+
+
+def test_fl_refuses_units_without_halves(monkeypatch):
+    days = make_drift_days(n_neurons=12, seed=2)
+    cellid = days.units.cellid.iloc[0]
+    features = dict(days.features, **{cellid: {k: v for k, v in days.features[cellid].items()
+                                               if k != 'waveform_halves'}})
+
+    def observed(*args, **kwargs):
+        raise AssertionError('units were observed before the waveform-halves refusal')
+
+    monkeypatch.setattr(functional_likelihood, 'group_observations', observed)
+    with pytest.raises(ValueError, match='^functional_likelihood needs waveform halves'):
+        run_functional_likelihood(days.units, features, days.geometry, days.timing, n_splits=2)
+# [AGENT EDIT END]
+
+
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a no-event group skipped before observation builds no chunks, so the run saves no chunk length (event-optional Task 9, final review fix round 1) | date: 2026-10-10]
+def test_fl_chunk_seconds_only_when_a_group_observed_chunks():
+    days = make_drift_days(seed=0)
+    lone = make_drift_days(n_neurons=6, seed=3, events=False)
+    lone_units = lone.units[lone.units.session_id == 'day0']
+    rename = {c: f'lone-{c}' for c in lone_units.cellid}
+    lone_units = lone_units.assign(cellid=lone_units.cellid.map(rename), session_id='lone0', recording_group='lone')
+    units = pd.concat([days.units, lone_units], ignore_index=True)
+    features = {**days.features, **{rename[c]: lone.features[c] for c in rename}}
+    geometry = {**days.geometry, 'lone0': lone.geometry['day0']}
+    provenance = run_functional_likelihood(units, features, geometry, days.timing, n_splits=2).provenance.to_json()
+    evidence = provenance['run_evidence']
+    assert (evidence['synthetic']['events'], evidence['synthetic']['spont']) == (True, 'baseline')
+    assert evidence['lone']['events'] is False
+    assert dict(group='lone', reason='1 session with single units; matching needs at least 2') in \
+        provenance['skipped_groups']
+    assert 'chunk_seconds' not in provenance
+# [AGENT EDIT END]

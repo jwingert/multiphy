@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: worked example backend for docs/adding_a_backend.md; registered only inside the conformance test (Task 13) | date: 2026-09-22]
 """A minimal backend, kept as a live worked example for ``docs/adding_a_backend.md``.
 
 It requires only units and candidate pairs and scores every pair with a seeded uniform
@@ -36,4 +35,3 @@ class RandomBaselineBackend:
         prov = ctx.provenance.merged(extra={'used_optional_inputs': []})
         return result_from_pairs(SPEC.id, SPEC.version, inp.units, pairs, score_column='match_score',
                                  provenance=prov.to_json(), run_id=ctx.run_id)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: synthetic recording days with a known rigid probe drift per day (functional-likelihood Task 4) | date: 2026-09-27]
 """Synthetic recording days of one neuron population under a known rigid drift per day.
 
 ``make_drift_days`` places ``n_neurons`` neurons on a 96-channel, 4-column probe and records
@@ -32,12 +31,10 @@ HALF_NOISE_UV = 2.0
 
 @dataclass(frozen=True)
 class DriftDays:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: timing is empty for days made without events (event-optional Task 2) | date: 2026-10-09]
     """``units`` (one row per recorded unit), ``features`` (cellid -> feature dict), ``geometry``
     and ``timing`` (session -> channel positions / ``TrialTiming``; ``timing`` is empty for days
     made without events), ``truth`` (cellid, neuron, session_id, true depth and x),
     ``truth_offsets`` (session -> depth correction in µm) and ``sessions`` in day order."""
-    # [AGENT EDIT END]
     units: pd.DataFrame
     features: dict
     geometry: dict
@@ -73,7 +70,6 @@ def _spikes(rng, rate_per_ms: np.ndarray) -> np.ndarray:
     return np.asarray(kept, dtype=np.int64)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: events=False gives drift days without trial timing (event-optional Task 2) | date: 2026-10-09]
 def make_drift_days(*, n_days: int = 3, n_neurons: int = 30, offsets_um: tuple = (0.0, 40.0, -60.0),
                     n_conditions: int = 4, n_repeats: int = 10, presence: float = 0.8, seed: int = 0,
                     events: bool = True) -> DriftDays:
@@ -82,7 +78,6 @@ def make_drift_days(*, n_days: int = 3, n_neurons: int = 30, offsets_um: tuple =
     ``events=False`` returns ``timing={}``; every random draw is kept, so the units, spikes and
     waveforms are the same as with events.
     """
-# [AGENT EDIT END]
     if len(offsets_um) != n_days:
         raise ValueError(f'{len(offsets_um)} offsets for {n_days} days; give one offset per day')
     if not 0 < presence <= 1:
@@ -112,7 +107,6 @@ def make_drift_days(*, n_days: int = 3, n_neurons: int = 30, offsets_um: tuple =
         truth_offsets[session] = -(float(offsets_um[k]) - mean_offset)
         order = rng.permutation(np.repeat(np.arange(n_conditions), n_repeats))
         starts = np.arange(n_trials) * trial_samples
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without events keeps its trial order draw but records no timing (event-optional Task 2) | date: 2026-10-09]
         if events:
             timings[session] = TrialTiming(
                 session, SAMPLE_RATE, (0, stop), np.column_stack((starts, starts + trial_samples)),
@@ -120,7 +114,6 @@ def make_drift_days(*, n_days: int = 3, n_neurons: int = 30, offsets_um: tuple =
                       for s, c in zip(starts, order)),
                 np.column_stack((starts, starts + baseline_samples)),
                 {'sample_index_origin': 'zero_based_voltage_row', 'method': 'synthetic'}).validate()
-        # [AGENT EDIT END]
         present = np.flatnonzero(rng.random(n_neurons) < presence)
         opaque = rng.permutation(len(present))
         for j, neuron in zip(opaque, present):
@@ -162,4 +155,3 @@ def ground_truth(days: DriftDays) -> pd.DataFrame:
     """The benchmark label table: ``cellid``, ``source_unit_id`` (the neuron), ``source_session`` and ``well``."""
     return pd.DataFrame({'cellid': days.truth.cellid, 'source_unit_id': days.truth.neuron,
                          'source_session': 'synthetic', 'well': 'synthetic'})
-# [AGENT EDIT END]

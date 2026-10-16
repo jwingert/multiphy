@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify independent waveform recomputation and temporal feature boundaries | date: 2026-09-17]
 import numpy as np
 import pytest
 
@@ -119,4 +118,3 @@ def test_stimulus_duration_must_agree_across_temporal_parts():
                                      sample_rate=1000, n_channels=2,
                                      source_unit='one', source_session='a',
                                      su_type='SU', preprocessing='synthetic', stimuli=trials)
-# [AGENT EDIT END]

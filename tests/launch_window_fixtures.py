@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window tests' Qt application, their project with runs, and wait_until (launcher-gui Task 5) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names FakeProcess (launcher-gui Task 6) | date: 2026-10-07]
 """Fixtures shared by the launcher window tests; import them by name into each test module.
 
 ``qt`` builds the offscreen ``QApplication``; ``runs`` is one project with an across-day run, a
@@ -7,7 +5,6 @@ same-day run, an initialised-only day and an unfinished run folder, under a root
 ``wait_until`` spins the event loop until a predicate holds; ``FakeProcess`` stands in for
 ``CommandProcess``.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 
 import os
@@ -16,9 +13,7 @@ import time
 
 import pytest
 from PySide6 import QtWidgets
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FakeProcess is a QObject with the CommandProcess signals (launcher-gui Task 6) | date: 2026-10-07]
 from PySide6 import QtCore
-# [AGENT EDIT END]
 from PySide6.QtTest import QTest
 
 from multiphy.launch import commands
@@ -61,7 +56,6 @@ def wait_until(predicate, timeout_s: float) -> bool:
     return predicate()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FakeProcess stands in for CommandProcess; tests emit its signals themselves (launcher-gui Task 6) | date: 2026-10-07]
 class FakeProcess(QtCore.QObject):
     """A ``CommandProcess`` that starts nothing: ``start`` records ``(program, arguments, env, cwd)`` in
     ``calls``; ``interrupt`` and ``kill`` count into ``interrupts`` and ``kills``; ``running()`` turns
@@ -95,5 +89,3 @@ class FakeProcess(QtCore.QObject):
 
     def running(self) -> bool:
         return self._running
-# [AGENT EDIT END]
-# [AGENT EDIT END]

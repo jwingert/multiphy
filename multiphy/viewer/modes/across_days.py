@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the across-days mode: validate_days_result from multiday_viewer.py:36-64, load from display_cache multiday_viewer.py:67-133 returning RunData, the info line from multiday_viewer.py:382-385, the header from multiday_viewer.py:335-340 and the merge refusal from multiday_viewer.py:282-285 (viewer-split Task 3) | date: 2026-10-06]
 """The across-days mode: two or more recording days of one project, curated in the project.
 
 ``load`` builds a run's ``RunData`` from its selection's dataset and result. Imports no Qt and no
@@ -16,13 +15,10 @@ from multiphy.benchmark_pairs import _waveform_summary
 from multiphy.viewer.data import (Mode, RunData, UnitData, Words, apply_run_provenance,
                                               complete_day_pairs, display_pairs)
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no pair words (native-same-day Task 10) | date: 2026-10-11]
 WORDS = Words(track_column='days', member_column='Date / session', observations='dated observations',
               import_tip='Import a result covering every unit of this selection.')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-day pair row (proposed_link) loads; only the track loop refuses two units of one day (native-same-day Task 7) | date: 2026-10-11]
 def validate_days_result(dataset, result: MatchResult) -> MatchResult:
     """Refuse a result that is not of this selection, or whose track holds two units of one day."""
     try:
@@ -44,10 +40,8 @@ def validate_days_result(dataset, result: MatchResult) -> MatchResult:
         if len(set(days)) != len(days):
             raise ValueError('a track holds two units from one day')
     return result
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day pairs carry no list label (native-same-day Task 10 fix round 1) | date: 2026-10-11]
 def load(selection, dataset, result, extras: dict) -> RunData:
     """The run's units, pairs and day pairs; ``extras`` is ``{day: full-day extras}`` (``Selection.day_extras()``),
     whose ``tuning_*`` arrays give each site a frequency axis and each unit its tuning curve."""
@@ -111,7 +105,6 @@ def load(selection, dataset, result, extras: dict) -> RunData:
         day_names={s: f'{d} · {s}' for s, d in dates.items()}, freq_axes=freq_axes,
         min_fingerprint_repeats=dataset.metadata['pair_options']['min_repeats'],
         parts=frozenset({'isi', 'acg'} | ({'tuning'} if freq_axes else set())))
-# [AGENT EDIT END]
 
 
 def header(data: RunData, cellids, row) -> str:
@@ -134,12 +127,7 @@ def merge_refusal(data: RunData, members) -> Optional[str]:
     return None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the plots end with the drift panel (drift-view Task 4) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram are two plots (browse-same-day Task 5) | date: 2026-10-12]
 ACROSS_DAYS = Mode(id='across_days', layout_name='viewer/across_days_layout.json', curates=True, exports=True,
                    words=WORDS, plots=('waveform', 'wfmap', 'isi', 'acg', 'footprint', 'probe', 'fingerprint',
                                        'tuning', 'mixture', 'drift'),
                    load=load, header=header, merge_refusal=merge_refusal)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]

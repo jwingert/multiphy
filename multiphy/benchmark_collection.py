@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: compose held-out wells and missing-counterpart benchmarks without waveform copies | date: 2026-09-18]
 """Immutable, hash-pinned views over existing benchmark waveform archives."""
 import argparse
 from datetime import datetime, timezone
@@ -238,4 +237,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
-# [AGENT EDIT END]

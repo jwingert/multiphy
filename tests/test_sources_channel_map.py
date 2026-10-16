@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: phy's channel_map.npy survives into DaySource and binary refuses a non-identity map (multiphy project folder Task 7, fix round 1) | date: 2026-09-25]
 """A phy ``channel_map.npy`` reaches ``DaySource``; ``binary`` refuses raw columns that are not the geometry rows."""
 from __future__ import annotations
 
@@ -87,4 +86,3 @@ def test_bad_channel_map_refused(sd, options, bad, message):
     with pytest.raises(ValueError) as exc:
         PHY.read(PHY.files(options), options)
     assert str(exc.value) == message
-# [AGENT EDIT END]

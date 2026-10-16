@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: failing tests for local backends and compatibility names (Task 7) | date: 2026-09-22]
 import pandas as pd
 import pytest
 
@@ -15,7 +14,6 @@ def pairs(*edges):
     return pd.DataFrame(edges, columns=['cellid_a', 'cellid_b', 'p_global'])
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only matching methods register, by mechanism id; the ConstrainedBackend tests go with it (Task 3) | date: 2026-09-27]
 def test_builtins_are_registered_with_declared_requirements():
     specs = {s.id: s for s in registry.list_specs()}
     assert 'functional_likelihood' in specs and not {'legacy', 'constrained', 'legacy_fresh'} & set(specs)
@@ -31,10 +29,8 @@ def test_common_tracker_through_result_from_pairs():
     assert r.pairs.iloc[1].decision == 'measured_contradiction'
     assert r.score.kind is ScoreKind.UNCALIBRATED and r.score.column == 'p_global'
     assert r.run_id == 'run1' and r.tracking_rule == 'mutual_margin_best_first'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no legacy backend and no id aliases (Task 1) | date: 2026-09-27]
 def test_legacy_backend_gone():
     with pytest.raises(KeyError):
         registry.get('legacy')
@@ -44,5 +40,3 @@ def test_run_backend_unknown_alias():
     from multiphy import backends as b
     with pytest.raises(KeyError):
         b.run_backend('current_local', units('A-1', 'B-1'), pairs(('A-1', 'B-1', .99)))
-# [AGENT EDIT END]
-# [AGENT EDIT END]

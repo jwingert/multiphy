@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the multiphy logo generator: one unit's peak-channel waveform tracked across three days (logo) | date: 2026-10-13]
 """Write the multiphy logo: one unit's waveform, tracked across three days.
 
 The waveform is the mean waveform of unit ``PRN067a-338-1`` on its peak channel (channel index 337, the channel
@@ -103,4 +102,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-# [AGENT EDIT END]

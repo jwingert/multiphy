@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: one backend registry with entry-point discovery | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: docstring states when entry points load and what a failure does (whole-branch review fix 2) | date: 2026-09-23]
 """Where backends are found.
 
 Built-ins register on import of ``multiphy.backends``. Third-party packages
@@ -8,7 +6,6 @@ declare ``[project.entry-points."multiphy.backends"] name = "pkg.module:factory"
 the first miss; one that fails to load is recorded in ``ENTRY_POINT_ERRORS`` and skipped.
 Availability is never probed here, so listing backends imports no upstream package.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 import importlib.metadata
 
@@ -28,7 +25,6 @@ def register(backend) -> None:
     _BACKENDS[spec.id] = backend
 
 
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a failing plugin is recorded and skipped; loaded only once the loop completes (whole-branch review fix 2) | date: 2026-09-23]
 ENTRY_POINT_ERRORS: dict = {}  # entry-point name -> why it could not be loaded
 
 
@@ -52,7 +48,6 @@ def load_entry_points() -> None:
 def registered_ids() -> frozenset:
     """Ids registered so far; never loads built-ins or entry points."""
     return frozenset(_BACKENDS)
-# [AGENT EDIT END]
 
 
 def _ensure_builtins():
@@ -76,9 +71,7 @@ def get(backend_id: str):
 
 def list_specs() -> tuple:
     _ensure_builtins()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: installed plugins are listed too, after the built-ins (whole-branch review fix 2) | date: 2026-09-23]
     load_entry_points()
-    # [AGENT EDIT END]
     return tuple(b.spec for b in _BACKENDS.values())
 
 
@@ -86,9 +79,6 @@ def clear_for_tests() -> None:
     """Empty the registry; tests re-register what they need. Never called by product code."""
     global _ENTRY_POINTS_LOADED, _BUILTINS_LOADED
     _BACKENDS.clear()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: entry-point load errors reset with the registry (whole-branch review fix 2) | date: 2026-09-23]
     ENTRY_POINT_ERRORS.clear()
-    # [AGENT EDIT END]
     _ENTRY_POINTS_LOADED = False
     _BUILTINS_LOADED = False
-# [AGENT EDIT END]

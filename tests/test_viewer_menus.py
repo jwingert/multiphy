@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Settings and Help menus of both windows, the guide window, the launcher's log tones and font, the Run accent, the close bar name and run_window applying the saved theme (launcher-gui Task 9) | date: 2026-10-07]
 """The Settings and Help menus, the guide window and the themed launcher. Every settings file and SVG asset a
 theme test makes lives under ``tmp_path`` (``theme_env``)."""
 from __future__ import annotations
@@ -7,36 +6,25 @@ import os
 import typing
 from pathlib import Path
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours tests read line colours and build waveform data (graphite-palettes Task 4) | date: 2026-10-11]
 import matplotlib.colors
 import numpy as np
 import pandas as pd
-# [AGENT EDIT END]
 from PySide6 import QtCore, QtGui, QtWidgets
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the keys tests catch refusals and count the key notifier's signals (day-table-keys Task 4) | date: 2026-10-14]
 import pytest
 from PySide6.QtTest import QSignalSpy
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the shortcuts window tests record keys into its editors (day-table-keys Task 5) | date: 2026-10-14]
 from PySide6.QtTest import QTest
-# [AGENT EDIT END]
 
 from multiphy.launch import window as window_module
 from multiphy.launch.plugins import load_plugins
 from multiphy.launch.window import LauncherWindow, log_tone, run_window
 from multiphy.viewer import display, menus, theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved keys module (day-table-keys Task 4) | date: 2026-10-14]
 from multiphy.viewer import keys
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours tests read the active palette (graphite-palettes Task 4) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.app import App
 from multiphy.viewer.menus import DOCS, GuideWindow, install_menus, open_guide
 
 from .launch_window_fixtures import FakeProcess, qt, runs  # noqa: F401 (fixtures by name)
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours switch test gives the viewer waveform data (graphite-palettes Task 4) | date: 2026-10-11]
 from .viewer_fakes import FAKE_MODE, DictData
 
 # the board's first eight colours of each palette, lowercase
@@ -49,7 +37,6 @@ SWATCHES = {
     'ramp': ['#4e7cc8', '#977dcb', '#cd80c1', '#f288ae', '#ff999a', '#ffb18b', '#ffce86', '#f7ea92'],
 }
 UNITS = ['a-01', 'b-01', 'c-01', 'd-01']
-# [AGENT EDIT END]
 
 
 def _launcher(runs) -> LauncherWindow:
@@ -72,43 +59,29 @@ def _block_colours(edit) -> dict:
     return colours
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: both Help menus list Keyboard shortcuts after the guides, before the separator; tag wraps the whole test (day-table-keys Task 5) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test takes theme_env, so the App's shortcut reads use a settings file under tmp_path, never the user's multiphy.ini; tag wraps the whole test (day-table-keys Task 5 fix round 1) | date: 2026-10-14]
 def test_menus_in_both_windows(qt, runs, theme_env):
     tmp_path = theme_env
     launcher = _launcher(runs)
     assert _texts(launcher.menuBar().actions()) == ['&Settings', '&Help']
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Settings holds Theme, then Unit colours, then the launcher's Lab root (graphite-palettes Task 4) | date: 2026-10-11]
     assert _texts(launcher.settings_menu.actions()) == ['&Theme', '&Unit colours', '', 'Lab root…']
     assert _texts(launcher.unit_palette_menu.actions()) == ['Graphite pastel', 'Tol light +', 'Max-distance',
                                                             'Okabe–Ito + tints', 'Tableau 20', 'Day ramp']
     assert [pid for pid, action in launcher.unit_palette_actions.items() if action.isChecked()] == ['pastel']
     assert launcher.unit_palette_menu.objectName() == 'unit_palettes'
-    # [AGENT EDIT END]
     theme_action = launcher.settings_menu.actions()[0]  # kept: PySide drops menu()'s wrapper with a temporary action
     theme_menu = theme_action.menu()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Theme menu offers Graphite first, checked by default (graphite-palettes Task 2) | date: 2026-10-11]
     assert _texts(theme_menu.actions()) == ['Graphite', 'Dark', 'Light']
     assert launcher.theme_actions['graphite'].isChecked()
     assert not launcher.theme_actions['dark'].isChecked() and not launcher.theme_actions['light'].isChecked()
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ends with About multiphy, after a separator (logo) | date: 2026-10-13]
     assert _texts(launcher.help_menu.actions()) == ['Launcher guide', 'Viewer guide', 'Keyboard shortcuts', '',
                                                     'About multiphy']
-    # [AGENT EDIT END]
     viewer = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     assert _texts(viewer.menuBar().actions()) == ['&View', '&Settings', '&Help']
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's Help ends with About multiphy too (logo) | date: 2026-10-13]
     assert _texts(viewer.help_menu.actions()) == ['Launcher guide', 'Viewer guide', 'Keyboard shortcuts', '',
                                                   'About multiphy']
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's Settings holds Theme, then Unit colours (graphite-palettes Task 4) | date: 2026-10-11]
     assert _texts(viewer.settings_menu.actions()) == ['&Theme', '&Unit colours']
-    # [AGENT EDIT END]
     launcher.close()
     viewer.close()
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def test_theme_action_switches_all_windows(qt, runs, theme_env):
@@ -117,9 +90,7 @@ def test_theme_action_switches_all_windows(qt, runs, theme_env):
     launcher.append_log('error: x')
     launcher.append_log('exit 0')
     viewer = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert _block_colours(launcher.log_pane)['error: x'] == '#ff7b72'
-    # [AGENT EDIT END]
     viewer.theme_actions['light'].trigger()
     assert display.theme_name() == 'light'
     assert viewer.theme_actions['light'].isChecked()
@@ -155,7 +126,6 @@ def test_theme_failure_shown_in_status_bar(qt, theme_env, monkeypatch):
     viewer.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours menu: its swatch icons and rules, a switch from one window recolouring every window, a failed save tagged in the status bar, and its title on Light (graphite-palettes Task 4) | date: 2026-10-11]
 def _line_colours(viewer) -> list:
     """The colours of the waveform panel's lines, lowercase hex."""
     lines = viewer._docks['waveform'].widget().axes[0].get_lines()
@@ -226,7 +196,6 @@ def test_unit_palette_menu_title_on_light(qt, runs, theme_env):
     assert launcher.unit_palette_menu.title() == '&Unit colours'
     launcher.close()
     viewer.close()
-# [AGENT EDIT END]
 
 
 def _code_block(guide: GuideWindow, start: str):
@@ -245,9 +214,7 @@ def test_guide_window_renders_doc(qt, theme_env):
     assert 'The project folder' in guide.guide_view.toPlainText()
     start = 'python -m multiphy.launch [--root DIR] init'
     fmt = _code_block(guide, start).blockFormat()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert fmt.background().color().name() == '#1f232a'
-    # [AGENT EDIT END]
     assert fmt.nonBreakableLines()
     theme.switch_theme('light')
     assert _code_block(guide, start).blockFormat().background().color().name() == '#f3f5f8'
@@ -258,25 +225,20 @@ def test_guide_window_renders_doc(qt, theme_env):
     missing.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a followed guide link and Back keep the code-block styling (launcher-gui final review low finding) | date: 2026-10-07]
 def test_guide_link_keeps_code_style(qt, theme_env):
     guide = GuideWindow('Launcher guide', DOCS / 'project_folder.md')
     view = guide.guide_view
     view.setSource(view.source().resolved(QtCore.QUrl('viewer.md#theme')))  # what a link click calls
     assert 'One window opens any completed project run' in view.toPlainText()
     fmt = _code_block(guide, 'python -m multiphy.viewer --run DIR').blockFormat()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert fmt.background().color().name() == '#1f232a'
     assert fmt.nonBreakableLines()
     view.backward()
     start = 'python -m multiphy.launch [--root DIR] init'
     assert _code_block(guide, start).blockFormat().background().color().name() == '#1f232a'
-    # [AGENT EDIT END]
     guide.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About multiphy opens one About window: the logo, the name, the version, one line and the credit (logo) | date: 2026-10-13]
 def test_about_window(qt, runs, theme_env):
     launcher = _launcher(runs)
     launcher.help_menu.actions()[-1].trigger()
@@ -294,7 +256,6 @@ def test_about_window(qt, runs, theme_env):
     assert menus.open_about() is about
     about.close()
     launcher.close()
-# [AGENT EDIT END]
 
 
 def test_log_tones():
@@ -312,9 +273,7 @@ def test_log_pane_colours_and_font(qt, runs):
         launcher.append_log(line)
     assert launcher.log_pane.toPlainText().splitlines() == lines
     colours = _block_colours(launcher.log_pane)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert [colours[line] for line in lines] == ['#eceef1', '#9097a3', '#ff7b72', '#ff7b72']
-    # [AGENT EDIT END]
     fixed = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont).family()
     assert launcher.log_pane.font().family() == fixed
     launcher.close()
@@ -328,7 +287,6 @@ def test_run_buttons_primary_and_close_bar(qt, runs):
     launcher.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run_window also sets the saved unit palette before the window is built (graphite-palettes Task 4) | date: 2026-10-11]
 def test_run_window_applies_saved_theme(qt, runs, theme_env, monkeypatch):
     theme.settings().setValue('theme', 'light')
     theme.settings().setValue('unit_palette', 'okabe')
@@ -344,35 +302,26 @@ def test_run_window_applies_saved_theme(qt, runs, theme_env, monkeypatch):
     assert run_window(runs['root'], None, load_plugins(runs['root'])) == 0
     assert recorded == ['light']
     assert palettes == ['okabe']
-    # [AGENT EDIT END]
     assert '#0284C7' in QtWidgets.QApplication.instance().styleSheet()
     for w in opened:
         w.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_shortcuts's and show_bindings's signatures and the SHORTCUTS label; tag wraps the whole test (day-table-keys Task 5) | date: 2026-10-14]
 def test_menus_signatures():
     hints = typing.get_type_hints
     none = type(None)
     assert hints(install_menus) == {'window': QtWidgets.QMainWindow, 'extra_settings': tuple, 'return': none}
     assert hints(open_guide) == {'title': str, 'path': Path, 'return': GuideWindow}
     assert hints(log_tone) == {'line': str, 'return': str}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: swatch_icon's signature (graphite-palettes Task 4) | date: 2026-10-11]
     assert hints(menus.swatch_icon) == {'colours': list, 'return': QtGui.QIcon}
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_about's signature (logo) | date: 2026-10-13]
     assert hints(menus.open_about) == {'return': menus.AboutWindow}
-    # [AGENT EDIT END]
     assert menus.GUIDES == (('Launcher guide', 'project_folder.md'), ('Viewer guide', 'viewer.md'))
     assert window_module.INFO_LINE.pattern == r'^\[[^\]]* INFO\]'
     assert hints(menus.open_shortcuts) == {'return': menus.ShortcutsWindow}
     assert hints(menus.ShortcutsWindow.show_bindings) == {'return': none}
     assert menus.SHORTCUTS == 'Keyboard shortcuts'
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one saved key per action: the defaults, a save and an unbind, refused keys, a malformed file, the reset, a failed save and the signatures (day-table-keys Task 4) | date: 2026-10-14]
 # the default key of each action, in ACTIONS order
 DEFAULTS = {'up': 'W', 'down': 'S', 'left': 'A', 'right': 'D', 'track': 'F', 'clear': 'Esc', 'skip': 'X',
             'accept': 'E', 'reject': 'R', 'unsure': 'U', 'merge': 'Q', 'accept_track': 'Shift+E',
@@ -453,11 +402,8 @@ def test_keys_signatures():
     assert hints(keys.reset_bindings) == {'return': str}
     assert hints(keys.normalized) == {'key': str, 'return': str}
     assert hints(keys.notifier) == {'return': keys.KeyNotifier}
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ Keyboard shortcuts: one row per action with its key, a recorded key saved and bound at once, a taken key refused and named, a cleared key unbinding, Reset defaults and a failed save tagged (day-table-keys Task 5) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the D23 key recipes: a key and the event loop, Shift typed before its key, Shift alone ended by Qt's 1 s timeout; tag wraps the whole functions (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
 def _record(w, action_id, key, modifier=QtCore.Qt.NoModifier) -> None:
     """Record ``key`` (with ``modifier``) into the shortcuts window's editor of ``action_id``, then let the event
     loop run."""
@@ -488,7 +434,6 @@ def _shift_alone(w, action_id) -> None:
     QtWidgets.QApplication.processEvents()
     QTest.keyRelease(edit, QtCore.Qt.Key_Shift, QtCore.Qt.NoModifier)
     QTest.qWait(1500)
-# [AGENT EDIT END]
 
 
 def test_shortcuts_window_lists_actions(qt, theme_env):
@@ -514,8 +459,6 @@ def test_shortcuts_window_lists_actions(qt, theme_env):
     w.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the clear step clicks the editor's real clear button, the only way to unbind (D23); tag wraps the whole test (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refused Shift+E leaves accept track holding it, so both actions keep their keys (Review Focus 7); tag wraps the whole test (day-table-keys final review fix round 1) | date: 2026-10-14]
 def test_shortcuts_window_edits_and_refuses(qt, theme_env):
     tmp_path = theme_env
     viewer = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
@@ -542,11 +485,8 @@ def test_shortcuts_window_edits_and_refuses(qt, theme_env):
     assert w.edits['right'].keySequence().toString() == 'D'
     w.close()
     viewer.close()
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Shift alone and Shift typed before a taken key keep the saved key, Shift typed before a free key saves it (D23); tag wraps the whole test (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
 def test_shortcuts_window_saves_on_finish(qt, theme_env):
     w = menus.open_shortcuts()
     _shift_alone(w, 'merge')
@@ -561,7 +501,6 @@ def test_shortcuts_window_saves_on_finish(qt, theme_env):
     assert keys.bindings()['right'] == 'Shift+L'
     assert w.status.text() == ''
     w.close()
-# [AGENT EDIT END]
 
 
 def test_shortcuts_window_save_failure_tagged(qt, theme_env):
@@ -577,4 +516,3 @@ def test_shortcuts_window_save_failure_tagged(qt, theme_env):
     finally:
         os.chmod(ro, 0o700)
     w.close()
-# [AGENT EDIT END]

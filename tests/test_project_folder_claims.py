@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the project-folder guide claims only what the code checks: condition labels are stripped, init does not open the raw file, and the guide names project runs (Plan B Task 10) | date: 2026-09-28]
 """The project-folder guide's claims about conditions, ``init`` and runs hold in the code."""
 from __future__ import annotations
 
@@ -26,7 +25,6 @@ def test_condition_labels_are_stripped(tmp_path):
 
 def test_init_does_not_open_raw(tmp_path, monkeypatch):
     sd = write_day(tmp_path / 'in', 'D1')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: any attempt to open the raw file fails the test, not only a successful read (Plan B Task 10 fix round 1) | date: 2026-09-29]
     raw = os.path.realpath(sd.raw_path)
     attempts = []
 
@@ -41,7 +39,6 @@ def test_init_does_not_open_raw(tmp_path, monkeypatch):
     monkeypatch.setattr(builtins, 'open', refusing(builtins.open))
     monkeypatch.setattr(io, 'open', refusing(io.open))
     monkeypatch.setattr(os, 'open', refusing(os.open))
-    # [AGENT EDIT END]
     sd.raw_path.chmod(0)
     try:
         commands.init_day(tmp_path / 'lab', 'P', day='D1', sort=str(sd.sort_dir), date=sd.date,
@@ -59,23 +56,18 @@ def test_docs_name_project_runs():
     text = (DOCS / 'project_folder.md').read_text(encoding='utf-8')
     assert '### run' in text
     assert 'stripped of surrounding spaces' in text
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the matching guide names no GUI launch control; runs start from launch run (Plan B Task 10 fix round 2, D5) | date: 2026-09-29]
 def test_matching_guide_names_no_launch_dialog():
     text = re.sub(r'<!--.*?-->', '', (DOCS.parent / 'MATCHING_INTERFACE.md').read_text(encoding='utf-8'), flags=re.S)
     for phrase in ('dialog', 'Cancel', 'progress pane', 'visible cutoff', 'Select '):
         assert phrase not in text, phrase
     for flag in ('--threshold', '--native-threshold', '--ambiguity-margin', '--contradiction-threshold', '--python'):
         assert flag in text, flag
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide states the code's interpreter order: an explicit --python always wins, then in process, then the verified interpreter (Plan B Task 10 final review fix round 1) | date: 2026-09-29]
 def test_matching_guide_states_python_precedence():
     text = re.sub(r'<!--.*?-->', '', (DOCS.parent / 'MATCHING_INTERFACE.md').read_text(encoding='utf-8'), flags=re.S)
     text = ' '.join(text.split())
     assert 'With `--python EXE`, `launch run` runs the backend in that interpreter' in text
     assert 'in its own interpreter when the backend is available there. Otherwise it runs it in `--python EXE`' not in text
-# [AGENT EDIT END]

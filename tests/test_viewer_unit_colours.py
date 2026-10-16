@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Day ramp colours each selected unit by its site's rank by recording date; Light keeps its own ramp (graphite-palettes Task 5) | date: 2026-10-11]
 """Unit colours by recording day: ``RunData.site_order`` and the Day ramp in ``PlotPanel.selected``.
 
 Every settings file a test makes lives under ``tmp_path`` (``theme_env``)."""
@@ -65,4 +64,3 @@ def test_light_ignores_day_ramp(qt, theme_env, monkeypatch):
     monkeypatch.setattr(unit_palettes, '_palette', 'ramp')
     colours = [colour for _, colour in _colours(DictData(DATED, {}, {}, SITES), SELECTION)]
     assert colours == ['#1F6F4A', '#B5451F', '#3F6FA0', '#7A5C9E']
-# [AGENT EDIT END]

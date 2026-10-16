@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run code in a fresh interpreter that cannot import lab modules (multiphy project folder Task 1) | date: 2026-09-25]
 """Refuse every ``nems_lbhb`` and ``nems0`` module, in a child and in the test session.
 
 ``run_without_lab(code, cwd)`` prepends ``PRELUDE`` to ``code``: it installs a meta-path
@@ -49,4 +48,3 @@ def run_without_lab(code: str, cwd: Path) -> subprocess.CompletedProcess:
     env['PYTHONPATH'] = str(cwd)
     return subprocess.run([sys.executable, '-c', PRELUDE + code], cwd=cwd, env=env,
                           capture_output=True, text=True, timeout=600)
-# [AGENT EDIT END]

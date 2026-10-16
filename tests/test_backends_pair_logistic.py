@@ -1,26 +1,19 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic backend - calibrated per-project classifier (functional-likelihood Task 8) | date: 2026-09-27]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: module preamble required of every new module (Task 8 fix round 1) | date: 2026-09-27]
 """Tests of the ``pair_logistic`` backend on synthetic drift days: refusal of the templates tier,
 track recovery, registration, held-out-day calibration and its numerical probabilities."""
 from __future__ import annotations
 
-# [AGENT EDIT END]
 import copy
 import re
 
 import numpy as np
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the chunk-provenance test joins two groups' unit tables (event-optional Task 10 fix round 1) | date: 2026-10-10]
 import pandas as pd
-# [AGENT EDIT END]
 import pytest
 
 import multiphy.backends  # noqa: F401  (registers the built-ins)
 from multiphy.backends.local import pair_logistic
 from multiphy.backends.local.pair_logistic import SCORE_COLUMN, run_pair_logistic
 from multiphy.contract import registry
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the spec test reads Input (event-optional Task 10) | date: 2026-10-10]
 from multiphy.contract.inputs import Input
-# [AGENT EDIT END]
 from multiphy.contract.results import ScoreKind
 from multiphy.evaluation import evaluate_result
 
@@ -43,7 +36,6 @@ def drift_run():
     return days, _run(days)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an absent feature record is refused like absent waveform halves; the whole message is pinned (Task 8 fix round 1) | date: 2026-09-27]
 @pytest.mark.parametrize('absent', ['waveform_halves', 'feature_record'])
 def test_pair_logistic_refuses_templates_tier(absent):
     days = make_drift_days(n_neurons=8, seed=2)
@@ -53,13 +45,10 @@ def test_pair_logistic_refuses_templates_tier(absent):
         del features[cellid]['waveform_halves']
     else:
         del features[cellid]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal is the shared require_waveform_halves message, which names no fallback backend (event-optional Task 10) | date: 2026-10-10]
     message = (f'pair_logistic needs waveform halves from raw voltage; 1 units have none, first {cellid} '
                '(templates tier). Re-extract from raw voltage.')
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match=f'^{re.escape(message)}$'):
         run_pair_logistic(days.units, features, days.geometry, days.timing)
-# [AGENT EDIT END]
 
 
 def test_pair_logistic_recovers_synthetic_tracks(drift_run):
@@ -84,7 +73,6 @@ def test_train_and_calibration_days_disjoint(drift_run):
     assert model['training_groups'] == ['day0', 'day2'] and model['calibration_groups'] == ['day1']
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: behavioral check that the held-out day reaches only the calibration, never the classifier (Task 8 fix round 1) | date: 2026-09-27]
 def test_held_out_day_moves_only_the_calibration(drift_run, monkeypatch):
     days, baseline = drift_run
     real_examples = pair_logistic.labeled_examples
@@ -106,10 +94,8 @@ def test_held_out_day_moves_only_the_calibration(drift_run, monkeypatch):
     for key in ('center', 'scale', 'weights'):
         np.testing.assert_array_equal(after[key], before[key], err_msg=key)
     assert not np.allclose(after['calibration'], before['calibration'])
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: independent oracle of the fit: the classifier minimizes its objective on the training days only and the calibration minimizes its objective on the held-out day only, where pooling moves both measurably (Task 8 fix round 2) | date: 2026-09-27]
 def _design(x, center, scale):
     missing = ~np.isfinite(x)
     return np.column_stack(((np.where(missing, center, x) - center) / scale, missing.astype(float)))
@@ -194,7 +180,6 @@ def test_fit_uses_training_days_for_the_classifier_and_the_held_out_day_for_cali
     pooled_ab = calibration_on('pooled')[0]
     assert np.max(np.abs(pooled_ab - held_ab)) > 0.05, (pooled_ab, held_ab)
     assert not np.allclose(slope_intercept, pooled_ab, atol=1e-3)
-# [AGENT EDIT END]
 
 
 def test_pair_logistic_scores_are_calibrated(drift_run):
@@ -206,7 +191,6 @@ def test_pair_logistic_scores_are_calibrated(drift_run):
         "synthetic: trained on ['day0', 'day2'], calibrated on held-out ['day1']")
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: numerical oracle of the calibrated probability, independent of CalibratedPairModel (Task 8 fix round 1) | date: 2026-09-27]
 def test_scores_equal_the_calibrated_logistic_of_candidate_properties(drift_run):
     _, result = drift_run
     model = result.provenance.get('calibrated_model')['synthetic']
@@ -224,11 +208,8 @@ def test_scores_equal_the_calibrated_logistic_of_candidate_properties(drift_run)
     np.testing.assert_allclose(pairs[SCORE_COLUMN].to_numpy(dtype=float), expected, rtol=1e-10, atol=1e-12)
     uncalibrated = 1.0 / (1.0 + np.exp(-z))
     assert not np.allclose(pairs[SCORE_COLUMN].to_numpy(dtype=float), uncalibrated, equal_nan=True)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a held-out day too thin to calibrate on is refused with the group, days, counts and fix (final review fix round 1) | date: 2026-09-28]
 def test_thin_held_out_day_is_refused_with_counts():
     days = make_drift_days(seed=0)
     kept_day1 = days.units[days.units.session_id == 'day1'].cellid.iloc[0]
@@ -240,43 +221,33 @@ def test_thin_held_out_day_is_refused_with_counts():
                               "0 different-unit examples"), message
     assert 'at least 20' in message
     assert 'Widen radius_um, add days, or use functional_likelihood.' in message
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic scores with the peak-threshold neighbourhood waveform properties by default; the retired unitmatch_d10 value is refused (threshold neighbourhood) | date: 2026-10-04]
 _FUNCTIONAL_PROPERTIES = ('fingerprint_r', 'd_log_spont', 'd_log_rate_session', 'd_log_rate_shared', 'isi_cosine',
                           'acg_cosine', 'd_spike_width_ms')
 
 
 def test_model_properties_follow_waveform_channels():
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the subsets name the peak-to-peak correlations footprint (event-optional Task 1) | date: 2026-10-09]
     assert pair_logistic.model_properties('peak_threshold') == (
         *_FUNCTIONAL_PROPERTIES, 'waveform_r_local', 'footprint_r_local')
     assert pair_logistic.model_properties('full_array') == (*_FUNCTIONAL_PROPERTIES, 'waveform_r', 'footprint_r')
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match="waveform_channels is 'unitmatch_d10'"):
         pair_logistic.model_properties('unitmatch_d10')
 
 
 def test_spec_defaults_to_peak_threshold():
     option = next(o for o in pair_logistic.SPEC.options if o.name == 'waveform_channels')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: version 4: timing is optional (event-optional Task 10) | date: 2026-10-10]
     assert (pair_logistic.SPEC.version, option.default) == ('4', 'peak_threshold')
-    # [AGENT EDIT END]
 
 
 def test_run_records_waveform_channels(drift_run):
     _, result = drift_run
     assert result.provenance.get('waveform_channels') == 'peak_threshold'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved model properties name the peak-channel footprint correlation footprint_r_local (event-optional Task 1) | date: 2026-10-09]
     assert result.provenance.get('calibrated_model')['synthetic']['properties'] == [
         'fingerprint_r', 'd_log_spont', 'd_log_rate_session', 'd_log_rate_shared', 'isi_cosine', 'acg_cosine',
         'd_spike_width_ms', 'waveform_r_local', 'footprint_r_local']
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic runs without events and declares timing optional (event-optional Task 10) | date: 2026-10-10]
 def _anchored_errors(offsets: dict, truth: dict, anchor: str = 'day0') -> dict:
     """Each day's offset error once both the run's offsets and the true ones put ``anchor`` at 0."""
     return {s: abs((offsets[s] - offsets[anchor]) - (truth[s] - truth[anchor])) for s in truth}
@@ -305,10 +276,8 @@ def test_pl_spec_timing_optional():
     assert spec.version == '4'
     assert Input.TIMING in spec.optional
     assert Input.TIMING not in spec.requires
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a no-event group skipped before observation builds no chunks, so the run saves no chunk length (event-optional Task 10 fix round 1) | date: 2026-10-10]
 def test_pl_chunk_seconds_only_when_a_group_observed_chunks():
     days = make_drift_days(seed=0)
     lone = make_drift_days(n_neurons=6, seed=3, events=False)
@@ -325,4 +294,3 @@ def test_pl_chunk_seconds_only_when_a_group_observed_chunks():
     assert dict(group='lone', reason='1 session with single units; matching needs at least 2') in \
         provenance['skipped_groups']
     assert 'chunk_seconds' not in provenance
-# [AGENT EDIT END]

@@ -13,7 +13,6 @@ Do not pass trial-relative BAPHY spike samples directly. Record the source of
 the conversion in `clock_verification`; a descriptive string alone is not
 independent evidence that a conversion is correct.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01] -->
 For the verified BaphyKiloSort export format, `nems_lbhb/unit_match_lbhb/prepare_baphy.py`
 (the LBHB lab package) creates the source inputs without reading continuous voltage.
 Supply the actual paths from recording metadata and the completed sort-job record:
@@ -21,7 +20,6 @@ Supply the actual paths from recording metadata and the completed sort-job recor
 ```bash
 python -m nems_lbhb.unit_match_lbhb.prepare_baphy --parmfile PARMFILE --spikefile SPIKEFILE --recording-folder RECORDING_FOLDER --sort-job SORT_JOB --run-index RUN_INDEX --well ANIMAL:WELL --partition test --dataset-id DATASET_ID
 ```
-<!-- [AGENT EDIT END] -->
 
 It verifies the complete AP sample-number index, AP trial TTLs against the sort
 job, measured channel geometry, timestamp-correction backups, and source-sort
@@ -31,12 +29,10 @@ of the historical exporter restores native timestamps with its documented
 two-sample offset. This differs from a generic MATLAB-index conversion; the
 one-sample template-center convention is retained as a waveform-inspection
 caveat.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: BigNat runs write binaural names (bignat-names Task 2) | date: 2026-10-11] -->
 Stimulus names are kept whole, except in BigNat runs
 (`ReferenceClass = 'BigNat'`), which write one `wav:channel` per speaker with
 attenuation dropped; provenance `stimulus_names` maps recorded name → written
 name.
-<!-- [AGENT EDIT END] -->
 
 The default waveform window is 41 samples before and 41 after the native
 timestamp, matching the 82-sample centered input expected by the verified
@@ -103,11 +99,10 @@ in memory while reading the compressed source:
 python -m multiphy.extract_benchmark --manifest /path/to/source_manifest.json --waveform-storage streaming_summary
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the multiday archive command is retired; real days are project runs (Plan B Task 10) | date: 2026-09-28] -->
 Real days do not use this command: `launch extract` extracts them into a project
 (see [docs/project_folder.md](docs/project_folder.md)), and `run/project_run.py`
 runs a backend on them. The streaming mode writes no temporary spike-snippet file.
-<!-- [AGENT EDIT END] --> It preserves selected timestamps, full/half seeds,
+It preserves selected timestamps, full/half seeds,
 float32 snippet quantization, chronological accumulation order, filtering and
 complete gzip integrity checks. Memory scales with the number of planned
 summaries, not the length of the recording. The default remains `snippets`;
@@ -156,18 +151,13 @@ write a portable `result.json`, `evaluation.json`, status/provenance manifest,
 and `METHODS.md` under a unique `runs/` directory. Native DANT similarity is
 retained as similarity, not converted into a purported probability.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: benchmark archives have no GUI view; their CLI scoring is unchanged (run-curation Task 10) | date: 2026-10-05] -->
 Benchmark archives and collections have no GUI view; their CLI scoring is
 unchanged. The runner reads the persisted waveform/response features directly;
 it does not query the database or build a daily cache. A same-day project run
 (`launch run PROJECT --backend ID --day DAY`) opens inspect-only with
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day run opens with the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
 `python -m multiphy.viewer --run DIR`; reference neuron identities are not shown, and its
-<!-- [AGENT EDIT END] -->
 observations are within-recording temporal parts rather than recording days.
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fixed local model: section 3 keeps only native-score operating points (Task 2) | date: 2026-09-27] -->
 ## 3. Select a shared operating point
 
 For a separately labeled comparison at a shared empirical error target,
@@ -190,26 +180,15 @@ calibration assignment produces an explicit unavailable operating point. A small
 calibration population and dependent track links limit the risk estimate. Native
 results remain separate. The already inspected PRN069 pilot makes this an
 exploratory reanalysis.
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer runs no matcher; the local method runs from Python with TrialTiming (Task 3 fix round 2) | date: 2026-09-27] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cache builder is retired (Plan C Task 7) | date: 2026-10-02] -->
 The main viewer runs no matcher. To compare the
-<!-- [AGENT EDIT END] -->
 local `functional_likelihood` method, run it from Python with a `TrialTiming`
 per session (`runner.run(..., extra_inputs={'timing': timing})`, timing from
 `nems_lbhb.unit_match_lbhb.prepare_baphy.recover_baphy_timing`; see
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no benchmark_viewer --result: project runs come from launch run (run-curation Task 10) | date: 2026-10-05] -->
 [docs/contract.md](docs/contract.md), section 5), or on project days with
 `launch run` (see [docs/project_folder.md](docs/project_folder.md)), which passes
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run opens with the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
 each day's timing and opens with `python -m multiphy.viewer --run DIR`.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 The `run-backend` CLI builds no timing and refuses this method.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 ## 4. Train DeepUnitMatch explicitly
 
@@ -242,7 +221,6 @@ For a fixed missing-counterpart test, use a test archive alone with
 are selected by a reproducible hash independent of matching evidence. Save the
 view to a new cache path and give that same population to every method.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: collections are compared by CLI scoring; they have no GUI view (run-curation Task 10 fix round 1) | date: 2026-10-05] -->
 New collections namespace both session and observation identifiers, so multiple
 archives combine without session-name collisions. Existing collection manifests
 retain their original identifier policy. To compare methods, run each method
@@ -250,16 +228,11 @@ against the exact same collection and partition and score the results with
 `comparison_report --run RUN_DIRECTORY`; scientifically equivalent populations
 from different archive views can be compared in reports but are not
 interchangeable. Benchmark archives and collections have no GUI view; the
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer since the split (viewer-split final review) | date: 2026-10-07] -->
 viewer opens only project runs (`--run DIR`).
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 `benchmark_workflow` combines four explicit archives (`--training`,
 `--calibration`, `--test`, `--missing-test`), runs
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local ablation stages or their preflight (Task 2 fix round 1) | date: 2026-09-27] -->
 UnitMatch and both DANT presets, and explicitly starts official
-<!-- [AGENT EDIT END] -->
 DeepUnitMatch training plus inference. UnitMatch and DeepUnitMatch each run with
 native intermediate tracking and the common constrained tracker.
 It requires `--output` and `--source-checkout`; defaults are 300 autoencoder
@@ -279,17 +252,13 @@ Use `--min-stimulus-repeats N` only as an explicit input policy. It rebuilds pai
 evidence from measured saved features in both collections without copying voltage
 or fabricating unavailable responses. A lower minimum may retain noisier evidence;
 repeat counts and reliability remain recorded.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence-variant preflight is removed with the local stages (Task 2 fix round 1) | date: 2026-09-27] -->
-<!-- [AGENT EDIT END] -->
 Confirm shared exact sound conditions across temporal parts while choosing
 source recordings; a large number of different sounds does not establish overlap.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: workflow runs are scored by the CLI, not imported into a viewer (run-curation Task 10 fix round 1) | date: 2026-10-05] -->
 The workflow uses the same two collection paths for every method, so every
 alternative is scored on the same population. Include these runs in
 `comparison_report --run RUN_DIRECTORY` (repeat `--run` for each); their
 collections have no GUI view.
-<!-- [AGENT EDIT END] -->
 
 ### Scientific scope
 

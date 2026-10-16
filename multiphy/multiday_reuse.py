@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: reuse verified independent raw waveform summaries without rereading voltage | date: 2026-09-18]
 """Convert complete two-part temporal summaries into one real-day observation.
 
 This reads only archives, source manifests, small spike/geometry files, and raw
@@ -14,12 +13,8 @@ from pathlib import Path
 import numpy as np
 
 from .benchmark import load_dataset
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _pool_waveforms and _spike_features moved verbatim to extract/full_day.py and are imported back; the pooled full-day row is full_day.pool_day_row; pandas and _isi_acg left with them (multiphy project folder Task 9) | date: 2026-09-25]
 from .extract.full_day import _pool_waveforms, _spike_features, pool_day_row
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _checked_sample_spikes and waveform_sample_selection live in extract/unit_features.py (multiphy project folder Task 11) | date: 2026-09-25]
 from .extract.unit_features import _checked_sample_spikes, waveform_sample_selection
-# [AGENT EDIT END]
 from .waveform_preprocessing import SharedWaveformPreprocessor
 
 
@@ -34,14 +29,12 @@ def _path(value, manifest):
 
 def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
                       analysis_window, extraction_options):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names extract/full_day.py; multiday.py is retired (Plan B Task 8) | date: 2026-09-28]
     """Return a validated day summary, pooled by `extract/full_day.py`.
 
     The source manifest must be the original, unmodified preparation input whose
     hash was recorded during extraction. Complete ordinary archives only: no
     omission views, collections, missing source units, or partially covered days.
     """
-    # [AGENT EDIT END]
     date.fromisoformat(session_date)
     archive, manifest_path = Path(archive_path).resolve(), Path(source_manifest_path).resolve()
     manifest = json.loads((archive / 'manifest.json').read_text())
@@ -71,10 +64,8 @@ def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
     if (clock.get('sample_index_origin') != 'zero_based_voltage_row' or not clock.get('method')
             or provenance.get('clock_verification') != clock or provenance.get('n_samples') != spec['n_samples']):
         raise ValueError('Reuse requires the original verified acquisition sample clock')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reuse checks one raw file's identity, so a day of raw segments is refused (Plan C Task 2) | date: 2026-10-01]
     if isinstance(spec['raw_voltage'], (list, tuple)):
         raise ValueError('multiday reuse reads one raw file; this day has raw segments')
-    # [AGENT EDIT END]
     raw = _path(spec['raw_voltage'], manifest_path)
     stat = raw.stat()  # Deliberately no raw open, decompression, or voltage read.
     if (str(raw) != provenance.get('raw_source') or stat.st_size != provenance.get('raw_size_bytes')
@@ -95,7 +86,6 @@ def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
             raise ValueError('Invalid shared waveform preprocessing declaration')
         processing = SharedWaveformPreprocessor(spec['sample_rate'], len(geometry),
             **{k: shared[k] for k in ('highpass_hz', 'filter_order', 'padding_seconds', 'reference_channels') if k in shared}).metadata()
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: permit equivalent streaming summaries while preserving all scientific preprocessing checks | date: 2026-09-18]
         processing.update(chunk_seconds=1., output_dtype='float32')
         archived_processing = dict(provenance.get('waveform_preprocessing') or {})
         # Disk versus in-memory intermediate storage is operational metadata.
@@ -103,7 +93,6 @@ def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
         archived_processing.pop('storage', None)
         if processing != archived_processing:
             raise ValueError('Shared voltage preprocessing differs from archived raw means')
-        # [AGENT EDIT END]
     elif provenance.get('common_median') != spec.get('common_median', False):
         raise ValueError('Median reference preprocessing changed')
     units = tuple(spec['single_unit_ids'])
@@ -150,10 +139,8 @@ def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
                 pseudo_session = dataset.units.set_index('cellid').loc[cid, 'session_id']
                 if not np.array_equal(dataset.geometry[pseudo_session], geometry):
                     raise ValueError('Archived geometry differs from measured source channel order')
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the pooled full-day row moved to extract/full_day.pool_day_row; output unchanged (multiphy project folder Task 9) | date: 2026-09-25]
             feature = pool_day_row(rows, spikes, spec, analysis_window=analysis_window, windows=windows,
                                    max_spikes=opts.get('max_spikes', 1000))
-            # [AGENT EDIT END]
             cid = unit if unit.startswith(session + '-') else session + '-' + unit
             table.append(dict(cellid=cid, session_id=session, siteid=session, well=well,
                               session_date=session_date, recording_group=well, su_type='SU'))
@@ -169,4 +156,3 @@ def reuse_day_summary(archive_path, source_manifest_path, spec, *, session_date,
         analysis_window=list(analysis_window), physical_n_samples=spec['n_samples'],
         preprocessing=spec['preprocessing'], provenance=clean_provenance)
     return dict(table=table, features=features, geometry={session: geometry.copy()}, sources=[info], exclusions=[])
-# [AGENT EDIT END]

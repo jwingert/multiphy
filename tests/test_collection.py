@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify archive reuse, held-out partitions, omission integrity and tamper rejection | date: 2026-09-18]
 import json
 from pathlib import Path
 import numpy as np
@@ -9,11 +8,9 @@ from multiphy.benchmark_collection import create_collection, missing_counterpart
 from multiphy.benchmark_pairs import build_benchmark_pairs
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no registered backend tracks cached pair scores; fabricate results with the common tracker under a real id (Task 3) | date: 2026-09-27]
 def track(units, pairs, **kwargs):
     from multiphy.backends import result_from_pairs
     return result_from_pairs('unitmatch', '1', units, pairs, score_column='p_global', **kwargs)
-# [AGENT EDIT END]
 
 
 def archive(tmp_path, name, well, partition):
@@ -56,23 +53,16 @@ def test_missing_counterpart_view_is_reproducible_and_has_no_new_waveforms(tmp_p
 
 
 def test_collection_result_opens_shared_display_and_legacy_ids_remain_stable(tmp_path):
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: results come from the module track helper (Task 3) | date: 2026-09-27]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day mode builds the run's RunData (viewer-split Task 3) | date: 2026-10-06]
     from multiphy.viewer.modes import same_day
-    # [AGENT EDIT END]
     a = archive(tmp_path, 'a', 'animal:1', 'test')
     b = archive(tmp_path, 'b', 'animal:2', 'test')
     out = create_collection([a, b], tmp_path / 'collection', dataset_id='collection', root=tmp_path)
     ds = load_dataset(out)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered id; the current_local alias is gone (Task 1); fabricated under unitmatch via result_from_pairs (Task 3) | date: 2026-09-27]
     result = track(ds.units, ds.pairs.assign(p_global=0.),
-    # [AGENT EDIT END]
         provenance=dict(ds.metadata, benchmark_partition='test'))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day mode builds the run's RunData (viewer-split Task 3) | date: 2026-10-06]
     data = same_day.run_data(ds, result)
     assert len(set(data.sites().values())) == 4
     assert set(data.unit_map) == set(data.units().cellid)
-    # [AGENT EDIT END]
     manifest = json.loads((out / 'manifest.json').read_text())
     manifest.pop('observation_id_policy')
     (out / 'manifest.json').write_text(json.dumps(manifest))
@@ -210,4 +200,3 @@ def test_override_keeps_cache_containment_and_cli_wiring(tmp_path, monkeypatch, 
     collection.main(['--input', 'source', '--output', 'view', '--dataset-id', 'view', '--min-stimulus-repeats', '1'])
     assert captured[0]['pair_options']['min_repeats'] == 1
     assert capsys.readouterr().out.strip() == 'view'
-# [AGENT EDIT END]

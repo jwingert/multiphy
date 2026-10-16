@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reader registry, read_day order and the events_csv rules (multiphy project folder Task 6) | date: 2026-09-25]
 """Readers are found through one registry, run in role order, and events_csv validates trials, stimuli and baselines."""
 from __future__ import annotations
 
@@ -185,4 +184,3 @@ def test_read_day_order(tmp_path):
     read_day({'events': 'log.events', 'raw': 'log.raw', 'sort': 'log.sort'},
              {'sort': {}, 'raw': {}, 'events': {}}, {})
     assert log == ['sort', 'raw', 'events']
-# [AGENT EDIT END]

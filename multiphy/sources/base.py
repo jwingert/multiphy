@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reader protocol, DaySource, reader registry and read_day (multiphy project folder Task 6; Task 7: built-ins add phy and binary; Task 7 fix round 1: DaySource.channel_map) | date: 2026-09-25]
 """The reader protocol, ``DaySource``, the reader registry and ``read_day``.
 
 A reader turns one day's original files into a ``DaySource``; it never reads voltage. Each
@@ -40,7 +39,6 @@ def _empty_windows() -> np.ndarray:
 
 @dataclass(frozen=True)
 class DaySource:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw may hold segments in place of one path (Plan C Task 2) | date: 2026-10-01]
     """One day as its readers found it; every time is a 0-based sample on the raw clock.
 
     ``analysis_window`` is ``(start, stop)``, stop exclusive. ``spikes`` maps unit id to sorted
@@ -56,7 +54,6 @@ class DaySource:
     ``raw`` may hold ``'segments'``, a list of ``{'path': str, 'n_samples': int}`` in clock
     order, in place of ``'path'``: the recordings of one day on one clock, read as one file.
     """
-    # [AGENT EDIT END]
     sample_rate: float
     n_samples: int
     analysis_window: tuple
@@ -165,7 +162,6 @@ def clear_readers_for_tests() -> None:
 
 
 def file_role(reader, key: str) -> str:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: key raw or raw_<k> is a raw-role file (Plan C Task 2) | date: 2026-10-01]
     """The role a file of ``reader`` is recorded under.
 
     ``'raw'`` for key ``'raw'`` or any key starting ``'raw_'`` (one raw segment each), else the
@@ -173,7 +169,6 @@ def file_role(reader, key: str) -> str:
     """
     if key == 'raw' or key.startswith('raw_'):
         return 'raw'
-    # [AGENT EDIT END]
     for role in ROLES:
         if role in reader.roles:
             return role
@@ -211,4 +206,3 @@ def read_day(readers: dict, files: dict, options: dict) -> DaySource:
             raise TypeError(f'Reader {reader.id} returned {type(result).__name__}, not a DaySource.')
         day = result
     return day
-# [AGENT EDIT END]

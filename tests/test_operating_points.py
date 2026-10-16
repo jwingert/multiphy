@@ -1,8 +1,5 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify leakage-safe frozen empirical assignment operating points | date: 2026-09-18]
 import copy
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the score-kind refusal test replaces the score block (Follow-up Task 5) | date: 2026-09-29]
 import dataclasses
-# [AGENT EDIT END]
 import json
 
 import numpy as np
@@ -12,9 +9,7 @@ import pytest
 from multiphy.backends import MatchResult, save_result
 from multiphy.benchmark import BenchmarkDataset, save_dataset
 from multiphy import operating_points as op
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the score-kind refusal test builds a calibrated score block (Follow-up Task 5) | date: 2026-09-29]
 from multiphy.contract.results import ScoreBlock, ScoreKind
-# [AGENT EDIT END]
 
 
 HASH = 'a' * 64
@@ -52,9 +47,7 @@ def score_result(ds, partition='calibration', values=(.95, .2, .1, .8), backend=
     pairs['match_score'] = np.asarray(values, dtype=float)
     pairs['official_probability_ab'] = pairs.match_score
     pairs['official_probability_ba'] = pairs.match_score
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: the score kind lives on the result's score block, not a score_kind column (Task 12) | date: 2026-09-22]
     pairs['selected'], pairs['decision'] = False, 'scored'
-    # [AGENT EDIT END]
     p = dict(ds.metadata, input_manifest_sha256=digest, benchmark_partition=partition,
         official_source='upstream-url', verified_api_revision='pinned',
         implementation={'module': 'native.score', 'sha256': 'b' * 64, 'path': '/old/install'},
@@ -65,13 +58,11 @@ def score_result(ds, partition='calibration', values=(.95, .2, .1, .8), backend=
     if backend == 'deepunitmatch':
         p.update(checkpoint_sha256='c' * 64, checkpoint_probe='synthetic', network_preprocessing={'crop': 5},
                  training={'training_groups': ['train_well']})
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: 12-field MatchResult: uncalibrated native scores, native tracks, typed Provenance (Task 12) | date: 2026-09-22]
     from multiphy.contract.provenance import Provenance
     from multiphy.contract.results import ScoreBlock, ScoreKind, TrackKind
     return MatchResult(backend, 'native1', partition + '_scores', units, pairs, (), tuple(units.cellid), (),
                        ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE, 'native_intermediate',
                        Provenance.from_json(p)).validate()
-    # [AGENT EDIT END]
 
 
 def select(ds, scores=None, **kwargs):
@@ -92,21 +83,11 @@ def test_selection_uses_calibration_only_and_apply_never_reselects(tmp_path, mon
     result, metrics = op.apply_operating_point(ds, score_result(ds, 'test'), chosen, input_manifest_sha256=HASH)
     assert metrics['aggregate']['true_positive_pairs'] == 2
     assert metrics['aggregate']['false_positive_pairs'] == 0
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('threshold') == .8
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('operating_point_sha256') == chosen['sha256']
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('target_empirical_false_match_fraction') == 0.
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('calibration_selection')['true_positive_pairs'] == 2
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('calibration_source_groups') == ['calibration_well']
-    # [AGENT EDIT END]
 
 
 def test_score_one_missing_evidence_ties_and_no_qualified_point():
@@ -162,29 +143,17 @@ def test_native_scoring_configuration_and_identity_mismatch_rejected(change):
     chosen = select(ds)
     score = score_result(ds, 'test')
     if change == 'parameter':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
         score.provenance.get('parameters')['channel_radius'] = 200
-        # [AGENT EDIT END]
     elif change == 'revision':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
         score.provenance = score.provenance.merged(verified_api_revision='different')
-        # [AGENT EDIT END]
     elif change == 'implementation':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
         score.provenance.get('implementation')['sha256'] = 'e' * 64
-        # [AGENT EDIT END]
     elif change == 'reduction':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
         score.provenance = score.provenance.merged(extra={'pair_reduction': 'mean'})
-        # [AGENT EDIT END]
     elif change == 'archive':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
         score.provenance = score.provenance.merged(input_manifest_sha256='e' * 64)
-        # [AGENT EDIT END]
     elif change == 'waveform':
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
         score.provenance.get('waveform_provenance')['extraction_options'] = {'before': 999}
-        # [AGENT EDIT END]
     else:
         score.pairs.loc[0, 'official_probability_ab'] = .1
     with pytest.raises(ValueError, match='differ|identity|reduction'):
@@ -195,12 +164,8 @@ def test_population_fitted_native_parameters_and_install_locations_may_differ():
     ds = dataset()
     chosen = select(ds)
     score = score_result(ds, 'test')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     score.provenance.get('parameters').update(n_units=999, n_sessions=9, n_expected_matches=57)
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     score.provenance.get('implementation')['path'] = '/durable/install'
-    # [AGENT EDIT END]
     _, metrics = op.apply_operating_point(ds, score, chosen, input_manifest_sha256=HASH)
     assert metrics['aggregate']['true_positive_pairs'] == 2
     assert chosen['selection']['compatibility_excluded_population_parameters'] == list(op.POPULATION_PARAMETERS)
@@ -211,14 +176,10 @@ def test_deep_checkpoint_and_training_groups_are_part_of_frozen_contract():
     scores = score_result(ds, backend='deepunitmatch')
     chosen = select(ds, scores)
     score = score_result(ds, 'test', backend='deepunitmatch')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
     score.provenance = score.provenance.merged(extra={'checkpoint_sha256': 'd' * 64})
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match='checkpoint configurations differ'):
         op.apply_operating_point(ds, score, chosen, input_manifest_sha256=HASH)
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     score.provenance.get('training')['training_groups'] = ['test_well']
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match='verified training wells'):
         op.scoring_signature(ds, score)
 
@@ -242,9 +203,7 @@ def test_artifacts_are_hashed_immutable_cache_only_and_preserve_native_results(t
     inspected = inspect_run(applied)
     assert inspected
     saved_result = op.load_result(applied / 'result.json')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert saved_result.provenance.get('selection_file_sha256') == op._file_hash(output / 'selection.json')
-    # [AGENT EDIT END]
     assert all((applied / p).exists() for p in ('result.json', 'evaluation.json', 'METHODS.md', 'report.md'))
     assert 'not a newly prospective' in (applied / 'report.md').read_text()
     with pytest.raises(FileExistsError):
@@ -265,21 +224,15 @@ def test_explicit_parent_allows_only_test_omissions_without_reselection(monkeypa
     score.units = score.units[score.units.cellid.isin(ids)].copy()
     score.pairs = score.pairs[score.pairs.cellid_a.isin(ids) & score.pairs.cellid_b.isin(ids)].copy()
     score.unmatched = tuple(score.units.cellid)
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (typed dataset_id and manifest hash) (Task 12) | date: 2026-09-22]
     score.provenance = score.provenance.merged(dataset_id='missing', input_manifest_sha256='d'*64,
                                                extra=dict(block_id='missing', cache_built='new'))
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     score.provenance.get('waveform_provenance').update(dataset_id='missing', block_id='missing', cache_built='new')
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match='explicit selection parent'):
         op.apply_operating_point(view, score, chosen, input_manifest_sha256='d'*64)
     monkeypatch.setattr(op, 'select_operating_point', lambda *a, **k: pytest.fail('Missing view must not reselect'))
     result, metrics = op.apply_operating_point(view, score, chosen, input_manifest_sha256='d'*64,
         selection_dataset=ds, selection_manifest_sha256=HASH)
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('threshold') == .8
-    # [AGENT EDIT END]
     assert metrics['aggregate']['true_positive_pairs'] == 1
     assert metrics['aggregate']['true_unmatched_units'] == metrics['aggregate']['correctly_unmatched_units'] == 1
     changed = copy.deepcopy(view)
@@ -311,7 +264,6 @@ def test_deleting_a_competitor_cannot_create_a_calibration_operating_point():
     native.pairs = native.pairs.drop(index=1)
     with pytest.raises(ValueError, match='pair coverage'):
         select(ds, native)
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no frozen local scores to delete from (Task 2) | date: 2026-09-27]
 
 
 def test_nested_real_collection_namespaces_share_frozen_cutoff(tmp_path):
@@ -339,33 +291,25 @@ def test_nested_real_collection_namespaces_share_frozen_cutoff(tmp_path):
     scored = score_result(view, 'test', values=(.95, .1), digest=view_hash)
     result, evaluation = op.apply_operating_point(view, scored, chosen, input_manifest_sha256=view_hash,
         selection_dataset=full, selection_manifest_sha256=full_hash)
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('threshold') == chosen['selection']['threshold'] == .8
-    # [AGENT EDIT END]
     assert evaluation['aggregate']['true_positive_pairs'] == evaluation['aggregate']['correctly_unmatched_units'] == 1
     assert set(result.units.cellid) == set(scored.units.cellid)  # Actual view IDs are retained.
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
     assert result.provenance.get('verified_view_correspondence_sha256')
-    # [AGENT EDIT END]
     altered = copy.deepcopy(view)
     altered.pairs.loc[altered.pairs.index[-1], 'siteid_a'] = 'invented_prefix:test0'
     with pytest.raises(ValueError, match='unverified observation namespace'):
         op.apply_operating_point(altered, scored, chosen, input_manifest_sha256=view_hash,
             selection_dataset=full, selection_manifest_sha256=full_hash)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: generated notes describe only the remaining native-score and checkpoint checks (Task 2 fix round 2) | date: 2026-09-27]
 def test_generated_notes_claim_no_fitted_model(tmp_path):
     op._notes(tmp_path, 'select', tmp_path)
     text = ((tmp_path / 'METHODS.md').read_text() + (tmp_path / 'report.md').read_text()).lower()
     assert 'fitted model' not in text
     assert 'local probability calibration' not in text
     assert 'checkpoint hashes' in text
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a candidate-pair backend's scores are uncalibrated like every native score (Plan B Task 9) | date: 2026-09-28]
 def test_random_baseline_scores_are_uncalibrated():
     from multiphy.contract import registry
     from tests.example_backend import RandomBaselineBackend
@@ -374,7 +318,6 @@ def test_random_baseline_scores_are_uncalibrated():
     try:
         result = score_result(ds, backend='random_baseline')
         assert op._validate_scores(ds, result, 'calibration', HASH) == 'uncalibrated_score'
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a sparse candidate table no longer defines coverage (Plan B Task 9 fix round 1) | date: 2026-09-29]
         sparse = copy.deepcopy(ds)
         dropped = ('calibration0-u0', 'calibration1-u1')
         keep = ~((sparse.pairs.cellid_a == dropped[0]) & (sparse.pairs.cellid_b == dropped[1]))
@@ -384,13 +327,10 @@ def test_random_baseline_scores_are_uncalibrated():
         assert set(sparse_result.units.cellid) == set(result.units.cellid)
         with pytest.raises(ValueError, match='Saved score pair coverage is incomplete'):
             op._validate_scores(sparse, sparse_result, 'calibration', HASH)
-        # [AGENT EDIT END]
     finally:
         registry.clear_for_tests()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a calibrated score kind is refused (Follow-up Task 5) | date: 2026-09-29]
 def test_calibrated_score_kind_is_refused():
     ds = dataset()
     # a calibrated block needs a calibration_reference to pass result.validate(), so the kind check is what refuses
@@ -399,10 +339,8 @@ def test_calibrated_score_kind_is_refused():
     with pytest.raises(ValueError) as err:
         op._validate_scores(ds, result, 'calibration', HASH)
     assert str(err.value) == "Score kind 'calibrated_probability' does not match the expected 'uncalibrated_score'"
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: same-session score rows are ignored for selection and coverage (native-same-day Task 5) | date: 2026-10-11]
 def _with_same_session_rows(ds, partition):
     scores = score_result(ds, partition)
     extra = pd.DataFrame([dict(cellid_a=f'{partition}{s}-u0', cellid_b=f'{partition}{s}-u1', fingerprint_r=.8,
@@ -425,4 +363,3 @@ def test_same_session_rows_leave_selection_unchanged():
     assert metrics['aggregate']['true_positive_pairs'] == 2
     assert metrics['aggregate']['false_positive_pairs'] == 0
     assert result.tracks == (('test0-u0', 'test1-u0'), ('test0-u1', 'test1-u1'))
-# [AGENT EDIT END]

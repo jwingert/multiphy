@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: complete reproducible held-out local and DeepUnitMatch comparison after verified extraction | date: 2026-09-18]
-# [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no local ablations (Task 2) | date: 2026-09-27]
 """One-off dependency workflow: collections, published matchers, official training.
 
 This explicitly starts real training. Outputs are cache-only and completed
@@ -200,9 +198,7 @@ Minimum stimulus repeats override: {config['min_stimulus_repeats']}; None preser
                               if config['min_stimulus_repeats'] is not None else None))
             return str(result), [result / 'manifest.json']
         collections[label] = flow.stage(f'collection_{label}', make)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local fixed-model stages or their evidence preflight (Task 2) | date: 2026-09-27]
     for label, path in collections.items():
-    # [AGENT EDIT END]
         presets = [('unitmatch_native', 'unitmatch', {'tracking': 'native_intermediate'}),
                    ('unitmatch_constrained', 'unitmatch', {'tracking': 'common_constrained'}),
                    ('dant_waveform', 'dant', {'settings': default_dant_settings('waveform_acg')}),
@@ -259,4 +255,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
-# [AGENT EDIT END]

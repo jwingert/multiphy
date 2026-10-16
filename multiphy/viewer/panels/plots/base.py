@@ -1,24 +1,18 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the plot panel base, from gui.py:302-341 (SafeCanvas, PlotTools) and gui.py:372-483 (PlotPanel); it reads the state's RunData (viewer-split Task 4) | date: 2026-10-06]
 """The base of every plot panel: a canvas that tolerates transient dock geometry, a small toolbar,
 wheel zoom, and the selected units read from the state's ``RunData``."""
 import numpy as np
 
 from multiphy import clusters as cl
 from multiphy.viewer import display
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: plots draw in the theme's matplotlib settings and restyle on a switch (launcher-gui Task 8) | date: 2026-10-07]
 import matplotlib
 
 from multiphy.viewer import theme
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selected() reads the Day ramp (graphite-palettes Task 5) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.qt import (Figure, FigureCanvasQTAgg, NavigationToolbar2QT, QtCore,
                                             QtWidgets)
 
 
 class SafeCanvas(FigureCanvasQTAgg):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a redraw matplotlib queued before the canvas was deleted returns quietly instead of raising inside the next processEvents (day-table-keys Task 1) | date: 2026-10-14]
     """Canvas that tolerates transient dock geometry and deleted windows. A redraw queued before the canvas was
     deleted is skipped."""
 
@@ -34,7 +28,6 @@ class SafeCanvas(FigureCanvasQTAgg):
         except RuntimeError as exc:
             if 'already deleted' not in str(exc):
                 raise
-    # [AGENT EDIT END]
 
     def draw(self):
         # Qt can briefly allocate a zero-height canvas while arranging docks.
@@ -67,22 +60,18 @@ class PlotTools(NavigationToolbar2QT):
             if a.text() == 'Home':
                 a.setToolTip('reset the view (also: double-click a plot)')
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the toolbar icons are rebuilt after a theme switch; matplotlib colours them from the toolbar's palette (launcher-gui Task 8) | date: 2026-10-07]
     def restyle(self) -> None:
         """Rebuild every tool icon, so a dark palette gets light icons and a light one dark icons."""
         for text, tooltip, image, callback in self.toolitems:
             if callback in self._actions:
                 self._actions[callback].setIcon(self._icon(image + '.png'))
-    # [AGENT EDIT END]
 
 
 class PlotPanel(QtWidgets.QWidget):
     panel_id = 'plot'
     panel_title = 'Plot'
     nrows, ncols = 1, 1
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a panel that draws a loaded run with nothing selected sets always_draws (drift-view Task 4) | date: 2026-10-08]
     always_draws = False      # True: draw whenever a run is loaded, even with no row or selection
-    # [AGENT EDIT END]
 
     def __init__(self, state, parent=None):
         super().__init__(parent)
@@ -105,9 +94,7 @@ class PlotPanel(QtWidgets.QWidget):
         self.axes = self.fig.subplots(self.nrows, self.ncols, squeeze=False).ravel()
         for a in self.axes:
             a.tick_params(labelsize=7)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a new panel's figure starts in the active theme (launcher-gui Task 8) | date: 2026-10-07]
         theme.style_figure(self.fig)
-        # [AGENT EDIT END]
         self.canvas.mpl_connect('scroll_event', self._wheel)
         self.canvas.mpl_connect('button_press_event', self._click)
         state.changed.connect(self.refresh)
@@ -145,7 +132,6 @@ class PlotPanel(QtWidgets.QWidget):
         self.tools.update()
         self.canvas.draw_idle()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Day ramp colours each selected unit by its site's rank by recording date on Graphite and Dark (graphite-palettes Task 5) | date: 2026-10-11]
     def selected(self):
         """[(cellid, UnitData, colour)] for every selected unit the run has, in selection order.
 
@@ -164,7 +150,6 @@ class PlotPanel(QtWidgets.QWidget):
             return [(c, data.unit(c), ramp[order.index(str(sites[c]))]) for c in sel]
         cols = display.unit_colors(len(sel))
         return [(c, data.unit(c), cols[i]) for i, c in enumerate(sel)]
-    # [AGENT EDIT END]
 
     def label_for(self, cellid):
         """The unit's day name; with the unit label once two selected units share its day."""
@@ -176,7 +161,6 @@ class PlotPanel(QtWidgets.QWidget):
             return f'{day_name} {cl.unit_label(cellid, site)}'
         return day_name
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: refresh runs in the theme's matplotlib settings and styles the cleared figure before the panel draws; restyle rebuilds the icons and redraws, resetting zoom and pan (launcher-gui Task 8) | date: 2026-10-07]
     def refresh(self):
         with matplotlib.rc_context(theme.plot_rc(display.colors())):
             r = self.state.row
@@ -184,9 +168,7 @@ class PlotPanel(QtWidgets.QWidget):
                 a.clear()
                 a.tick_params(labelsize=7)
             theme.style_figure(self.fig)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an always_draws panel draws a loaded run with nothing selected (drift-view Task 4) | date: 2026-10-08]
             if r is not None or self.state.selection or (self.always_draws and self.state.data is not None):
-                # [AGENT EDIT END]
                 try:
                     self.draw(r)
                 except Exception as exc:          # never let one panel kill the app
@@ -199,8 +181,6 @@ class PlotPanel(QtWidgets.QWidget):
         """Recolour the toolbar icons and redraw in the active theme; zoom and pan reset."""
         self.tools.restyle()
         self.refresh()
-    # [AGENT EDIT END]
 
     def draw(self, r):
         raise NotImplementedError
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: extract_day writes a day's halves and full day once, from its normalized source, matching the old extraction path (multiphy project folder Task 10, D11 written once) | date: 2026-09-25]
 """``extract_day`` for the raw tier: one pipeline writes each day's halves and full day, once.
 
 The halves and full-day features equal the old path's (``extract_manifest`` plus
@@ -33,9 +32,7 @@ from multiphy.project.folder import Project, ProjectLocked
 from multiphy.project.identity import SourceChanged, SourceMissing
 from multiphy.sources.base import clear_readers_for_tests
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: the full day is checked against an oracle that does not run pool_day_row | date: 2026-09-25]
 from .full_day_oracle import assert_pooled_from_halves
-# [AGENT EDIT END]
 from .lab_blocker import run_without_lab
 from .synthetic_day import OPTIONS, write_day, write_legacy_inputs
 
@@ -185,11 +182,9 @@ def test_extract_day_matches_old_path(tmp_path):
     for unit in sd.units:
         np.testing.assert_equal(_without_preprocessing(new_full['features'][unit]),
                                 _without_preprocessing(summary['features']['D1-' + unit]))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: both full days come from pool_day_row, so each is also checked against the old halves by an oracle that does not run it | date: 2026-09-25]
         cellids = old_halves.labels.loc[old_halves.labels.source_unit_id == unit, 'cellid']
         assert_pooled_from_halves(new_full['features'][unit], [old_halves.features[c] for c in cellids],
                                   sd.spikes[unit], spec, tuple(spec['analysis_window']))
-        # [AGENT EDIT END]
     table = new_full['table'].set_index('cellid')
     assert table['eligible'].tolist() == [True, True, True]
     assert table['exclusion_reason'].tolist() == ['', '', '']
@@ -425,14 +420,12 @@ def test_lock_held(tmp_path):
     assert not project.day_dir('D2').exists()
 
     # The tier is checked under the lock, which is then released; nothing is written.
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: templates is a tier now, and a day without raw runs it by default; the raw tier is asked for by name (multiphy project folder Task 13) | date: 2026-09-25]
     with pytest.raises(ValueError, match='Unknown tier bogus.'):
         _extract(project, tmp_path, tier='bogus')
     add_day(project, 'D2', readers={'sort': 'phy', 'events': 'events_csv'},
             reader_options=_options(sd, day='D2'), date='2026-01-02', date_source='user')
     with pytest.raises(ValueError, match='Day D2 has no raw file.'):
         extract_day(project, 'D2', tier='raw', scratch_root=tmp_path / 'scratch')
-    # [AGENT EDIT END]
     for day in ('D1', 'D2'):
         assert _listing(project.day_dir(day)) == []
     assert project.read()['days']['D1'] == json.loads(before)['days']['D1']
@@ -456,9 +449,7 @@ def test_geometry_mismatch_refused(tmp_path, monkeypatch):
     assert not (day_dir / '.extract.lock').exists()
     assert not (tmp_path / 'scratch').exists()  # refused before any voltage was read
     assert _project_json(project) == before
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: pin project_folder.md, section 9: the geometry is checked after the day is normalized, so source/ stays | date: 2026-09-25]
     assert _listing(day_dir) == ['source']
-    # [AGENT EDIT END]
 
     # A project geometry recorded by another day while this one was extracting is checked at the update.
     # The features were already published by then: they stay, unrecorded, for the next extraction to replace.
@@ -491,7 +482,6 @@ def test_geometry_mismatch_refused(tmp_path, monkeypatch):
     assert project.read()['identity']['geometry_sha256'] == _geometry_sha256(sd.geometry)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: pin project_folder.md, section 9: a reader's refusal comes before the day is normalized, so nothing is written | date: 2026-09-25]
 def test_reader_refusal_writes_nothing(tmp_path):
     sd = write_day(tmp_path / 'in', 'D1')
     sd.events_path.write_text('kind,start,stop,trial,condition\ntrial,0,500,1,\ntrial,400,800,2,\n')
@@ -501,7 +491,6 @@ def test_reader_refusal_writes_nothing(tmp_path):
         _extract(project, tmp_path)
     assert _listing(project.day_dir('D1')) == []
     assert _project_json(project) == before
-# [AGENT EDIT END]
 
 
 def test_failed_write_leaves_nothing(tmp_path, monkeypatch):
@@ -590,10 +579,8 @@ def test_failed_write_leaves_nothing(tmp_path, monkeypatch):
     assert f"reused source {result['source_id']}" in steps
     assert steps[-2:] == [PUBLISHED_OVER_LEFTOVER, RECORDING]
     assert _listing(day_dir) == ['features', 'source']
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a raw-tier day added without events extracts; its empty stimuli list was refused before (microbundle walkthrough) | date: 2026-10-08]
 def test_day_without_events_extracts(tmp_path):
     sd = write_day(tmp_path / 'in', 'D1')
     project = Project.create(tmp_path / 'lab', 'P', group='G')
@@ -610,4 +597,3 @@ def test_day_without_events_extracts(tmp_path):
     full = load_full_day(features / 'full')['features']
     assert sorted(full) == ['D1:0', 'D1:1', 'D1:2']
     assert all(row['fingerprints'] == {} for row in full.values())
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify streamed raw waveform extraction and explicit clock provenance | date: 2026-09-17]
 import gzip
 import json
 import numpy as np
@@ -106,7 +105,6 @@ def test_manifest_end_to_end_and_clock_refusal(tmp_path, monkeypatch, separate_s
     assert not list(runtime.iterdir())
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: prevent accidental snippet output into the code tree and verify failed extraction cleanup | date: 2026-09-18]
 def test_scratch_location_rejects_relative_repository_and_symlink_escape(tmp_path):
     from pathlib import Path
     from multiphy.paths import extraction_scratch_root
@@ -140,5 +138,3 @@ def test_reader_failure_cleans_only_owned_scratch_child(tmp_path):
             pytest.fail('Truncated gzip must not be accepted')
     assert list(scratch.iterdir()) == [sentinel]
     assert sentinel.read_text() == 'retain another job'
-# [AGENT EDIT END]
-# [AGENT EDIT END]

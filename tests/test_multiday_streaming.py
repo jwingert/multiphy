@@ -1,18 +1,13 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: independently verify streaming actual-day extraction and raw-summary reuse without snippet files | date: 2026-09-18]
 import builtins
 import copy
 import json
 from pathlib import Path
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: numpy and pandas were used only by the dropped multiday tests (Plan B Task 8) | date: 2026-09-28]
-# [AGENT EDIT END]
 import pytest
 
 from tests.test_multiday_reuse import source, reused
 from multiphy.benchmark import load_dataset, save_dataset
 from multiphy.extract_benchmark import extract_manifest
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: multiday.py is retired; no multiday import (Plan B Task 8) | date: 2026-09-28]
-# [AGENT EDIT END]
 from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
 
 
@@ -25,8 +20,6 @@ def shared_source(tmp_path, session='DAY001a'):
     return manifest, spec, options
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the multiday streaming tests and their value-comparison helper left with multiday.py (Plan B Task 8) | date: 2026-09-28]
-# [AGENT EDIT END]
 @pytest.mark.parametrize('storage', ['snippets', 'streaming_summary'])
 def test_reuse_accepts_both_operational_storage_modes_and_still_checks_transforms(tmp_path, monkeypatch, storage):
     manifest, spec, options = shared_source(tmp_path)
@@ -49,4 +42,3 @@ def test_reuse_accepts_both_operational_storage_modes_and_still_checks_transform
         location = save_dataset(changed, tmp_path / 'cache' / next(iter(change)), cache_root=tmp_path / 'cache')
         with pytest.raises(ValueError, match='preprocessing differs'):
             reused(location, manifest, spec, options)
-# [AGENT EDIT END]

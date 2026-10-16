@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tests that the upstream backends save the drift they applied, read through the drift frame (drift-view Task 5) | date: 2026-10-08]
 """Upstream backends save the drift their own code applied; the drift frame reads it back."""
 import hashlib
 import types
@@ -183,10 +182,8 @@ def test_real_unitmatch_per_shank(tmp_path):
         assert row[2] == pytest.approx(float(np.mean(reg['shank_offsets_um'][day])))
     frame = _real_frame(result)
     assert frame.anchor == 'day0'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tests that dant runs save the motion DANT kept, read through the drift frame (drift-view Task 6) | date: 2026-10-08]
 import copy
 import functools
 from types import SimpleNamespace
@@ -334,10 +331,8 @@ def test_real_dant_linear_offsets(tmp_path, monkeypatch):
         c: float(-(scale * linear[sid[i]] * locations[i, 1] + constant[sid[i]]))
         for i, c in enumerate(eligible.cellid)}
     assert reg['depth_scale']['day1'] != 1.0 and reg['depth_scale']['day2'] != 1.0
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tests that deepunitmatch runs save each day pair's drift, read through the drift frame (drift-view Task 7) | date: 2026-10-08]
 import contextlib
 import dataclasses
 
@@ -483,4 +478,3 @@ def test_real_deepunitmatch_pair_drifts(tmp_path, monkeypatch):
     assert frame.anchor == 'day0'
     for column, shift in zip(frame.columns[1:], (-40.0, -10.0)):
         assert abs(unit_depth(frame, column, 'x', 100.0, 30.0) - 100.0 - shift) <= 1.0, column.session
-# [AGENT EDIT END]

@@ -1,11 +1,8 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selections of extracted project days (Plan B Task 1) | date: 2026-09-28]
 """A ``Selection`` names one day, or two or more days, of a project and builds their dataset."""
 from __future__ import annotations
 
 import hashlib
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the signature test reads parameter order (event-optional Task 2) | date: 2026-10-09]
 import inspect
-# [AGENT EDIT END]
 import json
 from pathlib import Path
 import typing
@@ -20,7 +17,6 @@ from multiphy.contract.inputs import RawWaveformBundle
 from multiphy.launch import commands
 from multiphy.project import folder
 from multiphy.project.folder import RUNS_DIR, Project
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selection_inputs, read_source_entry and the runner they are checked against (launcher-gui Task 1) | date: 2026-10-07]
 import numpy as np
 
 from multiphy.contract.inputs import Input
@@ -30,7 +26,6 @@ from multiphy.run import runner
 from multiphy.sources.normalize import read_source, read_source_entry
 
 from .synthetic_day import SyntheticDay, extracted_project, write_day, write_legacy_inputs
-# [AGENT EDIT END]
 
 WEAK_REASON = 'Too few spikes in temporal split.'
 
@@ -68,7 +63,6 @@ def test_days_sorted_and_record(weak):
     assert [d['day'] for d in record['days']] == ['D1', 'D2']
     assert {d['features'] for d in record['days']} == {'full'}
     assert selection.sha256() == hashlib.sha256(selection.record_bytes()).hexdigest()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - the whole record and its bytes against an expectation built from the project folder, not from the implementation (Plan B Task 1) | date: 2026-09-28]
     identity = weak.read()['identity']
     expected = {
         'schema_version': 1, 'kind': 'multiphy_selection', 'project': 'P',
@@ -83,7 +77,6 @@ def test_days_sorted_and_record(weak):
     expected_bytes = (json.dumps(expected, indent=2, sort_keys=True) + '\n').encode()
     assert selection.record_bytes() == expected_bytes
     assert selection.sha256() == hashlib.sha256(expected_bytes).hexdigest()
-    # [AGENT EDIT END]
 
 
 def test_across_days_dataset_pairs_every_cross_day_unit(weak):
@@ -91,23 +84,18 @@ def test_across_days_dataset_pairs_every_cross_day_unit(weak):
     assert isinstance(dataset, AcrossDaysDataset)
     assert len(dataset.units) == 6
     assert len(dataset.pairs) == 9
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pairs are exactly every eligible D1 unit with every D2 unit, no duplicates (Plan B Task 1 fix round 1) | date: 2026-09-28]
     got = [frozenset((a, b)) for a, b in zip(dataset.pairs.cellid_a, dataset.pairs.cellid_b)]
     assert len(got) == len(set(got))
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit ids and pairs against the synthetic days' known clusters 0-2 (D1:4 weak, cluster 3 mua), not against the dataset under test (Plan B Task 1 fix round 1, a2) | date: 2026-09-28]
     d1 = ('D1:0', 'D1:1', 'D1:2')
     d2 = ('D2:0', 'D2:1', 'D2:2')
     assert sorted(dataset.units.cellid) == sorted(d1 + d2)
     assert dict(zip(dataset.units.cellid, dataset.units.session_id)) == {
         **{c: 'D1' for c in d1}, **{c: 'D2' for c in d2}}
     assert set(got) == {frozenset((a, b)) for a in d1 for b in d2}
-    # [AGENT EDIT END]
     assert dataset.metadata['selection'] == 'across_days'
     assert dataset.metadata['input_manifest_sha256'] == Selection(weak, ('D1', 'D2')).sha256()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day names, insertion order and dates disagree, so only a date sort passes (Plan B Task 1 fix round 1) | date: 2026-09-28]
 def test_days_sort_by_date_not_name_or_order(tmp_path):
     project = _open(extracted_project(tmp_path, days=('C', 'A')))  # C on 2026-01-01, A on 2026-01-02
     sd = write_day(tmp_path / 'in', 'B', seed=2, date='2025-12-31')
@@ -150,7 +138,6 @@ def test_same_day_timing_does_not_depend_on_eligible_units(weak, monkeypatch):
 
     monkeypatch.setattr(selection_module, 'load_dataset', refuse)
     assert set(Selection(weak, ('D1',)).timing()) == {'recording0000_part000', 'recording0000_part001'}
-# [AGENT EDIT END]
 
 
 def test_across_days_bundle_shape_and_timing(weak):
@@ -161,7 +148,6 @@ def test_across_days_bundle_shape_and_timing(weak):
     assert set(selection.timing()) == {'D1', 'D2'}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days bundle names each day's source manifest hash as raw_source, so UnitMatch, DANT and DeepUnitMatch accept it (e2e fix) | date: 2026-10-11]
 def test_across_days_bundle_passes_upstream_check(weak):
     from multiphy.backends._upstream import prepare_bundle
 
@@ -176,7 +162,6 @@ def test_across_days_bundle_passes_upstream_check(weak):
     bundle.provenance.pop('raw_source')
     with pytest.raises(ValueError, match='^Raw waveform provenance requires raw_source and split_method$'):
         prepare_bundle(dataset.units, bundle)
-# [AGENT EDIT END]
 
 
 def test_same_day_timing_keys_both_halves(weak):
@@ -229,7 +214,6 @@ def test_selection_of_run_roundtrip_and_refusal(tmp_path):
     reopened = selection_of_run(run_dir)
     assert reopened.record_bytes() == saved
     assert reopened.days == ('D1', 'D2')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a changed features id gets the run-mismatch refusal (Plan B Task 1 fix round 1) | date: 2026-09-28]
     original = project.read()['days']['D1']['features']['full']
     project.update(lambda manifest: manifest['days']['D1']['features'].update(full='f' * 64))
     with pytest.raises(ValueError) as refused:
@@ -238,8 +222,6 @@ def test_selection_of_run_roundtrip_and_refusal(tmp_path):
                                   'the project changed after this run')
     project.update(lambda manifest: manifest['days']['D1']['features'].update(full=original))
     assert selection_of_run(run_dir).record_bytes() == saved
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a cleared features id and a removed day get the same run-mismatch refusal (Plan B Task 1 review 3) | date: 2026-09-28]
     mismatch = (f'{run_dir.resolve()}/selection.json no longer matches project P; '
                 'the project changed after this run')
     project.update(lambda manifest: manifest['days']['D1']['features'].update(full=None))
@@ -254,7 +236,6 @@ def test_selection_of_run_roundtrip_and_refusal(tmp_path):
     assert str(refused.value) == mismatch
     project.update(lambda manifest: manifest['days'].update(D2=removed))
     assert selection_of_run(run_dir).record_bytes() == saved
-    # [AGENT EDIT END]
     _set_probe(project, 'NP1')
     with pytest.raises(ValueError, match='no longer matches project P'):
         selection_of_run(run_dir)
@@ -262,13 +243,11 @@ def test_selection_of_run_roundtrip_and_refusal(tmp_path):
     empty.mkdir()
     with pytest.raises(FileNotFoundError, match='has no selection.json; it is not a project run'):
         selection_of_run(empty)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a folder outside any project with no selection.json gets the prescribed missing-selection refusal (Plan B Task 1 fix round 2) | date: 2026-09-28]
     outside = tmp_path / 'outside'
     outside.mkdir()
     with pytest.raises(FileNotFoundError) as refused_outside:
         selection_of_run(outside)
     assert str(refused_outside.value) == f'{outside.resolve()} has no selection.json; it is not a project run'
-    # [AGENT EDIT END]
 
 
 def test_probe_reaches_both_bundles(tmp_path):
@@ -303,7 +282,6 @@ def test_conditions_per_day(tmp_path):
 
 def test_selection_signatures():
     hints = typing.get_type_hints
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: write_day takes events and extracted_project takes no_event_days, each as its last parameter (event-optional Task 2) | date: 2026-10-09]
     assert hints(write_day) == {
         'folder': Path, 'day': str, 'seed': int, 'date': str, 'weak_unit': bool, 'gzip_raw': bool,
         'with_templates': bool, 'conditions': tuple, 'events': bool, 'return': SyntheticDay}
@@ -312,7 +290,6 @@ def test_selection_signatures():
         'weak_units': tuple, 'no_event_days': tuple, 'return': Path}
     assert list(inspect.signature(write_day).parameters)[-1] == 'events'
     assert list(inspect.signature(extracted_project).parameters)[-1] == 'no_event_days'
-    # [AGENT EDIT END]
     assert hints(fingerprint_matrix) == {'rows': list, 'return': tuple}
     assert folder.RUNS_DIR == 'runs'
     assert "RUNS_DIR = " not in Path(commands.__file__).read_text()  # commands imports the one in folder.py
@@ -333,19 +310,14 @@ def test_selection_signatures():
     assert hints(AcrossDaysDataset.subset) == {'cellids': list, 'return': AcrossDaysDataset}
     assert hints(AcrossDaysDataset.waveform_bundle) == {'return': RawWaveformBundle}
     assert benchmark.fingerprint_matrix is fingerprint_matrix
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the signatures of selection_inputs and read_source_entry (launcher-gui Task 1) | date: 2026-10-07]
     assert hints(selection_inputs) == {'project': Project, 'days': tuple, 'return': frozenset}
     assert hints(read_source_entry) == {'source_dir': Path, 'return': dict}
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a selection's inputs predicted from its source manifests, checked against the built inputs (launcher-gui Task 1) | date: 2026-10-07]
 EIGHT_INPUTS = frozenset({Input.UNITS, Input.CANDIDATE_PAIRS, Input.FEATURES, Input.WAVEFORM_HALVES,
                           Input.GEOMETRY, Input.SPIKE_TIMES, Input.TIMING, Input.FINGERPRINT})
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: D1 with trial events, D2 without; the timing and evidence of a selection that mixes them (event-optional Task 4) | date: 2026-10-09]
 @pytest.fixture(scope='module')
 def mixed(tmp_path_factory) -> Project:
     """D1 with trial events (conditions A and B); D2 written and added without events."""
@@ -364,7 +336,6 @@ def test_selection_evidence_mixed(mixed, tmp_path):
                                 'spont · whole recording · days without baseline windows: D2')
     shared = _open(extracted_project(tmp_path))
     assert Selection(shared, ('D1',)).evidence().shared == {'recording0000_part000+recording0000_part001': 2}
-# [AGENT EDIT END]
 
 
 def _built_inputs(selection: Selection) -> frozenset:
@@ -378,7 +349,6 @@ def _built_inputs(selection: Selection) -> frozenset:
     return frozenset.intersection(*sets)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixed project adds a row with one event-free day and a row with only that day (event-optional Task 4) | date: 2026-10-09]
 def test_selection_inputs_match_built_input(tmp_path, mixed):
     projects = {
         'shared': _open(extracted_project(tmp_path / 'shared')),
@@ -392,7 +362,6 @@ def test_selection_inputs_match_built_input(tmp_path, mixed):
     for name, project in projects.items():
         for days in (('D1', 'D2'), ('D2',)):
             expected = EIGHT_INPUTS - withheld.get((name, days), set())
-            # [AGENT EDIT END]
             predicted = selection_inputs(project, days)
             assert predicted == expected, (name, days)
             assert predicted == _built_inputs(Selection(project, days)), (name, days)
@@ -422,4 +391,3 @@ def test_read_source_entry_equals_read_source(weak, tmp_path):
     assert entry == read_source(legacy)['entry']
     assert entry == {key: value for key, value in oracle.items() if key not in ('partition', 'well')}
     assert 'partition' not in entry and 'well' not in entry
-# [AGENT EDIT END]

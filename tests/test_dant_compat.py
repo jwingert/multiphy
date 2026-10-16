@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify empty native drift guard and declared DANT defaults | date: 2026-09-18]
 from types import SimpleNamespace
 
 import numpy as np
@@ -78,4 +77,3 @@ def test_defaults_declare_stimulus_in_both_stages_and_return_fresh_configs():
     assert all('PETH' in f for f in published['motionEstimation']['features'])
     baseline['clustering']['max_distance'] = 0
     assert default_dant_settings()['clustering']['max_distance'] == 100
-# [AGENT EDIT END]

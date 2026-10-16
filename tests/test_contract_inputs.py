@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: failing tests for MatchingInput contract (Task 4) | date: 2026-09-22]
 import numpy as np
 import pandas as pd
 import pytest
@@ -66,20 +65,14 @@ def test_fingerprint_requires_unique_bin_keys():
                            b.provenance, peth=np.zeros((2, 2)), peth_bin_keys=('k', 'k'))
     with pytest.raises(ValueError, match='bin keys'):
         MatchingInput.from_bundle(units(*ids), fp, group='g').validate()
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fixed-model input (Task 2) | date: 2026-09-27]
 def test_fitted_model_input_gone(tmp_path):
     assert ('FITTED_MODEL' in Input.__members__) is False
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the MatchingInput field and from_bundle parameter are gone too (Task 2 fix round 1) | date: 2026-09-27]
     import dataclasses
     import inspect
     assert 'fitted_model' not in {f.name for f in dataclasses.fields(MatchingInput)}
     assert 'fitted_model' not in inspect.signature(MatchingInput.from_bundle).parameters
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the package docs advertise no removed fixed-model path (Task 2 fix round 1) | date: 2026-09-27]
 def test_docs_name_no_fixed_model_path(tmp_path):
     from pathlib import Path
     import re
@@ -88,6 +81,5 @@ def test_docs_name_no_fixed_model_path(tmp_path):
                          r'|local combined|stimulus-only and physiology-only|local probability calibration', re.I)
     hits = [f'{p.name}:{n}' for p in Path(package.__file__).parent.rglob('*.md')
             for n, line in enumerate(p.read_text().splitlines(), 1)
-            if removed.search(line) and 'AGENT EDIT' not in line]
+            if removed.search(line)]
     assert hits == []
-# [AGENT EDIT END]

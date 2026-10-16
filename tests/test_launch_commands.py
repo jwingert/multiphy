@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher commands init, extract and status behind the command line (multiphy project folder Task 14) | date: 2026-09-25]
 """The launcher commands ``init_day``, ``init_from``, ``extract``, ``status`` and ``status_lines``.
 
 ``init_from`` reads a ``--from`` folder of day folders (``sort/``, ``events.csv``, ``raw.*``,
@@ -10,7 +9,6 @@ records a raw file's first sha256.
 """
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 16 fix round 2: imports for the channel-count test moved here from test_docs_project_folder.py | date: 2026-09-25]
 import json
 import os
 from pathlib import Path
@@ -29,7 +27,6 @@ from multiphy.sources.base import clear_readers_for_tests, get_reader, read_day
 
 from .lab_blocker import run_without_lab
 from .synthetic_day import N_CHANNELS, N_SAMPLES, write_day
-# [AGENT EDIT END]
 
 REPO = Path(__file__).resolve().parents[1]
 UV_PER_BIT = 0.195
@@ -131,7 +128,6 @@ def test_init_from_links(tmp_path, day):
     assert options['raw_path'] == str(sd.raw_path)
     assert (options['raw_dtype'], options['raw_offset'], options['raw_n_channels']) == ('<i2', 0, 8)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 2, a folder named raw.* is not a raw file | date: 2026-09-25]
     # A folder named raw.* is not a raw file: beside raw.bin it is not a second raw file, and on its
     # own it neither asks for uv_per_bit nor becomes the raw file.
     both = tmp_path / 'both'
@@ -146,7 +142,6 @@ def test_init_from_links(tmp_path, day):
     result = init_from(root, 'N', alone)
     assert result == {'project': 'N', 'days': ['D1'], 'notes': [f'D1: {RAW_FOUND}']}
     assert 'raw' not in Project.open(root, 'N').read()['days']['D1']['files']
-    # [AGENT EDIT END]
 
 
 def test_init_from_refuses_incomplete(tmp_path, day):
@@ -176,10 +171,8 @@ def test_init_from_refuses_incomplete(tmp_path, day):
         (ValueError, '--uv-per-bit is required when a day has a raw file.', lambda: None, None),
         (ValueError, 'Days D1 and D2 share the date 2026-01-01.',
          lambda: (d2 / 'date.txt').write_text('2026-01-01\n'), UV_PER_BIT),
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 stop, user-approved fix: a scale the binary reader would refuse is refused before anything is written | date: 2026-09-25]
         *[(ValueError, f'binary: uv_per_bit must be a positive number, not {scale!r}.', lambda: None, scale)
           for scale in (float('nan'), float('inf'), 0.0, -0.195)],
-        # [AGENT EDIT END]
         (FileNotFoundError, f"phy: {d2 / 'sort' / 'spike_clusters.npy'} is missing.",
          lambda: (sd2.sort_dir / 'spike_clusters.npy').rename(tmp_path / 'spike_clusters.npy'), UV_PER_BIT),
     ]
@@ -192,7 +185,6 @@ def test_init_from_refuses_incomplete(tmp_path, day):
     (tmp_path / 'spike_clusters.npy').rename(sd2.sort_dir / 'spike_clusters.npy')
     repair()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 2, a file add_day would hash but cannot read is refused before D1 is written | date: 2026-09-25]
     # D1 is sound; a file of D2 that add_day would hash but cannot read is refused before D1 is
     # written, so a rerun after the fix is not refused with 'Day D1 already exists'.
     for unreadable in (d2 / 'events.csv', sd2.sort_dir / 'cluster_group.tsv'):
@@ -205,14 +197,12 @@ def test_init_from_refuses_incomplete(tmp_path, day):
                 assert not (root / 'P').exists(), unreadable
         finally:
             unreadable.chmod(mode)
-    # [AGENT EDIT END]
 
     # A day name the project cannot hold, an empty folder and a missing folder are refused as well.
     bad = tmp_path / 'bad'
     _link_day(bad, sd).rename(bad / '_D1')
     with pytest.raises(ValueError, match=re.escape('Day name _D1 must match')):
         init_from(root, 'P', bad, uv_per_bit=UV_PER_BIT)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, a hidden folder is a day folder that is checked, and refused, before anything is written | date: 2026-09-25]
     hidden = tmp_path / 'hidden'
     _link_day(hidden, sd)
     (hidden / '.D2').mkdir()
@@ -220,7 +210,6 @@ def test_init_from_refuses_incomplete(tmp_path, day):
         init_from(root, 'P', hidden, uv_per_bit=UV_PER_BIT)
     (tmp_path / 'empty').mkdir()
     (tmp_path / 'empty' / 'README.txt').write_text('not a day')
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match='holds no day folders'):
         init_from(root, 'P', tmp_path / 'empty', uv_per_bit=UV_PER_BIT)
     with pytest.raises(FileNotFoundError, match='is not a folder'):
@@ -296,7 +285,6 @@ def test_verify_hashes_dat_raw(tmp_path, day, monkeypatch):
     # sources then read changed, because the two hashes differ.
     unchanged = _project_json(root)
     other = 'f' * 64
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, status records through Project.update and never waits for a held project.lock | date: 2026-09-25]
     real_update = Project.update
 
     def recorded_meanwhile(project, change):
@@ -306,14 +294,12 @@ def test_verify_hashes_dat_raw(tmp_path, day, monkeypatch):
         return real_update(project, change)
 
     monkeypatch.setattr(Project, 'update', recorded_meanwhile)
-    # [AGENT EDIT END]
     assert status(root, 'P', verify=True)['days'][0]['sources'] == 'changed'
     raw = _record(root)['files']['raw']
     assert (raw['sha256'], raw['sha256_from']) == (other, 'extract')
     monkeypatch.undo()
     (root / 'P' / 'project.json').write_bytes(unchanged)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, a held project.lock refuses the record at once, with nothing recorded | date: 2026-09-25]
     # A held project.lock: status without verify writes nothing and still reports; verify refuses at
     # once, without waiting for the lock, and records nothing.
     lock = root / 'P' / 'project.lock'
@@ -325,7 +311,6 @@ def test_verify_hashes_dat_raw(tmp_path, day, monkeypatch):
     assert time.monotonic() - started < 10
     assert _project_json(root) == unchanged
     lock.unlink()
-    # [AGENT EDIT END]
 
     report = status(root, 'P', verify=True)
     assert report['days'][0]['sources'] == 'ok'
@@ -397,11 +382,9 @@ def test_extract_default_days(tmp_path, day):
     with pytest.raises(ValueError, match=re.escape('--uv-per-bit is required with a raw file.')):
         init_day(root, 'R', day='D2', sort=str(sd2.sort_dir), date='2026-01-02', raw=str(sd2.raw_path))
     assert not (root / 'R').exists()  # refused before the project is created
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, add_day checks the day name after the project is created, as init_day's docstring says | date: 2026-09-25]
     with pytest.raises(ValueError, match=re.escape('Day name _D2 must match')):
         init_day(root, 'S', day='_D2', sort=str(sd2.sort_dir), date='2026-01-02')
     assert Project.open(root, 'S').read()['days'] == {}  # add_day's refusal leaves the new project empty
-    # [AGENT EDIT END]
     added = init_day(root, 'P', day='D2', sort=str(sd2.sort_dir), date='2026-01-02', events=str(sd2.events_path))
     assert added['notes'] == [RAW_FOUND]
     assert 'raw' not in added['files']
@@ -441,10 +424,8 @@ print('lab modules', sorted(m for m in sys.modules if m.startswith(BLOCKED)))
     assert proc.returncode == 0, proc.stderr
     assert D1_LINE in proc.stdout
     assert 'lab modules []' in proc.stdout
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: init takes the raw file's layout from params.py whether or not it names a dat_path, and refuses a raw file whose channel count params.py does not declare; pins project_folder.md, section 5 (replaces test_binary_channel_check_needs_a_declared_count) | date: 2026-09-25]
 @pytest.mark.parametrize('declared', ['dat_path', 'count_only', 'offset_only', 'nothing'])
 def test_raw_layout_comes_from_params(tmp_path, declared):
     """project_folder.md, section 5: ``init`` takes a raw file's layout from ``params.py``.
@@ -491,10 +472,8 @@ def test_raw_layout_comes_from_params(tmp_path, declared):
         refusal = r'^binary: 9 raw channels differ from 8 geometry channels\.$'
     with pytest.raises(ValueError, match=refusal):
         read_day({'sort': 'phy', 'raw': 'binary'}, files, options)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: post-run fix (final review 2): a day without a raw file is not refused for a params.py that names a dat_path but no n_channels_dat | date: 2026-09-26]
 @pytest.mark.parametrize('dat_exists', [False, True])
 def test_no_raw_file_needs_no_declared_count(tmp_path, dat_exists):
     """A day with no raw file is added without ``n_channels_dat``, whatever ``dat_path`` names.
@@ -518,4 +497,3 @@ def test_no_raw_file_needs_no_declared_count(tmp_path, dat_exists):
     record = _record(root)
     assert 'raw' not in record['readers'] and 'raw' not in record['files']
     assert 'raw_n_channels' not in record['reader_options']
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer names the run's streams and evidence tags from its saved weights and run_evidence, and refuses a run saved without run_evidence (event-optional Task 12) | date: 2026-10-10]
 """The viewer shows the streams and evidence tags a run saved: the mixture columns, the ``wave`` table columns,
 the evidence streams line and the header tags come from each group's saved ``weight_<stream>`` keys and
 ``run_evidence``; a run with mixture references but no valid ``run_evidence`` is refused."""
@@ -7,9 +6,7 @@ import os
 import shutil
 from types import SimpleNamespace
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture fills test reads face colours as hex (graphite-palettes Task 2) | date: 2026-10-11]
 import matplotlib.colors
-# [AGENT EDIT END]
 import numpy as np
 import pandas as pd
 import pytest
@@ -20,21 +17,15 @@ from multiphy.project.folder import Project
 from multiphy.project.selection import Selection
 from multiphy.run.project_run import run_selection
 from multiphy.run.run_dir import load_result, save_result
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture ticks test applies the graphite theme (graphite-palettes Task 3) | date: 2026-10-11]
 from multiphy.viewer import data, display, theme
-# [AGENT EDIT END]
 from multiphy.viewer.app import App, open_run
 from multiphy.viewer.panels.plots.mixture import MixturePanel
 from multiphy.viewer.panels.tables import EvidencePanel
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Qt through viewer/qt.py, the binding pin (event-optional Task 12, fix round 1) | date: 2026-10-10]
 from multiphy.viewer.qt import QtWidgets
-# [AGENT EDIT END]
 from multiphy.viewer.state import Actions, PairState
 
 from .synthetic_day import extracted_project
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: theme_env restores the theme the mixture fills test sets (graphite-palettes Task 2) | date: 2026-10-11]
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
-# [AGENT EDIT END]
 from .viewer_fakes import FAKE_MODE, DictData
 
 SMALL = {'min_spikes': 2, 'n_splits': 2, 'min_pairs': 1}
@@ -123,7 +114,6 @@ def test_mixture_columns_follow_weights(qt):
     panel.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the two mixture references fill in the status colours accept and reject (graphite-palettes Task 2) | date: 2026-10-11]
 def test_mixture_fills_status_colours(qt, theme_env):
     display.set_theme('graphite')
     provenance = Provenance(extra={'group_runs': {'P': _group_run('P', ('phys', 'wave'), (NO_EVENTS,))}})
@@ -140,10 +130,8 @@ def test_mixture_fills_status_colours(qt, theme_env):
         assert [matplotlib.colors.to_hex(c.get_facecolor()[0]) for c in ax.collections] == ['#3dd68c', '#ff7b72']
     qt.processEvents()          # the panel's queued redraw runs while its canvas still exists
     panel.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture panel's tick labels, its twin probability axes included, are JetBrains Mono at its own 6 pt (graphite-palettes Task 3) | date: 2026-10-11]
 def test_mixture_ticks_mono(qt, theme_env):
     theme.apply_theme(QtWidgets.QApplication.instance(), 'graphite')
     display.set_theme('graphite')
@@ -169,10 +157,8 @@ def test_mixture_ticks_mono(qt, theme_env):
         assert label.get_fontsize() == 6
     qt.processEvents()          # the panel's queued redraw runs while its canvas still exists
     panel.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the rivals table alone carries the wave column (native-same-day Task 10) | date: 2026-10-11]
 def test_rivals_wave_column(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     table = window.rivals.table
@@ -188,7 +174,6 @@ def test_rivals_wave_column(qt, tmp_path):
     assert sorted([rivals.item(i, c).text() for c in (2, 3, 4)] for i in range(rivals.rowCount())) == expected
     window._save_layout = lambda: None
     window.close()
-# [AGENT EDIT END]
 
 
 def test_evidence_streams_line_names_run_streams(qt):
@@ -239,4 +224,3 @@ def test_header_tags_from_run_evidence(qt, mixed_run):
         window._save_layout = lambda: None
         window.close()
         qt.processEvents()
-# [AGENT EDIT END]

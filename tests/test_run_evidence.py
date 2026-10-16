@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one function decides a run's evidence from its days' timing (event-optional Task 3) | date: 2026-10-09]
 """``run_evidence``: events need a condition with ``min_repeats`` on every day; spont reads baselines only
 when every day has them; each fallback is one reason, grouped into tags by ``evidence_tags``."""
 import dataclasses
@@ -73,7 +72,6 @@ def test_evidence_tags_group_reasons():
         evidence_tags([first, 'other'])
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an empty baseline list or tuple validates as the (0, 2) array does, and its day reads whole-recording spont (event-optional Task 3, final review fix round 1) | date: 2026-10-10]
 def test_trial_timing_accepts_empty_baseline():
     for baselines in (np.empty((0, 2), np.int64), [], ()):
         timing = TrialTiming(
@@ -84,15 +82,12 @@ def test_trial_timing_accepts_empty_baseline():
             baseline_windows=baselines, provenance=dict(PROVENANCE))
         assert timing.validate() is timing
         assert run_evidence(('D1',), {'D1': timing}, min_repeats=2).spont == 'whole_recording'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one repeat is refused: a reference splits a condition's repeats in two (event-optional Task 14) | date: 2026-10-10]
 def test_run_evidence_refuses_one_repeat():
     with pytest.raises(ValueError) as caught:
         run_evidence(('D1', 'D2'), {}, min_repeats=1)
     assert str(caught.value) == 'min_repeats must be an int >= 2, not 1'
-# [AGENT EDIT END]
 
 
 def test_run_evidence_signatures():
@@ -101,4 +96,3 @@ def test_run_evidence_signatures():
     assert parameters['min_repeats'].kind is inspect.Parameter.KEYWORD_ONLY
     assert parameters['min_repeats'].default == 5
     assert [f.name for f in dataclasses.fields(RunEvidence)] == ['events', 'spont', 'shared', 'reasons']
-# [AGENT EDIT END]

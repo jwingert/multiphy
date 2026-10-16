@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the project.json schema, its validation and its atomic write (multiphy project folder Task 4) | date: 2026-09-25]
 """The ``project.json`` schema: a project's identity and its days.
 
 Each day records its date, where the date came from, the readers and reader options that
@@ -117,4 +116,3 @@ def write_manifest(path, manifest: dict) -> None:
         except FileNotFoundError:
             pass
         raise
-# [AGENT EDIT END]

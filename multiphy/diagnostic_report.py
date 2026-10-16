@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: untuned waveform alignment and missed-pair diagnostics from compact benchmark inputs | date: 2026-09-18]
 """Read-only matching diagnostics; never fits thresholds or changes assignments."""
 from datetime import datetime, timezone
 from itertools import combinations
@@ -281,4 +280,3 @@ Source identity assumes the original sorter was correct. Two time segments from 
     (target / 'missed_waveforms_legend.md').write_text('**Waveform overlays reveal whether missed source-identity pairs retain consistent timing and shape.**\n' + '\n'.join(f'**({chr(65 + i)})** Original sorted unit {pair.source_unit_id}: first (blue) and second (orange) recording-segment means on the shared electrode selected by largest peak-to-peak amplitude of their average.' for i, pair in enumerate(missed.itertuples())) + '\nTime is relative to the exported spike timestamp; voltage is filtered, referenced microvolts. Panel titles report Pearson correlation over all electrodes and samples, not the single displayed trace. Each line averages ' + waveform_counts + ' spike snippets. No temporal realignment or amplitude normalization is applied.\n')
     _plot_misses(dataset, pairs, target)
     return target
-# [AGENT EDIT END]

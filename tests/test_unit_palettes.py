@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the unit palettes: exact fixed palettes, the Day ramp, colours cycling by the active palette, the swatch strip and the signatures (graphite-palettes Task 1) | date: 2026-10-11]
 """The unit colour palettes and the Day ramp. Every oracle is a literal hex from the plan, never computed here."""
 import typing
 
@@ -79,4 +78,3 @@ def test_unit_palettes_signatures():
         'colours': {'n': int, 'return': list},
         'swatch': {'name': str, 'return': list},
     }
-# [AGENT EDIT END]

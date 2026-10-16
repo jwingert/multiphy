@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module keeps pair ids, chains and triangle checks; verdicts live in the run's history.csv (run-curation Task 9) | date: 2026-10-05]
 """
 Pair identifiers, chains and triangle checks over verdict rows.
 
@@ -21,9 +20,7 @@ from multiphy import evidence as ev
 VERDICTS = ('accept', 'reject', 'unsure')
 # the per-animal table API (STORE_ROOT, store_path, load, record, upsert,
 # decoy_error_rate and its column lists) is removed: curation.py is the one writer
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5 | user: wingertj | reason: cross-day match curation tool | date: 2026-09-14]
 def canonical(cellid_a, cellid_b):
     """Order a pair so one physical pairing has exactly one representation."""
     return tuple(sorted([str(cellid_a), str(cellid_b)]))
@@ -36,7 +33,6 @@ def match_id(cellid_a, cellid_b, pipeline_version=ev.PIPELINE_VERSION):
 
 
 # ------------------------------------------------------------------- chains
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a unit's day comes from its row's siteid_a / siteid_b (Plan B Task 4) | date: 2026-09-28]
 def _row_sites(rows):
     """{cellid: siteid} from pair rows; every row, whatever its verdict, must name both of its sites."""
     def refuse(missing):
@@ -55,7 +51,6 @@ def _row_sites(rows):
     sites = dict(zip(rows.cellid_a.astype(str), rows.siteid_a.astype(str)))
     sites.update(zip(rows.cellid_b.astype(str), rows.siteid_b.astype(str)))
     return sites
-# [AGENT EDIT END]
 
 
 def chains(df, verdict='accept'):
@@ -64,9 +59,7 @@ def chains(df, verdict='accept'):
     Returns the table with a `chain_id`, plus a summary of how many days each
     chain spans.
     """
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: verdict frames carry no is_decoy (run-curation Task 5, D20) | date: 2026-10-05]
     acc = df[df.verdict == verdict]
-    # [AGENT EDIT END]
     parent = {}
 
     def find(x):
@@ -81,9 +74,7 @@ def chains(df, verdict='accept'):
         if rx != ry:
             parent[rx] = ry
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days from row siteids; every input row is checked, not only the accepted ones (Plan B Task 4) | date: 2026-09-28]
     sites = _row_sites(df)
-    # [AGENT EDIT END]
     for _, r in acc.iterrows():
         union(r.cellid_a, r.cellid_b)
     comp = {c: find(c) for c in parent}
@@ -94,9 +85,7 @@ def chains(df, verdict='accept'):
     SUMMARY_COLS = ['chain_id', 'n_units', 'n_sites', 'members']
     summary = pd.DataFrame([
         dict(chain_id=k, n_units=len(v),
-             # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days from row siteids (Plan B Task 4) | date: 2026-09-28]
              n_sites=len({sites[str(m)] for m in v}),
-             # [AGENT EDIT END]
              members=','.join(sorted(v)))
         for k, v in members.items()], columns=SUMMARY_COLS)
     # a table of rejections has no chains, and an empty frame built from an
@@ -112,15 +101,11 @@ def inconsistencies(df):
 
     Not an error to fix automatically; a disagreement to show the curator.
     """
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: verdict frames carry no is_decoy (run-curation Task 5, D20) | date: 2026-10-05]
     acc = df[df.verdict == 'accept']
-    # [AGENT EDIT END]
     rej = set()
     for _, r in df[df.verdict == 'reject'].iterrows():
         rej.add(canonical(r.cellid_a, r.cellid_b))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days from row siteids; every input row is checked, not only the accepted ones (Plan B Task 4) | date: 2026-09-28]
     sites = _row_sites(df)
-    # [AGENT EDIT END]
     adj = {}
     for _, r in acc.iterrows():
         adj.setdefault(r.cellid_a, set()).add(r.cellid_b)
@@ -131,9 +116,7 @@ def inconsistencies(df):
             for c in nbrs:
                 if a >= c:
                     continue
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days from row siteids (Plan B Task 4) | date: 2026-09-28]
                 if sites[str(a)] == sites[str(c)]:
-                # [AGENT EDIT END]
                     continue                       # same day, not a triangle
                 pair = canonical(a, c)
                 if pair in rej:
@@ -145,4 +128,3 @@ def inconsistencies(df):
     return pd.DataFrame(out).drop_duplicates() if out else pd.DataFrame(
         columns=['via', 'cellid_a', 'cellid_b', 'problem'])
 
-# [AGENT EDIT END]

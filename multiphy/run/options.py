@@ -1,12 +1,9 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: one option schema drives CLI, dialog and argv | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no Qt dialog reads the option schema since backend_job.py was removed (run-curation final review 2) | date: 2026-10-06]
 """Turn a backend's option schema into argparse arguments, a validated dict, or argv.
 
 Every caller that takes options from a person (CLI) or hands them to another
 process (subprocess launcher) goes through here, so a backend's options are declared
 once, on its spec, and nowhere else.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 import argparse
 import json
@@ -101,10 +98,8 @@ def add_arguments(parser: argparse.ArgumentParser, spec) -> None:
             parser.add_argument(_flag(o.name), type=int, **kwargs)
         elif o.type == 'choice':
             parser.add_argument(_flag(o.name), choices=o.choices, **kwargs)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a path option shows metavar FILE, so the launcher form browses for it (launcher-gui Task 3, D28) | date: 2026-10-07]
         elif o.type == 'path':
             parser.add_argument(_flag(o.name), type=str, metavar='FILE', **kwargs)
-        # [AGENT EDIT END]
         else:
             parser.add_argument(_flag(o.name), type=str, **kwargs)
 
@@ -127,4 +122,3 @@ def to_argv(spec, options) -> list:
         else:
             argv += [_flag(o.name), str(value)]
     return argv
-# [AGENT EDIT END]

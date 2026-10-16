@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: executable cache-only temporal waveform extraction from verified sample-clock inputs | date: 2026-09-17]
 """Extract a benchmark from an explicit JSON source manifest.
 
 Input spike arrays must already be zero-based rows of the raw voltage stream.
@@ -9,14 +8,10 @@ The default scratch location is the matching cache; an
 explicit external scratch directory can be supplied without relocating results.
 """
 import argparse
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: nullcontext and gzip were used only by the voltage readers, which moved to extract/raw_pass.py (multiphy project folder Task 11) | date: 2026-09-25]
 from contextlib import ExitStack, contextmanager
-# [AGENT EDIT END]
 import hashlib
 import json
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw segment paths are joined with os.pathsep (Plan C Task 2) | date: 2026-10-01]
 import os
-# [AGENT EDIT END]
 from pathlib import Path
 import tempfile
 
@@ -24,18 +19,12 @@ import numpy as np
 import pandas as pd
 
 from .benchmark import SourceRecording, build_dataset, save_dataset
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the voltage readers moved verbatim to extract/raw_pass.py and are imported back; waveform_sample_selection and SharedWaveformPreprocessor went with them (multiphy project folder Task 11) | date: 2026-09-25]
 from .extract.raw_pass import FilteredSnippetReader, SnippetReader, _voltage_stream, plan_snippets
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_voltage may be a segment list (Plan C Task 2) | date: 2026-10-01]
 from .extract.raw_pass import raw_segments
-# [AGENT EDIT END]
 from .paths import extraction_scratch_root, resolve_cache_path
 from .evaluation import validate_partitions
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _voltage_stream, plan_snippets, SnippetReader and FilteredSnippetReader moved verbatim to extract/raw_pass.py and are imported back above (multiphy project folder Task 11) | date: 2026-09-25]
-# [AGENT EDIT END]
 
 
 def _input_path(value, manifest_dir):
@@ -43,13 +32,9 @@ def _input_path(value, manifest_dir):
     return path if path.is_absolute() else manifest_dir / path
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: share verified voltage reader lifecycle between benchmarks and unlabeled multiday inputs | date: 2026-09-18]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_recording_sources takes hash_raw and passes it to the reader it builds (multiphy project folder Task 12) | date: 2026-09-25]
 @contextmanager
 def open_recording_sources(manifest, manifest_path, *, options, root=None, scratch_root=None,
                            waveform_storage='snippets', hash_raw=False):
-# [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says how a raw segment list is hashed (Plan C Task 2 fix round 2) | date: 2026-10-01]
     """Open verified readers while the caller computes its own archive format.
 
     Callers determine observation windows and validate their assignment scope.
@@ -64,14 +49,11 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
     A raw segment list is hashed as one sha256 of every segment's stored bytes, in
     clock order, flat segments included.
     """
-    # [AGENT EDIT END]
     manifest_path = Path(manifest_path).resolve()
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: make storage optimization explicit and independent of scientific extraction options | date: 2026-09-18]
     if waveform_storage not in ('snippets', 'streaming_summary'):
         raise ValueError('waveform_storage must be snippets or streaming_summary.')
     if waveform_storage == 'streaming_summary' and any(not s.get('waveform_preprocessing') for s in manifest['recordings']):
         raise ValueError('Streaming summary storage requires the shared waveform preprocessing profile.')
-    # [AGENT EDIT END]
     before, after = options.get('before', 41), options.get('after', 41)
     runtime = extraction_scratch_root(scratch_root, root=root)
     runtime.mkdir(parents=True, exist_ok=True)
@@ -84,13 +66,11 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
             if clock.get('sample_index_origin') != 'zero_based_voltage_row' or not clock.get('method'):
                 raise ValueError('Each source needs verified zero-based voltage-row spike indices and its verification method.')
             provenance = dict(spec.get('provenance', {}))
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_voltage is one path or a list of [path, n_samples] segments (Plan C Task 2) | date: 2026-10-01]
             if isinstance(spec['raw_voltage'], (list, tuple)):
                 raw = [[_input_path(path, manifest_path.parent), n] for path, n in spec['raw_voltage']]
             else:
                 raw = _input_path(spec['raw_voltage'], manifest_path.parent)
             raw_paths = [path for path, _ in raw_segments(raw, spec['n_samples'])]
-            # [AGENT EDIT END]
             spikes_path = _input_path(spec['spikes_file'], manifest_path.parent)
             geometry_path = _input_path(spec['geometry_file'], manifest_path.parent)
             if not spec.get('preprocessing'):
@@ -105,18 +85,15 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
                     or (windows[:, 1] <= windows[:, 0]).any() or (windows[1:, 0] < windows[:-1, 1]).any()):
                 raise ValueError('Temporal windows must fit the declared raw sample count.')
             windows = windows.astype(np.int64)
-            # [AGENT EDIT START | agent: codex | user: wingertj | reason: retain exact full/half selections instead of only their union in streaming mode | date: 2026-09-18]
             summary_plan = None
             if waveform_storage == 'streaming_summary':
                 from .streaming_waveforms import plan_waveform_summaries
                 summary_plan = plan_waveform_summaries(spikes, windows, **options)
             samples = summary_plan.samples if summary_plan is not None else plan_snippets(spikes, windows, **options)
-            # [AGENT EDIT END]
             print(f"Extracting {len(samples)} selected voltage snippets for {spec['source_session']}", flush=True)
             shared = spec.get('waveform_preprocessing')
             snippet_bytes = len(samples) * (before + after) * len(geometry) * (
                 4 if shared else np.dtype(spec.get('dtype', '<i2')).itemsize)
-            # [AGENT EDIT START | agent: codex | user: wingertj | reason: report actual operational storage rather than fictitious temporary snippets | date: 2026-09-18]
             if summary_plan is None:
                 print(f'Planned temporary snippet storage: {snippet_bytes:,} bytes '
                       f'({snippet_bytes / 2**30:.2f} GiB); no full recording is unpacked', flush=True)
@@ -124,7 +101,6 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
                 bound = len(summary_plan.selections) * (before + after) * len(geometry) * 16
                 print(f'Streaming {len(summary_plan.selections)} exact summaries; mean/M2 upper bound '
                       f'{bound / 2**20:.2f} MiB plus filtering workspace; no temporary snippet files', flush=True)
-            # [AGENT EDIT END]
             if shared and (spec.get('baseline_samples', 0) or spec.get('common_median', False)):
                 raise ValueError('Shared preprocessing replaces legacy common_median/baseline_samples options.')
             reader_type = FilteredSnippetReader if shared else SnippetReader
@@ -132,20 +108,16 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
                 dict(common_median=spec.get('common_median', False), baseline_samples=spec.get('baseline_samples', 0)))
             if summary_plan is not None:
                 processing_args['summary_plan'] = summary_plan
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pass hash_raw to the reader (multiphy project folder Task 12) | date: 2026-09-25]
             reader = reader_type(raw, samples, n_channels=len(geometry), n_samples=spec['n_samples'],
                 directory=work / f'recording_{i}', before=before, after=after,
                 dtype=spec.get('dtype', '<i2'), voltage_scale=spec.get('voltage_scale', 1.),
                 **processing_args,
                 progress=lambda message: print(message, flush=True), hash_raw=hash_raw)
-            # [AGENT EDIT END]
             stack.callback(reader.close)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: with raw segments, raw_source joins their paths, raw_size_bytes sums and raw_mtime_ns is the latest (Plan C Task 2) | date: 2026-10-01]
             raw_stats = [path.stat() for path in raw_paths]
             provenance.update(raw_source=os.pathsep.join(str(path) for path in raw_paths),
                 raw_size_bytes=sum(s.st_size for s in raw_stats),
                 raw_mtime_ns=max(s.st_mtime_ns for s in raw_stats), spikes_source=str(spikes_path),
-            # [AGENT EDIT END]
                 spikes_sha256=hashlib.sha256(spikes_path.read_bytes()).hexdigest(),
                 geometry_source=str(geometry_path), geometry_sha256=hashlib.sha256(geometry_path.read_bytes()).hexdigest(),
                 clock_verification=clock, n_samples=spec['n_samples'],
@@ -161,7 +133,6 @@ def open_recording_sources(manifest, manifest_path, *, options, root=None, scrat
                 spec['sample_rate'], geometry, windows, spikes, tuple(spec['single_unit_ids']), reader,
                 spec['preprocessing'], provenance, spec.get('stimuli'), spec.get('baseline_windows')))
         yield sources
-# [AGENT EDIT END]
 
 
 def extract_manifest(manifest_path, *, output_dir=None, root=None, scratch_root=None,
@@ -195,7 +166,6 @@ def extract_manifest(manifest_path, *, output_dir=None, root=None, scratch_root=
         dataset.metadata['waveform_storage'] = waveform_storage
         saved = save_dataset(dataset, target, cache_root=root)
         (saved / 'extraction_manifest.json').write_text(json.dumps(manifest, indent=2))
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: document equivalent accumulation and actual storage alongside generated archives | date: 2026-09-18]
         methods = saved / 'METHODS.md'
         note = ('- Waveform accumulation ← `features.py:average_spike_waveforms()`; '
             f'operational storage mode `{waveform_storage}`. ' +
@@ -210,7 +180,6 @@ def extract_manifest(manifest_path, *, output_dir=None, root=None, scratch_root=
             documentation = documentation.replace('temporary processed snippets are removed.',
                 'summary accumulation occurs in memory without temporary processed snippet files.')
         methods.write_text(documentation)
-        # [AGENT EDIT END]
     return saved
 
 
@@ -227,4 +196,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
-# [AGENT EDIT END]

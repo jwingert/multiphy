@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: DeepUnitMatch adapter as a declared backend; inference and training moved from external_backends.py (Task 9) | date: 2026-09-22]
 """Backend ``deepunitmatch``: the official DeepUnitMatch network with UnitMatch Bayes and tracking.
 
 Requires an explicit trained checkpoint whose declared probe type matches the waveform
@@ -25,7 +24,6 @@ from ._upstream import (DEEPUNITMATCH_PAPER_REVISION, UNITMATCH_REVISION, UNITMA
                         deep_module as _deep_module, module as _module, prepare_bundle as _prepare_bundle,
                         source_info as _source_info)
 from .unitmatch import _um_geometry, _um_result, _um_setup
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record UnitMatchPy's drift calls per day pair and read them as UnitMatch does (drift-view Task 7) | date: 2026-10-08]
 from ._upstream import recording as _recording
 from .unitmatch import _DRIFT_APPLY, _finite, _read
 
@@ -75,7 +73,6 @@ def _pair_registration(pair_drifts: list, unit_shanks: dict, shank_width_um: flo
     """The registration of a deepunitmatch run: each day pair's own drift, added to its later day."""
     return {'method': 'native', 'offsets_um': {}, 'pair_drifts': pair_drifts, 'unit_shanks': unit_shanks,
             'shank_width_um': shank_width_um, 'diagnostics': {group: {'sources': sources}}}
-# [AGENT EDIT END]
 
 
 def create_deepunitmatch_model(*, autoencoder=False, device='cpu'):
@@ -90,7 +87,6 @@ def create_deepunitmatch_model(*, autoencoder=False, device='cpu'):
     return factory(n_channel=30, n_time=60, n_output=256).to(device).double()
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verified NP1010 preprocessing and strict trained checkpoint compatibility | date: 2026-09-18]
 def _deep_preprocessing(waves, geometry, probe_type, parameters=None):
     """Resolve the official adapter settings from measured geometry, not NP2 defaults."""
     if not probe_type:
@@ -128,7 +124,6 @@ def _deep_input_signature(bundle):
     """Record shared voltage transforms independently of raw-file names and wells."""
     active = set(bundle.provenance.get('source_groups', {}).values())
     signatures = set()
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: verify complete waveform transform compatibility while permitting equivalent intermediate storage | date: 2026-09-18]
     for source in bundle.provenance.get('sources', []):
         if source.get('well') not in active:
             continue
@@ -141,7 +136,6 @@ def _deep_input_signature(bundle):
             legacy_common_median=provenance.get('common_median'),
             legacy_baseline_samples=provenance.get('baseline_samples'))
         signatures.add(json.dumps(signature, sort_keys=True))
-    # [AGENT EDIT END]
     if len(signatures) > 1:
         raise ValueError('DeepUnitMatch source waveforms use inconsistent voltage preprocessing')
     return {'shared_voltage_preprocessing': json.loads(next(iter(signatures))) if signatures else None,
@@ -220,11 +214,9 @@ def run_deepunitmatch(units, pairs=None, *, waveform_bundle=None, checkpoint=Non
             sim = losses.clip_sim(first, second).detach().cpu().numpy()
         extracted = ov.extract_parameters(waves, _um_geometry(geometry), info, param)
         probabilities = np.eye(len(waves))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day names and cellids for each pair's saved drift (drift-view Task 7) | date: 2026-10-08]
         sessions = list(dict.fromkeys(eligible.session_id))
         ids = [str(c) for c in eligible.cellid]
         pair_drifts, unit_shanks = [], {}
-        # [AGENT EDIT END]
         for r1 in range(len(geometry)):
             for r2 in range(r1 + 1, len(geometry)):
                 ix = np.flatnonzero(np.isin(sid, [r1, r2]))
@@ -240,7 +232,6 @@ def run_deepunitmatch(units, pairs=None, *, waveform_bundle=None, checkpoint=Non
                 sub_switch = np.array([0, len(good[0]), len(ix)])
                 cent = extracted['avg_centroid'][:, ix, :].copy()
                 trajectory = extracted['avg_waveform_per_tp'][:, ix, :, :].copy()
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record the drift UnitMatchPy applied to this day pair; it is added to the later day (drift-view Task 7) | date: 2026-10-08]
                 trajectory, drift = _drift_correct_pair(mf, labels, sub_switch, cent, trajectory, param)
                 if drift is None:
                     pair_drifts.append({'session_a': sessions[r1], 'session_b': sessions[r2],
@@ -253,7 +244,6 @@ def run_deepunitmatch(units, pairs=None, *, waveform_bundle=None, checkpoint=Non
                                 raise ContractViolation(f'{ids[j]} was put on shank {unit_shanks[ids[j]]} '
                                                         f'and on shank {shank} by two day pairs')
                     pair_drifts.append(dict(session_a=sessions[r1], session_b=sessions[r2], **drift))
-                # [AGENT EDIT END]
                 distance = mf.get_Euclidean_dist(mf.flip_dim(trajectory, param, len(ix)), param, len(ix))
                 centroid, _ = mf.centroid_metrics(distance, param)
                 scores = {'similarity': sub_sim, 'distance': centroid}
@@ -273,20 +263,14 @@ def run_deepunitmatch(units, pairs=None, *, waveform_bundle=None, checkpoint=Non
                     network_preprocessing=preprocessing, training=training_metadata,
                     parameters=param, pair_reduction='minimum of both directional probabilities',
                     calibration_status='official Bayes outputs; not validated identity accuracy here')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: record which optional inputs the run consumed (Task 9) | date: 2026-09-22]
     metadata.update(used_optional_inputs=[])
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: save each day pair's drift UnitMatchPy applied (drift-view Task 7) | date: 2026-10-08]
     metadata.update(registration=_pair_registration(
         pair_drifts, unit_shanks, float(param['shank_dist']), str((provenance or {}).get('group', '')),
         [_source_info(mf)]))
-    # [AGENT EDIT END]
     return _um_result('deepunitmatch', units, eligible, probabilities, sid, param,
                       info, tracking, metadata, dict(options, native_threshold=native_threshold))
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: reproducible official training worker and auditable checkpoint provenance | date: 2026-09-18]
 _TRAINING_WORKER = r'''
 import json, pathlib, sys, random, hashlib
 import numpy as np
@@ -511,10 +495,8 @@ def train_deepunitmatch(prepared_dir, *, python_executable=None):
         manifest.write_text(json.dumps(recipe, indent=2))
         raise
     return json.loads(manifest.read_text())
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the deepunitmatch spec declares day_offsets (drift-view Task 2) | date: 2026-10-08]
 SPEC = BackendSpec('deepunitmatch', '1',
     requires=frozenset({Input.UNITS, Input.WAVEFORM_HALVES, Input.GEOMETRY, Input.CHECKPOINT}), optional=frozenset(),
     provides=Provides(frozenset({ScoreKind.UNCALIBRATED}), frozenset({TrackKind.NATIVE, TrackKind.COMMON}),
@@ -524,7 +506,6 @@ SPEC = BackendSpec('deepunitmatch', '1',
              Option('device', 'str', 'cpu', 'torch device'),
              Option('params', 'json', None, 'Overrides for UnitMatchPy default parameters'),
              *NATIVE_TRACKING_OPTIONS, *COMMON_TRACKER_OPTIONS), builtin=True)
-# [AGENT EDIT END]
 
 
 class DeepUnitMatchBackend:
@@ -549,4 +530,3 @@ class DeepUnitMatchBackend:
                                  checkpoint_probe=ref.probe_type, params=opts['params'], device=opts['device'],
                                  tracking=opts['tracking'], native_threshold=opts['native_threshold'],
                                  provenance=ctx.provenance.to_json(), run_id=ctx.run_id, **tracker)
-# [AGENT EDIT END]

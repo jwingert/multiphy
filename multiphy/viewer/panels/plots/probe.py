@@ -1,11 +1,8 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the probe map panel, from gui.py:532-672, reading UnitData; measured coordinates only (viewer-split Task 4; drift-view Task 3 fix round 1) | date: 2026-10-08]
 """The probe as it was recorded, with each selected unit filled in on its electrodes."""
 import numpy as np
 
 from multiphy.features import probe_geometry
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the theme's colour tokens (launcher-gui Task 8) | date: 2026-10-07]
 from multiphy.viewer import display
-# [AGENT EDIT END]
 from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.qt import QtWidgets
 from multiphy.viewer.registry import register_panel
@@ -61,13 +58,11 @@ class ProbePanel(PlotPanel):
                             'channel counts', ha='center', va='center',
                     transform=ax.transAxes, fontsize=8)
             return
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each site draws the electrodes its day recorded from, with no offset (drift-view Task 3) | date: 2026-10-08]
         geo = {}
         for cid, _, _ in sel:
             site = self.state.sites[cid]
             if site not in geo:
                 geo[site] = self.geometry_for(cid, n_chan).copy()
-        # [AGENT EDIT END]
 
         # One square per electrode position, one fixed size, whatever day it
         # came from: an electrode is a physical thing, and two days recording
@@ -108,9 +103,7 @@ class ProbePanel(PlotPanel):
             ax.set_ylim(sites[:, 1].min() - pad, sites[:, 1].max() + pad)
         ax.set_xlim(sites[:, 0].min() - side, sites[:, 0].max() + side)
         ax.set_xlabel('x (um)', fontsize=8)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the y label names measured depth only (drift-view Task 3) | date: 2026-10-08]
         ax.set_ylabel('depth along the probe (um)', fontsize=8)
-        # [AGENT EDIT END]
         srcs = sorted({data.geometry_source(self.state.sites[cid]) for cid, _, _ in sel})
         spans = {f"{g[:, 1].min():.0f}-{g[:, 1].max():.0f}" for g in geo.values()}
         ax.set_title(f'{n_chan} electrodes · {" · ".join(srcs)}'
@@ -132,12 +125,9 @@ def _squares(x, y, side):
     """One collection for every site, so a 384-site probe stays cheap to draw."""
     from matplotlib.collections import PatchCollection
     from matplotlib.patches import Rectangle
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the electrode squares take the theme's raised and border tokens (launcher-gui Task 8) | date: 2026-10-07]
     p = display.colors()
     pc = PatchCollection(
         [Rectangle((xi - side / 2, yi - side / 2), side, side)
          for xi, yi in zip(x, y)],
         facecolor=p['raised'], edgecolor=p['border'], linewidths=0.4, zorder=0)
-    # [AGENT EDIT END]
     return pc
-# [AGENT EDIT END]

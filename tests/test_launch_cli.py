@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher's command line: exit codes, printed lines and launcher.log (multiphy project folder Task 15) | date: 2026-09-25]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names run (Plan B Task 3) | date: 2026-09-28]
 """The launcher's command line, ``python -m multiphy.launch [--root DIR] {init,extract,status,run} …``.
 
 ``main`` returns 0 on success; any error, a refused command line included, prints
@@ -8,12 +6,9 @@
 line: the UTC time, the command with its arguments, and ``ok`` or ``error: <message>``. A
 refused command line runs nothing and writes no line (D12).
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 1: log stamps are bounded by the call | date: 2026-09-25]
 from datetime import datetime, timedelta, timezone
-# [AGENT EDIT END]
 import os
 from pathlib import Path
 import re
@@ -71,24 +66,18 @@ def _stamp(line: str) -> datetime:
 
 def test_cli_writes_launcher_log(tmp_path, from_dir, capsys):
     root = tmp_path / 'lab'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 1: the log stamp is taken during the call | date: 2026-09-25]
     started = datetime.now(timezone.utc)
-    # [AGENT EDIT END]
     assert main(['--root', str(root), 'init', 'P', '--from', str(from_dir), '--uv-per-bit', '0.195']) == 0
     lines = _log_lines(root)
     assert re.search(r' · init P --from .* · ok$', lines[-1])
     # The arguments after the command, as given; the global --root is not among them.
     assert lines == [f'{lines[0].split(" · ", 1)[0]} · init P --from {from_dir} --uv-per-bit 0.195 · ok']
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 1: the log stamp is taken during the call | date: 2026-09-25]
     assert started <= _stamp(lines[0]) <= datetime.now(timezone.utc)
-    # [AGENT EDIT END]
     out = capsys.readouterr()
     assert (out.out, out.err) == ('', '')  # init prints its notes, and D1 has none
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 1: raw extract prints only its day line on stdout | date: 2026-09-25]
     # extract prints one line per day with the recorded ids and nothing else on stdout: the raw
     # pass's own progress lines go to stderr. status prints status_lines.
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 2: --scratch reaches the extraction | date: 2026-09-25]
     scratch = tmp_path / 'scratch'
     assert main([f'--root={root}', 'extract', 'P', '--scratch', str(scratch)]) == 0
     features = Project.open(root, 'P').read()['days']['D1']['features']
@@ -96,18 +85,14 @@ def test_cli_writes_launcher_log(tmp_path, from_dir, capsys):
     assert out.out == f"D1 · raw · halves {features['halves'][:12]} · full {features['full'][:12]}\n"
     assert f'Temporary extraction working directory: {scratch.resolve()}/extract-' in out.err
     assert 'D1 · ' not in out.err
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     assert Project.open(root, 'P').read()['days']['D1']['files']['raw']['sha256'] is None
     assert main(['--root', str(root), 'status', 'P', '--verify']) == 0
     assert capsys.readouterr().out == f'{D1_LINE}\n{ACROSS_LINE}\n'
     # --verify reached status: it recorded the raw file's first sha256.
     assert Project.open(root, 'P').read()['days']['D1']['files']['raw']['sha256_from'] == 'verify'
     lines = _log_lines(root)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 fix round 2: --scratch reaches the extraction | date: 2026-09-25]
     assert [line.split(' · ', 1)[1] for line in lines[1:]] == [f'extract P --scratch {scratch} · ok',
                                                                'status P --verify · ok']
-    # [AGENT EDIT END]
     assert _stamp(lines[0]) <= _stamp(lines[1]) <= _stamp(lines[2])
 
     # One --day without --uv-per-bit: the note is printed, and params.py's dat_path is not recorded.
@@ -122,7 +107,6 @@ def test_cli_writes_launcher_log(tmp_path, from_dir, capsys):
     record = Project.open(root, 'T').read()['days']['D1']
     assert (record['files']['events']['given'], record['files']['raw']['given']) == (events, raw)
     assert record['reader_options']['uv_per_bit'] == 0.195
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework fix round 1: extract --day extracts only the named day | date: 2026-09-25]
     # A second day that extract --day D1 leaves unextracted.
     assert main(['--root', str(root), 'init', 'T', '--day', 'D2', '--sort', sort, '--date', '2026-01-02']) == 0
     assert capsys.readouterr().out == f'{RAW_FOUND}\n'
@@ -135,7 +119,6 @@ def test_cli_writes_launcher_log(tmp_path, from_dir, capsys):
         f'init T --day D1 --sort {sort} --date 2026-01-01 --events {events} --raw {raw} --uv-per-bit 0.195 · ok',
         f'init T --day D2 --sort {sort} --date 2026-01-02 · ok',
         'extract T --day D1 --tier templates · ok']
-    # [AGENT EDIT END]
 
 
 def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
@@ -173,7 +156,6 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
     assert capsys.readouterr().err.startswith('error: No project S under ')
     assert not (root / 'S').exists()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework (D12): the line needs project.json; a refused command line is printed, never logged | date: 2026-09-25]
     # A folder without project.json is no project: its error is printed and nothing is written in it.
     (root / 'M').mkdir()
     assert main(['--root', str(root), 'status', 'M']) == 1
@@ -212,10 +194,8 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
     for argv, message in (
             (['--root', str(root), 'init', 'P', '--from', str(from_dir), '--events', 'e.csv'],
              'argument --events: not allowed with argument --from'),
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework fix round 1: --raw with --from is refused like --events | date: 2026-09-25]
             (['--root', str(root), 'init', 'P', '--from', str(from_dir), '--raw', 'r.bin'],
              'argument --raw: not allowed with argument --from'),
-            # [AGENT EDIT END]
             (['--root', str(root), 'init', 'P', '--day', 'D2', '--sort', sort],
              'the following arguments are required with --day: --date'),
             (['--root', str(root), 'init', 'P'], 'one of the arguments --from --day is required'),
@@ -237,9 +217,7 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
     assert sorted(Project.open(root, 'P').read()['days']) == ['D1']
     assert list((default_root / 'P').iterdir()) == []  # a --root without its value names no root
     assert list((root / 'M').iterdir()) == []
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework fix round 1: a held project.lock is an error that is printed and logged | date: 2026-09-25]
     # A held project.lock refuses status --verify's record; ProjectLocked is an error like any other.
     lock = Project.open(root, 'P').path / 'project.lock'
     lock.write_text('otherhost 1')
@@ -249,32 +227,24 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
     assert _log_lines(root)[-1].endswith(f' · status P --verify · error: {locked}')
     assert lock.read_text() == 'otherhost 1'
     lock.unlink()
-    # [AGENT EDIT END]
 
 
 def test_cli_help(tmp_path, capsys):
     env = dict(os.environ, PYTHONPATH=str(REPO))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help reads multiphy.json from a tmp root, never the lab default (Plan C Task 1 fix round 1) | date: 2026-10-01]
     help_root = str(tmp_path / 'help')
     proc = subprocess.run([sys.executable, '-m', 'multiphy.launch', '--root', help_root, '--help'],
                           cwd=REPO, env=env, capture_output=True, text=True, timeout=120)
-    # [AGENT EDIT END]
     assert proc.returncode == 0, proc.stderr
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch gains gui (launcher-gui Task 5) | date: 2026-10-07]
     assert '{init,extract,status,run,export,gui}' in proc.stdout
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework fix round 1: init's usage puts --events and --raw in the --day arm; the entry point runs real commands | date: 2026-09-25]
     # init's usage: --events and --raw go with --day, since a --from day folder holds its own.
     root = tmp_path / 'lab'
     assert main(['--root', str(root), 'init', '--help']) == 0
     usage = capsys.readouterr().out.split('\n\n', 1)[0]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init gains --probe TYPE (Plan B Task 3) | date: 2026-09-28]
     assert ' '.join(usage.split()) == (
         'usage: python -m multiphy.launch init [-h] PROJECT '
         '(--from DIR | --day DAY --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]) [--uv-per-bit X] '
         '[--probe TYPE]')
-    # [AGENT EDIT END]
     assert not root.exists()
 
     # The entry point runs the command and exits with main's code: 0 after it ran, 1 after an error.
@@ -286,31 +256,20 @@ def test_cli_help(tmp_path, capsys):
     proc = subprocess.run(command + ['S'], cwd=REPO, env=env, capture_output=True, encoding='utf-8', timeout=120)
     assert (proc.returncode, proc.stdout) == (1, '')
     assert proc.stderr.splitlines()[-1] == f'error: No project S under {root.resolve()}.'
-    # [AGENT EDIT END]
 
     # The command line imports no lab module, and main returns 0 for --help.
     proc = run_without_lab(
         'from multiphy.launch.__main__ import main\n'
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help reads multiphy.json from a tmp root, never the lab default (Plan C Task 1 fix round 1) | date: 2026-10-01]
         f"code = main(['--root', {help_root!r}, '--help'])\n"
-        # [AGENT EDIT END]
         "print('code', code)\n"
         "print('lab modules', sorted(m for m in sys.modules if m.startswith(BLOCKED)))\n"
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help imports no Qt; the window is imported only for gui (launcher-gui Task 5) | date: 2026-10-07]
         "print('qt modules', sorted(m for m in sys.modules if m.split('.')[0] in ('PySide6', 'PyQt5')))\n", REPO)
-        # [AGENT EDIT END]
     assert proc.returncode == 0, proc.stderr
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch gains gui (launcher-gui Task 5) | date: 2026-10-07]
     assert '{init,extract,status,run,export,gui}' in proc.stdout
-    # [AGENT EDIT END]
     assert 'code 0' in proc.stdout and 'lab modules []' in proc.stdout
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help imports no Qt (launcher-gui Task 5) | date: 2026-10-07]
     assert 'qt modules []' in proc.stdout
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run refuses abbreviated flags (Follow-up Task 3) | date: 2026-09-29]
 def test_run_refuses_abbreviated_backend(tmp_path, capsys):
     code = main(['--root', str(tmp_path / 'lab'), 'run', 'P', '--back', 'functional_likelihood'])
     err = capsys.readouterr().err
@@ -326,18 +285,14 @@ def test_run_refuses_abbreviated_backend_option(tmp_path, capsys):
     err = capsys.readouterr().err
     assert code == 1
     assert err.endswith('error: unrecognized arguments: --regist none\n'), err
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch export and the export name a plugin cannot take (run-curation Task 3) | date: 2026-10-04]
 def test_plugin_cannot_register_export():
     from multiphy.launch import plugins
     with pytest.raises(ValueError, match='plugin command export is already defined'):
         plugins.PluginApi().add_command('export', lambda parser: None, lambda args, root: [])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: gui is a builtin command a plugin cannot take (launcher-gui Task 5) | date: 2026-10-07]
     with pytest.raises(ValueError, match='plugin command gui is already defined'):
         plugins.PluginApi().add_command('gui', lambda parser: None, lambda args, root: [])
-    # [AGENT EDIT END]
 
 
 def test_launch_export_prints_path(tmp_path, capsys):
@@ -352,15 +307,11 @@ def test_launch_export_prints_path(tmp_path, capsys):
     assert main(['--root', str(root), 'export', project, '--run', name]) == 0
     out = capsys.readouterr().out
     assert out.rstrip('\n').endswith(' · 0 tracks · 0 units'), out
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run-curation Task 3 fix round 2: the readback of a .gz-named --out reads the plain CSV the writer wrote | date: 2026-10-04]
     gz = tmp_path / 'accepted.csv.gz'
     assert main(['--root', str(root), 'export', project, '--run', name, '--out', str(gz)]) == 0
     assert capsys.readouterr().out.rstrip('\n').endswith(' · 0 tracks · 0 units')
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: SIGINT during a command logs cancelled and exits 130 (launcher-gui Task 2) | date: 2026-10-07]
 def _interrupt(*args, **kwargs):
     raise KeyboardInterrupt
 
@@ -419,4 +370,3 @@ def test_cli_sigint_real_process(tmp_path, inherited):
         proc.stdout.close()
         proc.stderr.close()
     assert _log_lines(root)[-1].endswith(' · wait P · cancelled')
-# [AGENT EDIT END]

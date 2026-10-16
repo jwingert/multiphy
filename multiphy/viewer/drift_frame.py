@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Qt-free drift frame reader: a run's saved registration read into each day's drawn depths in the anchor day's frame (drift-view Task 1) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names registered_positions and unit_distance (browse-same-day Task 1) | date: 2026-10-12]
 """The Qt-free drift frame: one rule that turns a run's saved registration into drawn depths.
 
 ``drift_frame`` reads ``provenance['group_runs'][group]['provenance']['registration']`` and
@@ -10,7 +8,6 @@ A registration this module cannot read raises ``ValueError``. ``registered_posit
 unit's ``x_um`` and drawn depth the same way, and ``unit_distance`` is the 2D distance between two
 units of one recording group in that frame. Imports no Qt and no matplotlib.
 """
-# [AGENT EDIT END]
 import json
 import math
 from dataclasses import dataclass
@@ -130,13 +127,11 @@ def _check(reg, group: str) -> None:
     diagnostics = reg.get('diagnostics') or {}
     if not isinstance(diagnostics, dict) or not isinstance(diagnostics.get(group) or {}, dict):
         fail('diagnostics is not a dict of dicts')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a present groups key is checked even when it holds null (drift-view Task 1) | date: 2026-10-08]
     diag = diagnostics.get(group) or {}
     groups = diag.get('groups')
     if 'groups' in diag and not (isinstance(groups, list) and all(
             isinstance(g, list) and all(isinstance(s, str) for s in g) for g in groups)):
         fail(f'diagnostics[{group}][groups] is not a list of lists of str')
-    # [AGENT EDIT END]
     shank_lists = bool(shank_offsets)
     pairs = reg.get('pair_drifts', [])
     if not isinstance(pairs, list):
@@ -145,9 +140,7 @@ def _check(reg, group: str) -> None:
         if not (isinstance(pair, dict) and isinstance(pair.get('session_a'), str)
                 and isinstance(pair.get('session_b'), str) and _count(pair.get('n_matches'))):
             fail('a pair_drifts entry lacks str session_a, session_b or an int n_matches >= 0')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a zero-match pair's shank list also needs shank_width_um (drift-view Task 1) | date: 2026-10-08]
         shank_lists = shank_lists or isinstance(pair.get('shank_depth_um'), list)
-        # [AGENT EDIT END]
         if pair['n_matches'] > 0:
             depth, shanks = pair.get('depth_um'), pair.get('shank_depth_um')
             if (depth is None) == (shanks is None):
@@ -336,16 +329,12 @@ def electrode_depths(frame: DriftFrame, column: Column, geometry: np.ndarray) ->
         shift = np.array([offsets[shank_of(x, frame.shank_width_um, len(offsets))]
                           for x in geometry[:, 0]])
     return (column.scale * y + shift - frame.anchor_offset_um) / frame.anchor_scale
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered_positions: each unit's group, x_um and drawn depth in its group's registered frame; unit_distance: the 2D distance between two units of one group (browse-same-day Task 1) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _measured reads a nullable Float64/Int64 coordinate holding pd.NA as nan, not an abort (browse-same-day Task 1 fix round 1) | date: 2026-10-12]
 def _measured(units: pd.DataFrame, name: str) -> np.ndarray:
     """``units[name]`` as floats, as the drift view reads it; missing column or non-finite → ``nan``."""
     if name not in units.columns:
         return np.full(len(units), np.nan)
     values = pd.to_numeric(units[name], errors='coerce').to_numpy(float, na_value=np.nan)
     return np.where(np.isfinite(values), values, np.nan)
-# [AGENT EDIT END]
 
 
 def registered_positions(units: pd.DataFrame, provenance) -> pd.DataFrame:
@@ -396,4 +385,3 @@ def unit_distance(positions: pd.DataFrame, a: str, b: str) -> float:
     if not all(math.isfinite(v) for v in numbers):
         return math.nan
     return math.hypot(numbers[0] - numbers[1], numbers[2] - numbers[3])
-# [AGENT EDIT END]

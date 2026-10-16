@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: curation state rebuilt from result tracks plus history rows (run-curation Task 1) | date: 2026-10-04]
 """Curation state is the run's result folded with the curator's history rows; undo and redo replay."""
 from __future__ import annotations
 
@@ -125,7 +124,6 @@ def test_malformed_row_skipped():
     assert s.tracks[T]['status'] == 'accepted'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a malformed row still reserves its op_id (run-curation Task 1, fix round 1) | date: 2026-10-04]
 def test_malformed_row_reserves_op_id():
     acc = curation.make_row('accept', cluster_id=T)
     bad = dict(acc, members='not json')
@@ -134,7 +132,6 @@ def test_malformed_row_reserves_op_id():
     assert all(reason.startswith('malformed') for _, reason in s.skipped)
     assert s.tracks[T]['status'] == 'proposed'
     assert s.undo_target is None
-# [AGENT EDIT END]
 
 
 def test_verdict_unknown_unit_skipped():
@@ -149,4 +146,3 @@ def test_columns_are_fixed():
                'target_op', 'cellid_a', 'cellid_b', 'verdict', 'notes')
     assert curation.COLUMNS == literal
     assert set(curation.make_row('accept', cluster_id=T)) == set(literal)
-# [AGENT EDIT END]

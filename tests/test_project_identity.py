@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: file identities catch changed files and retargeted links (multiphy project folder Task 5) | date: 2026-09-25]
 """A recorded file identity catches a changed or missing file and a link re-pointed after recording."""
 from __future__ import annotations
 
@@ -53,7 +52,6 @@ def test_no_rehash_checks_size_and_mtime(tmp_path):
     identity = record('sort', str(path))
     _flip_one_byte_keep_mtime(path)
     assert verify(identity, rehash=False) is None
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: without a re-hash, verify still checks size and mtime_ns, each on its own | date: 2026-09-25]
     before = os.stat(path)
     # mtime_ns alone: the same bytes, touched a second later.
     os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns + 10 ** 9))
@@ -68,7 +66,6 @@ def test_no_rehash_checks_size_and_mtime(tmp_path):
     assert os.stat(path).st_mtime_ns == identity.mtime_ns and os.stat(path).st_size == identity.size_bytes + 1
     with pytest.raises(SourceChanged, match='sort source changed'):
         verify(identity, rehash=False)
-    # [AGENT EDIT END]
 
 
 def test_missing_source(tmp_path):
@@ -104,4 +101,3 @@ def test_identity_roundtrip(tmp_path):
     assert identity.sha256 is None and identity.sha256_from is None
     assert list(identity.to_dict()) == ['role', 'given', 'resolved', 'size_bytes', 'mtime_ns', 'sha256',
                                         'sha256_from']
-# [AGENT EDIT END]

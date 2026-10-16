@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: independently verify shared waveform filtering, reference selection, and streamed crop accuracy | date: 2026-09-17]
 """Scientific invariants and whole-recording references, using synthetic voltage."""
 import gzip
 import json
@@ -186,4 +185,3 @@ def test_shared_manifest_preserves_processing_provenance_and_filtered_waveforms(
         np.testing.assert_allclose(feature['waveform'], mean, rtol=2e-4, atol=2e-3)
     assert 'shared_unwhitened_v1' in (saved / 'METHODS.md').read_text()
     assert not list((tmp_path / 'cache' / '_runtime').iterdir())
-# [AGENT EDIT END]

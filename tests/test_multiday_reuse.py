@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify faithful reuse of complete raw-derived summaries without voltage rereads | date: 2026-09-18]
 import copy
 import json
 from pathlib import Path
@@ -9,8 +8,6 @@ import pytest
 from multiphy.benchmark import load_dataset, save_dataset
 from multiphy.extract_benchmark import extract_manifest
 from multiphy.features import temporal_split_unit_features
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: multiday.py is retired; no multiday import (Plan B Task 8) | date: 2026-09-28]
-# [AGENT EDIT END]
 from multiphy.multiday_reuse import reuse_day_summary
 
 
@@ -78,8 +75,6 @@ def test_pooled_raw_moments_independent_halves_and_complete_spike_features(tmp_p
     assert summary['sources'][0]['provenance']['summary_reuse']['voltage_read'] is False
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixed fresh-and-reused multiday archive test left with multiday.py (Plan B Task 8) | date: 2026-09-28]
-# [AGENT EDIT END]
 
 
 @pytest.mark.parametrize('windows', [[[0, 400], [450, 1000]], [[0, 400], [400, 900]]])
@@ -168,4 +163,3 @@ def test_pooled_moments_weight_unequal_retained_spike_counts():
     whole = np.concatenate(snippets)
     np.testing.assert_allclose(mean, whole.mean(axis=0), rtol=1e-6)
     np.testing.assert_allclose(error, whole.std(axis=0, ddof=1) / np.sqrt(len(whole)), rtol=1e-6)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: list an archive's saved runs (method · date) for the viewers' run selector | date: 2026-09-23]
 """The saved runs of one archive, cheap enough to list on open.
 
 A run folder holds ``run_manifest.json`` and ``result.json``. Listing reads only the
@@ -18,19 +17,15 @@ from datetime import datetime
 from pathlib import Path
 import re
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no id map; a run is listed only under a registered id (Task 1) | date: 2026-09-27]
 from ..contract import names, registry
 from .run_dir import load_result, read_json_object
-# [AGENT EDIT END]
 
 MANIFEST = 'run_manifest.json'
 RESULT = 'result.json'
 _HEAD_BYTES = 4096
 _HEAD = re.compile(r'"result"\s*:\s*\{\s*"backend_id"\s*:\s*"([^"]*)"\s*,\s*'
                    r'"version"\s*:\s*"([^"]*)"\s*,\s*"run_id"\s*:\s*"([^"]*)"')
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: format 1 runs are hidden from the listing (Task 1) | date: 2026-09-27]
 _SCHEMA = re.compile(r'"schema_version"\s*:\s*(\d+)')
-# [AGENT EDIT END]
 
 
 @dataclass(frozen=True)
@@ -46,7 +41,6 @@ class RunEntry:
         return self.result_path.parent
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the head also gives the schema version, so format 1 runs are skipped unread (Task 1) | date: 2026-09-27]
 def _ids(result_path):
     """(schema_version, backend_id, run_id) from the result's head, else from a full load."""
     with result_path.open('rb') as stream:
@@ -60,7 +54,6 @@ def _ids(result_path):
         return schema, match.group(1), match.group(3)
     result = load_result(result_path)  # refuses anything but format 2
     return 2, result.backend_id, result.run_id
-# [AGENT EDIT END]
 
 
 def _finished(manifest, result_path):
@@ -84,7 +77,6 @@ def read_run(folder):
         manifest = read_json_object(folder / MANIFEST)
         if manifest.get('status', 'completed') != 'completed':
             return None
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only format 2 runs under a registered id are listed (Task 1) | date: 2026-09-27]
         schema, backend_id, run_id = _ids(result_path)
         if schema != 2:
             return None
@@ -92,7 +84,6 @@ def read_run(folder):
     except (OSError, ValueError, KeyError, TypeError):
         return None
     return RunEntry(result_path, backend_id, run_id, _finished(manifest, result_path), manifest)
-    # [AGENT EDIT END]
 
 
 def _candidates(dataset_dir, extra_dirs):
@@ -148,4 +139,3 @@ def run_labels(entries):
 def run_tooltip(entry):
     return (f'{names.backend_label(entry.backend_id)}\nrun {entry.run_id}\n'
             f'{entry.finished:%Y-%m-%d %H:%M}\n{entry.folder}')
-# [AGENT EDIT END]

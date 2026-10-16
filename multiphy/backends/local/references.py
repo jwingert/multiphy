@@ -1,6 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: same-unit references from resampled trial splits; alternating_references moved here from functional_likelihood.py (functional-likelihood Task 4) | date: 2026-09-27]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names reference windows from trials or 5 s chunks and the evidence per recording group (event-optional Task 5) | date: 2026-10-09]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the first docstring line names trials or 5 s chunks (event-optional Task 14) | date: 2026-10-10]
 """Same-unit references: alternating halves and resampled splits of a day's trials or 5 s chunks.
 
 ``alternating_references`` is the original odd/even reference (moved verbatim from
@@ -18,32 +15,21 @@ and stimuli in an event run, else ``chunk_windows`` of the unit's window (``CHUN
 trials and no stimuli; the day's baseline windows when every day has them, else the chunks.
 Nothing here reads a lab format.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from __future__ import annotations
 
 from dataclasses import dataclass
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: readers take a ReferenceWindows or a TrialTiming; run_evidence decides each group's evidence (event-optional Task 5) | date: 2026-10-09]
 from typing import Optional, Sequence, Union
-# [AGENT EDIT END]
 
 import numpy as np
 import pandas as pd
 
 from . import evidence as ev
 from ...benchmark_pairs import _waveform_summary
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: readers take a ReferenceWindows or a TrialTiming; run_evidence decides each group's evidence (event-optional Task 5) | date: 2026-10-09]
 from ...contract.inputs import RunEvidence, TrialTiming, run_evidence
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: group_observations filters explicit single units (functional-likelihood Task 7) | date: 2026-09-27]
 from ...contract.results import single_units
-# [AGENT EDIT END]
 from ...features import _checked_sample_spikes, _in_windows, _isi_acg, _split_by_trial
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: per-unit threshold channel neighbourhood for each observation (threshold neighbourhood) | date: 2026-10-04]
 from .neighbourhood import unit_neighbourhood
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a unit's reference windows come from its day's trials in event runs, else from 5 s chunks of its window (event-optional Task 5) | date: 2026-10-09]
 CHUNK_SECONDS = 5.0
 
 
@@ -128,10 +114,8 @@ def reference_windows(feature: dict, timing: Optional[TrialTiming], evidence: Ru
         trial_windows=np.asarray(timing.trial_windows) if evidence.events else chunks,
         stimuli=list(timing.stimuli) if evidence.events else [],
         baseline_windows=np.asarray(timing.baseline_windows).reshape(-1, 2) if baseline else chunks).validate()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the no-event windows' chunk-only full rate, ISI and ACG (event-optional Task 5, fix round 1) | date: 2026-10-09]
 def alternating_references(feature, timing, *, min_repeats=5, min_spikes=200):
     """Recompute original odd/even trial references; never reuse chronological halves.
 
@@ -139,7 +123,6 @@ def alternating_references(feature, timing, *, min_repeats=5, min_spikes=200):
     chunks), the full ``rate_session``, ``isi`` and ``acg`` use only the spikes inside the chunks;
     ``n_spikes`` and ``reference_eligible`` count every spike in the window.
     """
-# [AGENT EDIT END]
     timing.validate()
     start, stop = feature['start_sample'], feature['stop_sample']
     fs = float(feature['sample_rate'])
@@ -152,9 +135,7 @@ def alternating_references(feature, timing, *, min_repeats=5, min_spikes=200):
     if ((trials[:, 0] < start) & (trials[:, 1] > start)).any() or ((trials[:, 0] < stop) & (trials[:, 1] > stop)).any():
         raise ValueError('Legacy reference observation cuts a complete trial')
     trials = trials[(trials[:, 0] >= start) & (trials[:, 1] <= stop)] / fs
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a validated timing's empty baseline list is read as (0, 2) windows (event-optional Task 3, final review fix round 1) | date: 2026-10-10]
     baseline = np.asarray(timing.baseline_windows).reshape(-1, 2)
-    # [AGENT EDIT END]
     baseline = baseline[(baseline[:, 0] >= start) & (baseline[:, 1] <= stop)] / fs
     times = spikes / fs
     parts = _split_by_trial(times, trials)
@@ -163,7 +144,6 @@ def alternating_references(feature, timing, *, min_repeats=5, min_spikes=200):
     for windows in (baseline, baseline[::2], baseline[1::2]):
         selected, duration = _in_windows(times, windows)
         rates.append(len(selected) / duration if duration else np.nan)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a no-event unit's full rate, ISI and ACG read only the spikes inside its chunks, whichever function observes it (event-optional Task 5, fix round 1) | date: 2026-10-09]
     chunked = isinstance(timing, ReferenceWindows) and not timing.stimuli
     full = _in_windows(times, trials)[0] if chunked else times
     result = dict(spont=rates[0], spont_a=rates[1], spont_b=rates[2],
@@ -171,13 +151,10 @@ def alternating_references(feature, timing, *, min_repeats=5, min_spikes=200):
         acg_a=hist[0][1], acg_b=hist[1][1], n_spikes=len(times),
         rate_session=len(full) / (full[-1] - full[0]) if len(full) > 1 else np.nan,
         fingerprints={}, halves={}, per_stim={}, trial_counts={}, reference_eligible=len(spikes) >= min_spikes)
-    # [AGENT EDIT END]
     width = int(round(feature['fingerprint_bin_seconds'] * fs))
     if width < 1:
         raise ValueError('Fingerprint bin duration must span acquisition samples')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: named columns, so windows without stimuli give an empty table (event-optional Task 5) | date: 2026-10-09]
     table = pd.DataFrame(list(timing.stimuli), columns=['stimulus', 'start', 'stop'])
-    # [AGENT EDIT END]
     table = table[(table.start >= start) & (table.stop <= stop)]
     for condition, rows in table.groupby('stimulus', sort=True):
         rows = rows.sort_values('start')
@@ -238,10 +215,8 @@ def _random_half(rng, n: int) -> np.ndarray:
     return half
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: trial_splits reads a ReferenceWindows or a TrialTiming (event-optional Task 5) | date: 2026-10-09]
 def trial_splits(timing: Union[ReferenceWindows, TrialTiming], start_sample: int, stop_sample: int, *,
                  n_splits: int = 20, seed: int = 0) -> tuple:
-# [AGENT EDIT END]
     """``n_splits`` ``TrialSplit``s of the windows fully inside ``[start_sample, stop_sample)``.
 
     Split 0 alternates (``np.arange(n) % 2``, the halves of ``alternating_references``).
@@ -284,10 +259,8 @@ def _count(spikes, windows) -> int:
     return int(sum(np.searchsorted(spikes, b) - np.searchsorted(spikes, a) for a, b in windows))
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit_halves reads a ReferenceWindows or a TrialTiming (event-optional Task 5) | date: 2026-10-09]
 def unit_halves(feature: dict, timing: Union[ReferenceWindows, TrialTiming], split: TrialSplit, *,
                 min_repeats: int = 5) -> tuple:
-# [AGENT EDIT END]
     """``(half_0, half_1)``: the unit measured on each half of ``split``.
 
     Each half holds ``fingerprints`` (condition -> mean rate PETH over the half's repeats,
@@ -353,18 +326,14 @@ def unit_halves(feature: dict, timing: Union[ReferenceWindows, TrialTiming], spl
     return tuple(halves)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit_observation reads a ReferenceWindows or a TrialTiming (event-optional Task 5) | date: 2026-10-09]
 def unit_observation(feature: dict, geometry: np.ndarray, timing: Union[ReferenceWindows, TrialTiming],
                      splits: Sequence[TrialSplit], *, min_repeats: int = 5, min_spikes: int = 200) -> dict:
-# [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: docstring names the neighbourhood key (local-neighbourhood Task 1, fix round 1) | date: 2026-10-02]
     """A unit's waveform summary, alternating references and halves on every split.
 
     Adds ``splits`` (one ``unit_halves`` pair per split), ``geometry``, ``waveform_halves``
     (the feature's, or ``None``), ``sw_halves`` (the spike width of each waveform half, or ``None``)
     and ``neighbourhood`` (``unit_neighbourhood`` of the mean waveform half, or ``None``).
     """
-    # [AGENT EDIT END]
     observation = dict(_waveform_summary(feature, geometry),
                        **alternating_references(feature, timing, min_repeats=min_repeats, min_spikes=min_spikes))
     waveform_halves: Optional[np.ndarray] = feature.get('waveform_halves')
@@ -374,21 +343,16 @@ def unit_observation(feature: dict, geometry: np.ndarray, timing: Union[Referenc
         whole = {key: value for key, value in feature.items() if key != 'waveform_halves'}
         sw_halves = tuple(_waveform_summary(dict(whole, waveform=waveform_halves[..., h]), geometry)['sw_ms']
                           for h in (0, 1))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each observation carries its unit's threshold channel neighbourhood from the mean waveform half (threshold neighbourhood) | date: 2026-10-04]
     neighbourhood = (unit_neighbourhood(waveform_halves.mean(axis=2), geometry)
                      if waveform_halves is not None else None)
     observation.update(splits=[unit_halves(feature, timing, s, min_repeats=min_repeats) for s in splits],
                        geometry=np.asarray(geometry, dtype=float), waveform_halves=waveform_halves,
                        sw_halves=sw_halves, neighbourhood=neighbourhood)
-    # [AGENT EDIT END]
     return observation
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every single unit of a recording group observed on its day's trial splits (functional-likelihood Task 7) | date: 2026-09-27]
 @dataclass(frozen=True)
 class GroupObservations:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the no-event group's spike-only gate and empty keys (event-optional Task 5) | date: 2026-10-09]
     """One recording group ready to match.
 
     ``sessions`` in day order; ``observations`` maps cellid -> ``unit_observation`` for the
@@ -396,7 +360,6 @@ class GroupObservations:
     ``session_of`` maps those cellids to their session; ``keys`` are the sorted conditions every
     kept observation measures, ``()`` in a no-event group.
     """
-    # [AGENT EDIT END]
     group: str
     sessions: tuple
     observations: dict
@@ -413,7 +376,6 @@ def _session_order(members: pd.DataFrame, features: dict) -> list:
         min(features[c]['start_sample'] for c in item[1].cellid), item[0]))]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: evidence decided once per recording group; the group checks shared with group_observations; waveform halves required by name (event-optional Task 5) | date: 2026-10-09]
 def _single_unit_members(units: pd.DataFrame) -> pd.DataFrame:
     """The explicit single units of ``units``; each needs a recording group, and a session stays in one group."""
     eligible, _ = single_units(units)
@@ -445,15 +407,12 @@ def require_waveform_halves(units: pd.DataFrame, features: dict, backend: str) -
     if missing:
         raise ValueError(f'{backend} needs waveform halves from raw voltage; {len(missing)} units have none, '
                          f'first {missing[0]} (templates tier). Re-extract from raw voltage.')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - row spacings keep their multiplicities, so [20,20,40] and [20,40,40] differ | date: 2026-09-27]
 def _channel_layout(geometry: np.ndarray) -> tuple:
     """Sorted unique channel columns (x) and sorted row spacings (y, with multiplicities) of a probe."""
     geometry = np.asarray(geometry, dtype=float)
     return np.unique(geometry[:, 0]), np.sort(np.diff(np.unique(geometry[:, 1])))
-# [AGENT EDIT END]
 
 
 def _measured_conditions(observation: dict) -> set:
@@ -465,7 +424,6 @@ def _measured_conditions(observation: dict) -> set:
     return measured
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - fingerprints of different bin widths or condition lengths are refused, never scored | date: 2026-09-27]
 def _check_aligned(group: str, observations: dict, features: dict, keys) -> None:
     """Raise unless every kept unit has one fingerprint bin width and one length per shared condition."""
     bins = sorted({float(features[c]['fingerprint_bin_seconds']) for c in observations})
@@ -479,10 +437,8 @@ def _check_aligned(group: str, observations: dict, features: dict, keys) -> None
         if len(lengths) != 1:
             raise ValueError(f'group {group}: condition {key!r} has fingerprint lengths {lengths}; every day needs '
                              'the same condition duration, no alias or duration substitution')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each group is observed on reference windows from its evidence: trials and the reliability gate in event groups, 5 s chunks and spikes only in no-event groups (event-optional Task 5) | date: 2026-10-09]
 def group_observations(units, features, geometry, timing_by_session, *, min_repeats: int = 5,
                        min_spikes: int = 200, min_reliability: float = 0.30, n_splits: int = 20,
                        seed: int = 0, evidence: Optional[dict] = None) -> tuple:
@@ -539,7 +495,6 @@ def group_observations(units, features, geometry, timing_by_session, *, min_repe
                 if observation['reference_eligible'] and (not events or observation['reliability'] >= min_reliability):
                     observations[cellid], session_of[cellid] = observation, session
         kept = [s for s in sessions if s in set(session_of.values())]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a day with no kept unit is named, never dropped silently | date: 2026-09-27]
         for session in sessions:
             if session not in kept:
                 n_units = int((members.session_id == session).sum())
@@ -547,7 +502,6 @@ def group_observations(units, features, geometry, timing_by_session, *, min_repe
                     f'0 of {n_units} single units have at least {min_spikes} spikes, {min_repeats} repeats and '
                     f'reliability >= {min_reliability:g}; this day is not matched' if events else
                     f'0 of {n_units} single units have at least {min_spikes} spikes; this day is not matched')))
-        # [AGENT EDIT END]
         if len(kept) < 2:
             skipped.append(dict(group=group, reason=(
                 f'{len(kept)} of {len(sessions)} sessions hold a unit with at least {min_spikes} spikes and '
@@ -563,10 +517,6 @@ def group_observations(units, features, geometry, timing_by_session, *, min_repe
             skipped.append(dict(group=group, reason=(
                 f'no condition with at least {min_repeats} repeats is measured by all {len(observations)} kept units')))
             continue
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - fingerprints of different bin widths or condition lengths are refused, never scored | date: 2026-09-27]
         _check_aligned(group, observations, features, keys)
-        # [AGENT EDIT END]
         groups.append(GroupObservations(group, tuple(kept), observations, session_of, keys))
     return tuple(groups), skipped
-# [AGENT EDIT END]
-# [AGENT EDIT END]

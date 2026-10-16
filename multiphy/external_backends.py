@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: shim; adapters moved to backends/unitmatch.py, dant.py, deepunitmatch.py and _upstream.py (Task 9) | date: 2026-09-22]
 """Deprecated import path for the published-method adapters.
 
 The code lives in ``backends/unitmatch.py``, ``backends/dant.py``, ``backends/deepunitmatch.py``
@@ -21,4 +20,3 @@ from .backends.deepunitmatch import (  # noqa: F401
 
 def register_external_backends():
     """No-op kept for old callers: built-ins register on import now."""
-# [AGENT EDIT END]

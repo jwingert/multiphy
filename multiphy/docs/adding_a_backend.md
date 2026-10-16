@@ -71,10 +71,8 @@ where `make_random_baseline()` returns a `RandomBaselineBackend()`.
 `registry.list_specs()` loads entry points after the built-ins, and `registry.get()`
 loads them on the first miss (`contract/registry.py`), so installing that package is
 enough for `random_baseline` to show up everywhere: `list-backends` and the
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no Qt dialog reads the option schema since backend_job.py was removed (run-curation final review 2) | date: 2026-10-06] -->
 `--backend` choices of `python -m multiphy.run` and the
 subprocess launcher.
-<!-- [AGENT EDIT END] -->
  An entry point that fails to load is recorded in
 `registry.ENTRY_POINT_ERRORS` (name to error text) and skipped; the built-ins and the
 other plugins still load. A new spec's `real_days` defaults to `True`; set it `False`
@@ -94,9 +92,6 @@ finally:
     registry.clear_for_tests()
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic is a built-in (functional-likelihood Task 8) | date: 2026-09-27] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the listed backend label names an event response (launcher-gui Task 10) | date: 2026-10-07] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the listed label names firing, waveform and optional event-response likelihood ratios (event-optional Task 13) | date: 2026-10-10] -->
 ```
 functional_likelihood Functional likelihood — firing, waveform and optional event-response likelihood ratios available
 pair_logistic  Pair logistic — calibrated classifier per project            available
@@ -105,9 +100,6 @@ dant           DANT — waveform, spike timing, optional stimulus response    un
 deepunitmatch  DeepUnitMatch — learned waveform features                    unavailable: DeepUnitMatch is not importable in this interpreter
 random_baseline random_baseline                                              available
 ```
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 It shows up with its id in place of a label — `contract.names` has no `'backend'`
 entry for it, and `names.backend_label()` returns the id rather than raising (§8 of
@@ -145,11 +137,8 @@ run-backend --input .../prn069a_temporal_shared_v1/dataset --backend random_base
 --partition test --seed 0`. Only the in-process demo above is executed as part of
 this document, since no such package is installed here.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: benchmark results have no GUI view; the viewers open project runs (run-curation Task 10) | date: 2026-10-05] -->
 ## Opening a project run in a viewer
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run, and its usage line (viewer-split Task 10) | date: 2026-10-07] -->
 Benchmark archives and collections have no GUI view; their CLI scoring is
 unchanged. A project run opens with `$PY -m multiphy.viewer --run DIR`
 in the mode its `selection.json` records: a same-day run made by
@@ -172,9 +161,7 @@ optional arguments:
   -h, --help  show this help message and exit
   --run DIR   a completed project run folder
 ```
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: how a backend that estimates drift saves its day offsets (drift-view Task 8) | date: 2026-10-08] -->
 ## Day offsets
 
 A backend that estimates drift between days sets `Provides(..., day_offsets=True)` in its spec
@@ -190,7 +177,6 @@ functions for recorders during the one call, with `_upstream.recording(module, *
 (`backends/_upstream.py`); it puts every original back afterwards, also after an error. The
 upstream source is never edited. A capture that cannot be read raises `BackendUnavailable` or
 `ContractViolation`, so the run writes no result rather than a wrong or missing offset.
-<!-- [AGENT EDIT END] -->
 
 ## The conformance test
 
@@ -217,10 +203,8 @@ any other test's `registry.list_specs()`.
 - **The CLI** (`run/__main__.py`) — `list-backends` and `run-backend --backend ID`
   both come from `registry.list_specs()`/`registry.get()`, and the backend's own
   `--seed` flag was generated from its `Option` by `run/options.add_arguments`.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no backend_job dialog: the subprocess launcher alone builds argv from the spec (run-curation Task 10) | date: 2026-10-05] -->
 - **The subprocess launcher** (`run/subprocess.py`'s `build_command`) — it builds its
   argv from the same spec, not from a per-backend table.
-<!-- [AGENT EDIT END] -->
 - **The reports and the viewer** — they read `MatchResult`, not a backend id, except
   where a display string is looked up by id (§8 of `contract.md`); an unregistered
   name shows as its raw id instead of failing.

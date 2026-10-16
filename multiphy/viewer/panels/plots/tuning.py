@@ -1,10 +1,7 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tone tuning panel, from gui.py:964-995, reading UnitData; a run without the tuning part says so (viewer-split Task 4) | date: 2026-10-06]
 """Each selected unit's tone tuning curve on its site's frequency axis."""
 import numpy as np
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: colours come from the active theme's tokens (launcher-gui Task 8) | date: 2026-10-07]
 from multiphy.viewer.display import colors
-# [AGENT EDIT END]
 from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.registry import register_panel
 
@@ -34,8 +31,5 @@ class TuningPanel(PlotPanel):
             return
         ax.set_xlabel('frequency (Hz)', fontsize=8)
         ax.set_ylabel('evoked rate', fontsize=8)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the zero rule takes the theme's muted token (launcher-gui Task 8) | date: 2026-10-07]
         ax.axhline(0, color=colors()['muted'], lw=0.6)
-        # [AGENT EDIT END]
         ax.legend(fontsize=6, frameon=False, ncol=2 if len(self.selected()) > 4 else 1)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the typed run data panels read, and the pair preparation from gui.py:997-1026 (mixture_day_pairs, apply_run_provenance) and gui.py:2222-2257 (set_match_result's pair table and day pairs) (viewer-split Task 2) | date: 2026-10-06]
 """The typed data a viewer panel reads: one frozen ``UnitData`` per unit, a mode's ``Words``, the ``RunData``
 a ``Mode`` loads, and the Qt-free preparation of a result's pair table and day pairs.
 
@@ -11,9 +10,7 @@ import pandas as pd
 
 from multiphy.viewer import display
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: offsets is no longer a part; RunData.day_offset is deleted (drift-view Task 3) | date: 2026-10-08]
 PARTS = frozenset({'isi', 'acg', 'tuning'})
-# [AGENT EDIT END]
 PAIR_COLUMNS = ('cellid_a', 'cellid_b', 'siteid_a', 'siteid_b', 'match_score', 'decision', 'selected', 'score_kind')
 
 
@@ -34,7 +31,6 @@ class UnitData:
     tuning: object = None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no pair words: the day table replaces the day pairs and candidates (native-same-day Task 10) | date: 2026-10-11]
 @dataclass(frozen=True)
 class Words:
     """The nouns a mode's panels and tables use."""
@@ -42,7 +38,6 @@ class Words:
     member_column: str
     observations: str
     import_tip: str
-# [AGENT EDIT END]
 
 
 @dataclass(frozen=True, eq=False)
@@ -85,7 +80,6 @@ class RunData:
         """``{cellid: siteid}`` of every unit."""
         return self._sites
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run's sites ranked by recording date, for the Day ramp (graphite-palettes Task 5) | date: 2026-10-11]
     def site_order(self) -> list:
         """The run's site ids as ``str``, each once, in recording order.
 
@@ -99,7 +93,6 @@ class RunData:
                       .sort_values(['session_date', 'siteid'], na_position='last', kind='mergesort'))
             return [str(s) for s in ranked['siteid']]
         return sorted({str(s) for s in table['siteid']})
-    # [AGENT EDIT END]
 
     def pairs(self) -> pd.DataFrame:
         return self.pair_table
@@ -144,18 +137,14 @@ class Mode:
 
 
 def display_pairs(result, sites: dict, pair_evidence: Optional[pd.DataFrame] = None) -> pd.DataFrame:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the refusal of a run saved without run_evidence (event-optional Task 12) | date: 2026-10-10]
     """The result's pairs as the panels show them: ``score_kind`` filled, evidence merged, siteids filled from ``sites``.
 
     The result is validated first, so ``decision`` and ``selected`` come from the contract. A result unit
     missing from ``sites`` is refused, as is a run whose mixture references have no valid ``run_evidence``
     (``display.require_run_evidence``).
     """
-    # [AGENT EDIT END]
     result.validate()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a run saved before event-optional matchers is refused before any panel reads it (event-optional Task 12, D56) | date: 2026-10-10]
     display.require_run_evidence(result.provenance)
-    # [AGENT EDIT END]
     sites = dict(sites)
     missing = [str(c) for c in result.units.cellid if c not in sites]
     if missing:
@@ -181,7 +170,6 @@ def display_pairs(result, sites: dict, pair_evidence: Optional[pd.DataFrame] = N
     return P
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a site pair within one site is skipped, both copied and appended (native-same-day Task 7) | date: 2026-10-11]
 def complete_day_pairs(day_pairs: list, pairs: pd.DataFrame, new_pair: Optional[Callable] = None) -> list:
     """A new list of copies of ``day_pairs``, with each site pair of ``pairs`` it lacks appended once as ``new_pair(a, b)``;
     pairs within one site are skipped."""
@@ -195,18 +183,15 @@ def complete_day_pairs(day_pairs: list, pairs: pd.DataFrame, new_pair: Optional[
             out.append(new_pair(a, b))
             known.add(frozenset((a, b)))
     return out
-# [AGENT EDIT END]
 
 
 def mixture_day_pairs(provenance: dict) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every saved weight_<stream> key is copied, so a run without events carries its physiology and waveform weights (event-optional Task 12) | date: 2026-10-10]
     """Each group run's fitted mixture per day pair: ``{frozenset((day_a, day_b)): {'streams', 'weight_<stream>', ...}}``,
     with every ``weight_*`` key the group's mixture references saved.
 
     ``observed`` is every gated candidate the mixture was fit on. A stream whose fit is
     ``unavailable`` is left out. Only ``group_runs`` are read, never top-level references.
     """
-    # [AGENT EDIT END]
     out = {}
     for entry in (provenance.get('group_runs') or {}).values():
         p = entry['provenance']
@@ -217,10 +202,8 @@ def mixture_day_pairs(provenance: dict) -> dict:
             streams = {s: {'same': refs['streams'][s]['same'], 'diff': refs['streams'][s]['diff'],
                            'observed': e['observed'], 'pi': e['pi']}
                        for s, e in (sp.get('streams') or {}).items() if 'unavailable' not in e}
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: copy every saved weight_* key (event-optional Task 12) | date: 2026-10-10]
             out[frozenset((sp['session_a'], sp['session_b']))] = {
                 'streams': streams, **{k: v for k, v in refs.items() if k.startswith('weight_')}}
-            # [AGENT EDIT END]
     return out
 
 
@@ -238,4 +221,3 @@ def apply_run_provenance(day_pairs: list, provenance: dict) -> list:
             dp.update(mixtures[key])
         out.append(dp)
     return out
-# [AGENT EDIT END]

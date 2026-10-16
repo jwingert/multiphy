@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify benchmark persistence, label isolation, and immutable cache placement | date: 2026-09-17]
 from dataclasses import replace
 import numpy as np
 import pytest
@@ -114,4 +113,3 @@ def test_ambiguous_omissions_and_source_identity_types_are_rejected():
     s.spike_samples = {1: s.spike_samples['one'], '1': s.spike_samples['two']}
     with pytest.raises(ValueError, match='nonempty strings'):
         build_dataset([s], dataset_id='two')
-# [AGENT EDIT END]

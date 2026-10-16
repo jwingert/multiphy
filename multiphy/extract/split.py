@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the halves rule: a day's analysis window cut into two contiguous blocks at a trial start or the sample midpoint (multiphy project folder Task 9) | date: 2026-09-25]
 """The halves rule: where a day's analysis window is cut into its two halves.
 
 With trials, the boundary is the start of the middle trial (``'trial_start'``), so no trial
@@ -30,4 +29,3 @@ def halves(trials: np.ndarray, analysis_window: tuple) -> dict:
     if boundary <= start or boundary >= stop:
         raise ValueError('A half of the day is empty.')
     return {'rule': rule, 'boundary': boundary, 'windows': windows}
-# [AGENT EDIT END]

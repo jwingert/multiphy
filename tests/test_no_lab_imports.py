@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: public unit_match imports never reach the lab database (multiphy project folder Task 1) | date: 2026-09-25]
 """Importing multiphy loads no lab module."""
 from __future__ import annotations
 
@@ -20,7 +19,7 @@ def test_core_modules_import_without_lab():
         'import multiphy.multiday_reuse\n'
         'import multiphy.streaming_waveforms\n'
         'from multiphy.contract import registry\n'
-        "registry.get('functional_likelihood')\n"  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]
+        "registry.get('functional_likelihood')\n"
         "print('ok')\n"
     )
     proc = run_without_lab(code, REPO)
@@ -39,10 +38,8 @@ def test_session_blocks_lab_imports():
         importlib.import_module('nems_lbhb' + '.unit_match')
     assert str(exc.value) == 'blocked: nems_lbhb'
     assert 'nems_lbhb' not in sys.modules
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the curator and the project-run viewers import and open without the lab database (Plan B Task 11) | date: 2026-09-28]
 QT_PRELUDE = (
     'import os\n'
     "os.environ['QT_QPA_PLATFORM'] = 'offscreen'\n"
@@ -53,9 +50,7 @@ QT_PRELUDE = (
 
 def test_gui_imports_without_lab():
     code = QT_PRELUDE + (
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer App replaces the deleted gui module (viewer-split Task 9) | date: 2026-10-07]
         'import multiphy.viewer.app\n'
-        # [AGENT EDIT END]
         "print('ok')\n"
     )
     proc = run_without_lab(code, REPO)
@@ -68,13 +63,10 @@ def test_project_path_runs_and_opens_without_lab(tmp_path):
         'from pathlib import Path\n'
         'from tests.synthetic_day import extracted_project\n'
         'from multiphy.launch import commands\n'
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs open in viewer.app, not the deleted days and benchmark viewers (viewer-split Task 9) | date: 2026-10-07]
         'from multiphy.viewer import app as viewer_app\n'
-        # [AGENT EDIT END]
         f'root = extracted_project(Path({str(tmp_path)!r})).parent\n'
         "days = commands.run(root, 'P', backend='functional_likelihood')\n"
         "day = commands.run(root, 'P', backend='functional_likelihood', days=['D1'])\n"
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the windows show their runs and units, and opening attempts no blocked import (Plan B Task 11) | date: 2026-09-28]
         'import sys\n'
         'from multiphy import backends\n'
         'attempts = []\n'
@@ -84,10 +76,8 @@ def test_project_path_runs_and_opens_without_lab(tmp_path):
         '            attempts.append(name)\n'
         '        return None\n'
         'sys.meta_path.insert(0, _Recorder())\n'
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open both runs with viewer.app.open_run (viewer-split Task 9) | date: 2026-10-07]
         "days_window = viewer_app.open_run(days['run'])\n"
         "day_window = viewer_app.open_run(day['run'])\n"
-        # [AGENT EDIT END]
         'days_window.show()\n'
         'day_window.show()\n'
         'app.processEvents()\n'
@@ -100,7 +90,6 @@ def test_project_path_runs_and_opens_without_lab(tmp_path):
         "assert sorted(day_window.state.sites.values()).count('recording0000_part000') == 3\n"
         "assert sorted(set(day_window.state.sites.values())) == ['recording0000_part000', 'recording0000_part001']\n"
         'assert len(day_window.state.sites) == 6\n'
-        # [AGENT EDIT END]
         'days_window.close()\n'
         'day_window.close()\n'
         "print('ok')\n"
@@ -108,4 +97,3 @@ def test_project_path_runs_and_opens_without_lab(tmp_path):
     proc = run_without_lab(code, REPO)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.rstrip().endswith('ok')
-# [AGENT EDIT END]

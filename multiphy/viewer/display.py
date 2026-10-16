@@ -1,6 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Qt-free display texts and colours, from gui.py:52-59, 111-128, 131-296, 1354-1372 (EvidencePanel.FIELDS) and benchmark_viewer.py:175-181 (_declared_conditions) (viewer-split Task 2) | date: 2026-10-06]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names the theme's colour tokens (launcher-gui Task 8) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names graphite, uses_unit_palette and unit colours from unit_palettes except on Light (graphite-palettes Task 2) | date: 2026-10-11]
 """Qt-free display texts and colours the viewer panels share: score labels, the backend header and its hover
 text, gate outcomes, unit colours and the scalar evidence fields. Imports no Qt and no lab module.
 
@@ -8,8 +5,6 @@ The theme's colour tokens live here too: ``PALETTES`` holds one set per name in 
 default, then ``dark`` and ``light``), and panels read the active theme's tokens with ``colors()`` when they
 draw, so a theme switch recolours them on their next draw. Unit colours come from the Unit colours palette of
 ``unit_palettes`` on every theme but Light, which keeps its own ramp; ``uses_unit_palette`` says which."""
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 import ast
 from typing import Optional
 
@@ -17,12 +12,8 @@ import numpy as np
 import pandas as pd
 
 from multiphy.contract import names, registry
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header tags group a run's saved reasons as the launch form does (event-optional Task 12) | date: 2026-10-10]
 from multiphy.contract.inputs import Input, evidence_tags
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit colours come from the active Unit colours palette (graphite-palettes Task 2) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 
 
 def backend_spec(backend_id):
@@ -33,9 +24,6 @@ def backend_spec(backend_id):
         return None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each palette gains proposal_tint, the wash of the units the backend grouped with the picked one (native-same-day Task 9) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the dark and light colour tokens, the active theme name, set_theme, theme_name and colors replace the fixed colour constants (launcher-gui Task 8) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the graphite tokens come first and are the default theme; dark and light lose the day tokens, dark loses many, both gain plot_grid and plot_spine (graphite-palettes Task 2) | date: 2026-10-11]
 # Each theme's colour tokens. Light's many is its own unit ramp; the other themes take the Unit colours palette.
 PALETTES = {
     'graphite': {
@@ -64,8 +52,6 @@ PALETTES = {
 }
 THEMES = ('graphite', 'dark', 'light')
 _theme = 'graphite'      # the active theme; the app's entry points apply the saved one
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def set_theme(name: str) -> None:
@@ -81,7 +67,6 @@ def theme_name() -> str:
     return _theme
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only Light has many, so colors() copies it only when present; uses_unit_palette says whether unit colours come from the Unit colours palette (graphite-palettes Task 2) | date: 2026-10-11]
 def colors() -> dict:
     """The active theme's colour tokens, as a new dict whose ``many``, when the theme has it, is a new list."""
     p = dict(PALETTES[_theme])
@@ -94,24 +79,18 @@ def uses_unit_palette() -> bool:
     """Whether unit colours come from the Unit colours palette: True on graphite and dark, False on light, whose
     own ramp is its ``many`` token."""
     return 'many' not in PALETTES[_theme]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: P_EVENT names the event-response stream; the stored column stays p_stim (launcher-gui Task 10) | date: 2026-10-07]
 # The combined probability is what a verdict should rest on, but a cache built
 # before the streams existed carries only the event-response one. Name what is actually
 # on screen rather than passing one off as the other.
 P_COMBINED, P_EVENT, P_PHYS = 'p_global', 'p_stim', 'p_phys'
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the waveform stream's posterior column, and its log-likelihood and posterior among the cached scores (event-optional Task 12) | date: 2026-10-10]
 P_WAVE = 'p_wave'
 # A matching run's scores: stream log-likelihoods, their mixture posteriors and
 # the fingerprint posterior. A result whose score kind is `none`
 # (the unassigned view, DANT) never displays them beside its measured features.
 CACHED_SCORE_COLUMNS = ('s_stim', 's_phys', 's_wave', 's_global', 'p_stim', 'p_phys', 'p_wave', 'p_global',
                         'posterior')
-# [AGENT EDIT END]
 
 
 def shows_scores(row):
@@ -129,9 +108,7 @@ def probability(row, key=P_COMBINED):
 
 
 def headline_probability(row):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fallback is the event-response-only number (launcher-gui Task 10) | date: 2026-10-07]
     """(value, label). Falls back to the event-response-only number, and says so."""
-    # [AGENT EDIT END]
     if 'match_score' in row:
         label = row.get('score_display_label') or (
             'P(same neuron)' if row.get('score_kind') == 'calibrated_probability'
@@ -141,9 +118,7 @@ def headline_probability(row):
     if np.isfinite(v):
         return v, 'P(same neuron)'
     v = probability(row, 'posterior')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fallback label says events only (launcher-gui Task 10) | date: 2026-10-07]
     return v, 'P(same neuron), events only'
-    # [AGENT EDIT END]
 
 
 ASSIGNMENT_LABELS = {
@@ -155,7 +130,6 @@ ASSIGNMENT_LABELS = {
     'mutual_margin_best_first': 'Common constrained tracking: candidate competition and contradiction checks',
     'common_constrained': 'Common constrained tracking: candidate competition and contradiction checks',
 }
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream labels name the event response, physiology and waveform; the combined label, the stream words, the run's evidence tags and the refusal of a run without run_evidence read each group's saved provenance (event-optional Task 12) | date: 2026-10-10]
 STREAM_LABELS = {'combined': 'Event response + physiology + waveform',
                  'stimulus': 'Event response only', 'physiology': 'Physiology only',
                  'waveform': 'Waveform only'}
@@ -225,7 +199,6 @@ def require_run_evidence(provenance) -> None:
         if (not isinstance(evidence, dict) or not {str(g) for g in refs} <= {str(g) for g in evidence}
                 or not all(_valid_evidence(e) for e in evidence.values())):
             raise ValueError(EVIDENCE_REFUSAL)
-# [AGENT EDIT END]
 # the scalar evidence rows: (pair column, label, gate id or None)
 EVIDENCE_FIELDS = [
     ('depth_delta_um', 'depth difference (um)', 'prox'),
@@ -235,11 +208,9 @@ EVIDENCE_FIELDS = [
     ('acg_cosine', 'autocorrelogram (cosine)', None),
     ('fingerprint_r', 'fingerprint correlation', None),
     ('tuning_r', 'tone tuning correlation', None),
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one footprint row becomes the peak-channel waveform and footprint rows and the all-channel footprint row (event-optional Task 1) | date: 2026-10-09]
     ('waveform_r_local', 'waveform correlation, peak channels', None),
     ('footprint_r_local', 'footprint correlation, peak channels', None),
     ('footprint_r', 'footprint correlation, all channels', None),
-    # [AGENT EDIT END]
     ('d_log_rate_session', 'session rate, |diff log|', None),
     ('d_log_rate_shared', 'shared-stimulus rate, |diff log|', None),
     ('reliability_a', 'fingerprint reliability, day 1', None),
@@ -284,13 +255,11 @@ def result_input_label(result):
         labels = {key: label for key, label, _ in EVIDENCE_FIELDS}
         return 'Fitted model: ' + ', '.join(labels.get(k, k.replace('_', ' ')) for k in properties)
     name = provenance.get('evidence_display_name')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the combined stream is labelled from the saved weights (event-optional Task 12) | date: 2026-10-10]
     labels = dict(STREAM_LABELS, combined=combined_label(provenance))
     stream = labels.get(provenance.get('feature_stream'))
     if name and stream:
         return f'{name}: {stream}'
     return name or labels.get(provenance.get('feature_stream', 'combined'), 'Inputs specified in saved model')
-    # [AGENT EDIT END]
 
 
 def backend_header_text(result) -> str:
@@ -351,8 +320,6 @@ def pct(v):
     return f'{100*v:.0f}%' if np.isfinite(v) else '--'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit colours from the active theme's tokens; COL_MUTED and VERDICT_COLOR removed (launcher-gui Task 8) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit colours from the Unit colours palette, or Light's own ramp on Light; none for no units (graphite-palettes Task 2) | date: 2026-10-11]
 def unit_colors(n: int) -> list:
     """One colour per selected unit in selection order, from the Unit colours palette, or Light's own ramp on
     Light; ``n <= 0`` gives ``[]``."""
@@ -362,8 +329,6 @@ def unit_colors(n: int) -> list:
         return unit_palettes.colours(n)
     many = PALETTES[_theme]['many']
     return [many[i % len(many)] for i in range(n)]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def declared_conditions(value) -> Optional[list]:
@@ -374,4 +339,3 @@ def declared_conditions(value) -> Optional[list]:
         except (ValueError, SyntaxError):
             return None
     return list(value) if isinstance(value, (list, tuple)) and all(isinstance(v, str) for v in value) else None
-# [AGENT EDIT END]

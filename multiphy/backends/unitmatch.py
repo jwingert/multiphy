@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: UnitMatch adapter as a declared backend; moved from external_backends.py (Task 9) | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: module docstring says a same-day native group keeps one unit per session and proposes the rest (native-same-day Task 3 fix round 1) | date: 2026-10-11]
 """Backend ``unitmatch``: the official UnitMatchPy scoring with native or common tracking.
 
 Verified upstream API: EnnyvanBeest/UnitMatch revision
@@ -10,7 +8,6 @@ tracker instead. A native group holding two or more units of one session keeps o
 (backends/native_groups.py); the others are unmatched and their pairs inside the group are
 proposed_link.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 import uuid
 
@@ -20,21 +17,15 @@ import pandas as pd
 from ..contract.backend import (BackendSpec, Option, Provides, COMMON_TRACKER_OPTIONS,
                                 NATIVE_TRACKING_OPTIONS)
 from ..contract.errors import BackendUnavailable
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a capture that cannot be read refuses as a contract violation (drift-view Task 5) | date: 2026-10-08]
 from ..contract.errors import ContractViolation
-# [AGENT EDIT END]
 from ..contract.inputs import Input
 from ..contract.provenance import Provenance
 from ..contract.results import Decision, MatchResult, ScoreBlock, ScoreKind, TrackKind, single_units
 from ._upstream import (UNITMATCH_REVISION, UNITMATCH_SOURCE, availability, module as _module,
                         prepare_bundle as _prepare_bundle, source_info as _source_info, version as _version)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record UnitMatchPy's drift calls during scoring (drift-view Task 5) | date: 2026-10-08]
 from ._upstream import recording as _recording
-# [AGENT EDIT END]
 from .local.tracker import result_from_pairs
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one native group resolver keeps one unit per session (native-same-day Task 3) | date: 2026-10-11]
 from .native_groups import label_pairs, resolve_groups
-# [AGENT EDIT END]
 
 _TRACKER_KEYS = ('run_id', 'threshold', 'contradiction_threshold', 'ambiguity_margin')
 
@@ -57,11 +48,9 @@ def _um_geometry(geometry):
     return [np.column_stack([np.ones(len(g)), g]) for g in geometry]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the session drift UnitMatchPy applied, read from its recorded calls into a saved registration (drift-view Task 5) | date: 2026-10-08]
 _DRIFT_APPLY = ('apply_drift_correction_basic', 'apply_drift_correction_per_shank')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every recorded call field and param read refuses as ContractViolation naming the call (drift-view Task 5 fix round 1) | date: 2026-10-08]
 _UNREADABLE = (TypeError, ValueError, IndexError, KeyError, OverflowError)
 
 
@@ -78,7 +67,6 @@ def _finite(values, shape, name):
     if array.shape != shape or not np.isfinite(array).all():
         raise ContractViolation(f'{name} returned a drift of shape {array.shape}, expected finite {shape}')
     return array
-# [AGENT EDIT END]
 
 
 def _unitmatch_registration(calls: list, sessions: list, cellids: list, switch: np.ndarray, param: dict,
@@ -93,7 +81,6 @@ def _unitmatch_registration(calls: list, sessions: list, cellids: list, switch: 
     drift_calls = [c for c in calls if c.name == 'drift_n_sessions']
     if len(drift_calls) != 1:
         raise ContractViolation(f'drift_n_sessions was called {len(drift_calls)} times; expected exactly one')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: result fields, args, shank ids and params read through _read so a malformed capture refuses as ContractViolation naming the call (drift-view Task 5 fix round 1) | date: 2026-10-08]
     rows = _finite(_read('drift_n_sessions', 'result[0] (drift rows)', lambda: drift_calls[0].result[0]),
                    (n_rows, 3), 'drift_n_sessions')
     applied, n_pairs, shank_drifts = {}, {}, {}
@@ -131,7 +118,6 @@ def _unitmatch_registration(calls: list, sessions: list, cellids: list, switch: 
                                     f'{shank_ids.shape} values, expected {size} shank numbers in '
                                     f'range({n_shanks})')
         shank_drifts[k] = (drift, shank_ids.astype(int))
-    # [AGENT EDIT END]
     groups = [[sessions[0]]]
     offsets_um, shank_offsets_um, unit_shanks = {sessions[0]: 0.0}, {}, {}
     for k in range(n_rows):
@@ -152,17 +138,12 @@ def _unitmatch_registration(calls: list, sessions: list, cellids: list, switch: 
     per_shank = [[sessions[k], sessions[k + 1], i, float(shank_drifts[k][0][i, 2]),
                   float(shank_drifts[k][0][i, 1])]
                  for k in sorted(shank_drifts) for i in range(n_shanks)]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: shank width from the param read through _read above (drift-view Task 5 fix round 1) | date: 2026-10-08]
     return {'method': 'native', 'offsets_um': offsets_um, 'shank_offsets_um': shank_offsets_um,
             'unit_shanks': unit_shanks, 'shank_width_um': shank_width_um,
             'diagnostics': {group: {'groups': groups, 'drifts': drifts, 'shank_drifts': per_shank,
                                     'sources': sources}}}
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every unit pair; a same-day native group keeps one unit per session and proposes the rest; wraps the earlier Task 9 tags it replaces (native-same-day Task 3) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _matrix_pairs signature carries its declared annotations (native-same-day Task 3 fix round 1) | date: 2026-10-11]
 def _matrix_pairs(eligible: pd.DataFrame, matrix: np.ndarray) -> pd.DataFrame:
     """Every unit pair ``a < b`` in ``eligible`` order, scored by the minimum of both directions."""
     matrix = np.asarray(matrix, float)
@@ -174,7 +155,6 @@ def _matrix_pairs(eligible: pd.DataFrame, matrix: np.ndarray) -> pd.DataFrame:
                          'match_score': np.minimum(matrix[a, b], matrix[b, a]),
                          'official_probability_ab': matrix[a, b],
                          'official_probability_ba': matrix[b, a]})
-# [AGENT EDIT END]
 
 
 def _um_result(backend_id, units, eligible, prob, sid, param, info, tracking, metadata, options):
@@ -218,7 +198,6 @@ def _um_result(backend_id, units, eligible, prob, sid, param, info, tracking, me
         tuple(tracks), tuple(u for u in ids if u not in members), excluded,
         ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE, tracking,
         Provenance.from_json(metadata)).validate()
-# [AGENT EDIT END]
 
 
 def run_unitmatch(units, pairs=None, *, waveform_bundle=None, params=None,
@@ -229,13 +208,11 @@ def run_unitmatch(units, pairs=None, *, waveform_bundle=None, params=None,
     ov, bf = _module('UnitMatchPy.overlord'), _module('UnitMatchPy.bayes_functions')
     param, info, within = _um_setup(waves, geometry, sid, switch, params)
     extracted = ov.extract_parameters(waves, _um_geometry(geometry), info, param)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record the drift UnitMatchPy applies while it scores (drift-view Task 5) | date: 2026-10-08]
     mf = _module('UnitMatchPy.metric_functions')
     with _recording(mf, 'drift_n_sessions', 'apply_drift_correction_basic', 'apply_drift_correction_per_shank',
                     'shank_ID_per_session') as calls:
         _, candidate, scores, predictors = ov.extract_metric_scores(
             extracted, switch, within, param, niter=2)
-    # [AGENT EDIT END]
     labels = candidate.astype(int)
     conditions = np.unique(labels)
     if not np.array_equal(conditions, [0, 1]):
@@ -249,26 +226,20 @@ def run_unitmatch(units, pairs=None, *, waveform_bundle=None, params=None,
                     implementation=_source_info(ov), waveform_provenance=waveform_bundle.provenance,
                     parameters=param, pair_reduction='minimum of both directional probabilities',
                     calibration_status='official Bayes outputs; not validated identity accuracy here')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: record which optional inputs the run consumed (Task 9) | date: 2026-09-22]
     metadata.update(used_optional_inputs=[])
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: save the session drift UnitMatchPy applied (drift-view Task 5) | date: 2026-10-08]
     metadata.update(registration=_unitmatch_registration(
         calls, list(dict.fromkeys(eligible.session_id)), list(eligible.cellid), switch, param,
         str((provenance or {}).get('group', '')), [_source_info(mf)]))
-    # [AGENT EDIT END]
     return _um_result('unitmatch', units, eligible, prob, sid, param, info,
                       tracking, metadata, dict(options, native_threshold=native_threshold))
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the unitmatch spec declares day_offsets (drift-view Task 2) | date: 2026-10-08]
 SPEC = BackendSpec('unitmatch', '1',
     requires=frozenset({Input.UNITS, Input.WAVEFORM_HALVES, Input.GEOMETRY}), optional=frozenset(),
     provides=Provides(frozenset({ScoreKind.UNCALIBRATED}), frozenset({TrackKind.NATIVE, TrackKind.COMMON}),
                       day_offsets=True),
     options=(Option('params', 'json', None, 'Overrides for UnitMatchPy default parameters'),
              *NATIVE_TRACKING_OPTIONS, *COMMON_TRACKER_OPTIONS), builtin=True)
-# [AGENT EDIT END]
 
 
 class UnitMatchBackend:
@@ -286,4 +257,3 @@ class UnitMatchBackend:
         return run_unitmatch(inp.units, inp.candidate_pairs, waveform_bundle=inp.bundle(), params=opts['params'],
                              tracking=opts['tracking'], native_threshold=opts['native_threshold'],
                              provenance=ctx.provenance.to_json(), run_id=ctx.run_id, **tracker)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: resampled trial splits, source timing and synthetic drift days (functional-likelihood Task 4) | date: 2026-09-27]
 """Trial splits, per-split unit halves, ``TrialTiming.from_source_entry`` and synthetic drift days."""
 from __future__ import annotations
 
@@ -45,7 +44,6 @@ def _entry(**changes):
     return entry
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: hand-built timing with odd repeat counts and hand-counted spikes as independent test expectations | date: 2026-09-27]
 FS = 1000.0
 TRIAL, BASELINE, STIMULUS = 1000, 100, 500     # samples: trial length, baseline length, stimulus length
 
@@ -81,7 +79,6 @@ def _expected_splits(counts: dict, n_trials: int, n_splits: int, seed: int) -> l
         trial, baseline = draw(rng, n_trials), draw(rng, n_trials)
         expected.append((trial, baseline, {c: draw(rng, counts[c]) for c in sorted(counts)}))
     return expected
-# [AGENT EDIT END]
 
 
 def test_split_zero_is_alternating(small_days):
@@ -104,7 +101,6 @@ def test_split_zero_is_alternating(small_days):
                    for c in reference['halves'])
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: split-0 halves against hand-counted rates, not production output | date: 2026-09-27]
 def test_split_zero_hand_counted():
     timing = _hand_timing({'A': 5})
     spikes = []
@@ -124,7 +120,6 @@ def test_split_zero_hand_counted():
     assert np.isclose(halves[0]['spont'], 2 / 0.1) and halves[1]['spont'] == 0.0
     assert halves[0]['n_spikes'] == 35 + 3 + 6 and halves[1]['n_spikes'] == 20 + 2
     assert np.isclose(halves[0]['rate'], 44 / 3.0) and np.isclose(halves[1]['rate'], 22 / 2.0)
-# [AGENT EDIT END]
 
 
 def test_splits_are_seeded(small_days):
@@ -146,7 +141,6 @@ def test_splits_are_seeded(small_days):
     assert np.array_equal(trial_splits(timing, start, stop, seed=0)[3].trial_half, expected)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: every array of every split follows its seed, checked against the draw written out | date: 2026-09-27]
 def test_splits_follow_seed_per_array():
     counts = {'A': 5, 'B': 7, 'C': 4}
     timing = _hand_timing(counts)
@@ -163,7 +157,6 @@ def test_splits_follow_seed_per_array():
     getters = [lambda s: s.trial_half, lambda s: s.baseline_half] + [lambda s, c=c: s.stimulus_half[c] for c in counts]
     for get in getters:
         assert any(not np.array_equal(get(a), get(b)) for a, b in zip(zero[1:], one[1:]))
-# [AGENT EDIT END]
 
 
 def test_splits_are_stratified(small_days):
@@ -189,7 +182,6 @@ def test_splits_are_stratified(small_days):
             assert (halves == 0).sum() == 20
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: odd repeat and trial counts put floor(n/2) in half 0 | date: 2026-09-27]
 def test_splits_are_stratified_odd_counts():
     timing = _hand_timing({'A': 5, 'B': 6})          # 11 trials and baselines
     for split in trial_splits(timing, *timing.analysis_window, n_splits=10)[1:]:
@@ -197,7 +189,6 @@ def test_splits_are_stratified_odd_counts():
         assert (np.asarray(split.stimulus_half['B']) == 0).sum() == 3
         assert (np.asarray(split.trial_half) == 0).sum() == 5 and len(split.trial_half) == 11
         assert (np.asarray(split.baseline_half) == 0).sum() == 5 and len(split.baseline_half) == 11
-# [AGENT EDIT END]
 
 
 def test_silent_unit_has_zero_rates(small_days):
@@ -225,7 +216,6 @@ def test_from_source_entry():
     assert timing.trial_windows.tolist() == entry['trials']
     assert timing.provenance['day'] == 'day1' and timing.provenance['project'] == 'P'
     assert timing.provenance['method'] == 'test clock'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: every timing field, and invalid entries | date: 2026-09-27]
     assert timing.source_session == 'day1' and timing.sample_rate == 1000.0 and timing.analysis_window == (0, 2000)
     assert list(timing.stimuli) == entry['stimuli'] and timing.baseline_windows.tolist() == entry['baseline_windows']
     assert timing.provenance['sample_index_origin'] == 'zero_based_voltage_row'
@@ -238,14 +228,13 @@ def test_from_source_entry_rejects_invalid_entries():
         TrialTiming.from_source_entry(_entry(clock_verification={'method': 'test clock'}))
     with pytest.raises(ValueError, match='outside its nominal TRIALSTART/TRIALSTOP'):
         TrialTiming.from_source_entry(_entry(baseline_windows=[[400, 450]]))
-    # [AGENT EDIT END]
 
 
 def test_from_source_entry_needs_trials():
     missing = _entry()
     del missing['trials']
     for entry in (missing, _entry(trials=[])):
-        with pytest.raises(ValueError, match=re.escape(  # [AGENT EDIT | fix round 2: the whole message, remedy included]
+        with pytest.raises(ValueError, match=re.escape(
                 "day day1: timing needs trial events and this day's source has none; add an events reader")):
             TrialTiming.from_source_entry(entry)
 
@@ -274,7 +263,6 @@ def test_from_source_entry_on_a_phy_day(tmp_path):
     timing = TrialTiming.from_source_entry(entry)
     assert timing.trial_windows.tolist() == expected
     assert timing.provenance['day'] == 'D1'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: stimulus, baseline and clock fields against events.csv too | date: 2026-09-27]
     with open(sd.events_path, newline='') as handle:
         rows = list(csv.DictReader(handle))
     assert timing.baseline_windows.tolist() == [[int(r['start']), int(r['stop'])] for r in rows if r['kind'] == 'baseline']
@@ -282,7 +270,6 @@ def test_from_source_entry_on_a_phy_day(tmp_path):
         (r['condition'], int(r['start']), int(r['stop'])) for r in rows if r['kind'] == 'stimulus']
     assert timing.sample_rate == 30000.0 and timing.source_session == entry['source_session']
     assert timing.provenance['sample_index_origin'] == 'zero_based_voltage_row'
-    # [AGENT EDIT END]
 
 
 def test_unit_observation_has_splits(small_days):
@@ -292,7 +279,6 @@ def test_unit_observation_has_splits(small_days):
     assert len(obs['splits']) == 20
     assert obs['waveform_halves'].shape == (41, 96, 2)
     assert len(obs['sw_halves']) == 2 and all(np.isfinite(obs['sw_halves']))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: split k holds the halves of split k, and the splits differ | date: 2026-09-27]
     spikes = np.asarray(feature['spike_samples'])
     trials = np.asarray(timing.trial_windows)
     for split, (half_0, half_1) in zip(splits, obs['splits']):
@@ -300,13 +286,9 @@ def test_unit_observation_has_splits(small_days):
             own = trials[np.asarray(split.trial_half) == h]
             assert half['n_spikes'] == sum(int(((spikes >= a) & (spikes < b)).sum()) for a, b in own)
     assert len({half_0['n_spikes'] for half_0, _ in obs['splits']}) > 1
-    # [AGENT EDIT END]
 
 
 def test_drift_days_truth_offsets():
     days = make_drift_days()
     assert days.truth_offsets['day2'] - days.truth_offsets['day0'] == 60.0
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2: absolute centered offsets, mean (0 + 40 - 60) / 3 | date: 2026-09-27]
     assert np.allclose([days.truth_offsets[f'day{k}'] for k in range(3)], [-20 / 3, -140 / 3, 160 / 3])
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

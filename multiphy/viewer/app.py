@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the App window, from gui.py:1898-2710 (gui.Curator) with set_data in place of set_match_result (gui.py:2214-2362), its plots from the panel registry, its tables built with the mode's words and one Actions, and the per-mode layout file of multiday_viewer.py:404-429 (viewer-split Task 7) | date: 2026-10-06]
 """``App``: one window that shows any mode's ``RunData``.
 
 Every panel is a dock: drag, resize, float, or stack into tabs. The default arrangement is a 2x2
@@ -6,11 +5,9 @@ plot grid in the middle, browsing on the left and the verdict with its supportin
 right. The layout is saved to the mode's layout file on close, restored next time, and can be
 reset from the View menu.
 """
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command line and the import's selection hash (viewer-split Task 8) | date: 2026-10-06]
 import argparse
 import dataclasses
 import hashlib
-# [AGENT EDIT END]
 import contextlib
 import json
 import os
@@ -25,55 +22,34 @@ from multiphy import clusters as cl
 from multiphy import curation
 from multiphy import store as st
 from multiphy.contract import names
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: import_match_result declares its MatchResult return (viewer-split Task 8 fix round 1) | date: 2026-10-07]
 from multiphy.contract.results import MatchResult
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project run's selection, result, run list, layout path and mode (viewer-split Task 8) | date: 2026-10-06]
 from multiphy import backends, paths
 from multiphy.project.selection import SELECTION_FILE, Selection, selection_of_run
 from multiphy.run.project_run import selection_runs
 from multiphy.viewer.modes import MODES
-# [AGENT EDIT END]
 from multiphy.run import catalog
 from multiphy.run.catalog import RunEntry
 from multiphy.viewer import display
 from multiphy.viewer.data import Mode, RunData
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: cells carry theme tokens; the window restyles its plots and tables on a theme switch (launcher-gui Task 8) | date: 2026-10-07]
 from multiphy.viewer import theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.panels.plots.base import PlotPanel
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Settings and Help menus (launcher-gui Task 9) | date: 2026-10-07]
 from multiphy.viewer import menus
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the logo icon (logo) | date: 2026-10-13]
 from multiphy.viewer import logo
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one saved key per action (day-table-keys Task 4) | date: 2026-10-14]
 from multiphy.viewer import keys
-# [AGENT EDIT END]
 from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table replaces the candidates table, so no candidate cells are built here (native-same-day Task 10) | date: 2026-10-11]
 from multiphy.viewer.panels.tables import (BrowsePanel, ChainPanel, ClusterPanel, DayTablePanel,
                                                        EvidencePanel, RivalPanel)
-# [AGENT EDIT END]
 from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
 from multiphy.viewer.registry import PANELS
 from multiphy.viewer.state import Actions, PairState
 
 # the panel ids the default layout places; any other registered plot is tabbed with the fingerprint
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default layout places the drift panel in its own dock (drift-view Task 4) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram take the spiking dock's place (browse-same-day Task 5) | date: 2026-10-12]
 LAYOUT_PLOTS = ('waveform', 'footprint', 'isi', 'acg', 'fingerprint', 'tuning', 'probe', 'wfmap', 'mixture', 'drift')
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 # a layout file that cannot be read, or holds the wrong shape, leaves the default layout
 LAYOUT_ERRORS = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raise a Qt slot exception at the end of a block instead of letting PySide6 send it to sys.excepthook (viewer-split Task 7, fix round 1) | date: 2026-10-06]
 @contextlib.contextmanager
 def _raising_slot_errors():
     """Collect the exceptions Qt slots raise inside the block (PySide6 hands them to ``sys.excepthook``, not to
@@ -87,7 +63,6 @@ def _raising_slot_errors():
         sys.excepthook = hook
     if caught:
         raise caught[0]
-# [AGENT EDIT END]
 
 
 class App(QtWidgets.QMainWindow):
@@ -106,10 +81,8 @@ class App(QtWidgets.QMainWindow):
         self.state = PairState()
         self.cluster_lookup = {}
         self.review_threshold = cl.DEFAULT_THRESHOLD
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the selection's (dataset, day extras), read on first use; the run list shows only with a selection (viewer-split Task 8) | date: 2026-10-06]
         self._inputs = None
         # saved-run list state
-        # [AGENT EDIT END]
         self._run_entries = []
         self._imported_runs = []
         self._rejected_runs = set()
@@ -123,19 +96,14 @@ class App(QtWidgets.QMainWindow):
         self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.North)
         self._docks = {}
         self._build()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project window lists its selection's runs (viewer-split Task 8) | date: 2026-10-06]
         if self.selection is not None:
             self._use_run_list()
-        # [AGENT EDIT END]
         self.state.changed.connect(self._selection_changed)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a live theme switch restyles the window (launcher-gui Task 8) | date: 2026-10-07]
         theme.notifier().changed.connect(self.restyle)
-        # [AGENT EDIT END]
         self._restore_layout()
         # a new window has no run, so it starts inspect-only with its controls disabled
         self._update_controls()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: restyle redraws the plots and repaints the tables in the active theme without refilling a table or emitting a change (launcher-gui Task 8) | date: 2026-10-07]
     def restyle(self) -> None:
         """Redraw every plot panel and repaint every table in the active theme.
 
@@ -147,7 +115,6 @@ class App(QtWidgets.QMainWindow):
                 panel.restyle()
         for table in self.findChildren(QtWidgets.QTableWidget):
             table.viewport().update()
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------ construction
     def _actions(self) -> Actions:
@@ -162,11 +129,9 @@ class App(QtWidgets.QMainWindow):
         d = QtWidgets.QDockWidget(title or panel.panel_title, self)
         d.setObjectName(f'um_{panel.panel_id}_dock')
         d.setWidget(panel)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the dock body paints the style sheet's rounded card, its content inset from the card's edge (graphite-palettes Task 3) | date: 2026-10-11]
         panel.setAttribute(QtCore.Qt.WA_StyledBackground, True)
         if panel.layout() is not None:
             panel.layout().setContentsMargins(8, 6, 8, 8)
-        # [AGENT EDIT END]
         d.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         d.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                       QtWidgets.QDockWidget.DockWidgetFloatable |
@@ -176,10 +141,6 @@ class App(QtWidgets.QMainWindow):
         self._view_menu.addAction(d.toggleViewAction())
         return d
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table built and wired into the Browse column; the pair-list and candidate connections removed (native-same-day Task 10 fix round 1) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Browse is the front tab of the default layout; a drift-dot click adds the unit to the selection or takes it out, through the day table; tag wraps the whole function (browse-same-day Task 4 fix round 1) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram docks take the spiking dock's place, tabbed together, the interval histogram in front; tag wraps the whole function (browse-same-day Task 5) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one shortcut per keys.ACTIONS entry, keyed from the saved keys and rebound on a save; the fixed A R U, undo, redo and Up / Down shortcuts removed; tag wraps the whole function (day-table-keys Task 4) | date: 2026-10-14]
     def _build(self):
         # no central widget: every panel is a dock, so all of them can be moved
         spacer = QtWidgets.QWidget()
@@ -188,9 +149,7 @@ class App(QtWidgets.QMainWindow):
 
         menu = self.menuBar()
         self._view_menu = menu.addMenu('&View')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Settings and Help follow View (launcher-gui Task 9) | date: 2026-10-07]
         menus.install_menus(self)
-        # [AGENT EDIT END]
         self.header = QtWidgets.QLabel('')
         self.header.setStyleSheet('font-size:14px; font-weight:600; padding:4px 10px;')
         tb = QtWidgets.QToolBar('header')
@@ -201,7 +160,6 @@ class App(QtWidgets.QMainWindow):
         stretch = QtWidgets.QWidget()
         stretch.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
         tb.addWidget(stretch)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run's evidence tags sit before the backend label, amber, hover = reasons (event-optional Task 12) | date: 2026-10-10]
         self.evidence_bar = QtWidgets.QWidget()
         self._evidence_line = QtWidgets.QHBoxLayout(self.evidence_bar)
         self._evidence_line.setContentsMargins(0, 0, 0, 0)
@@ -209,7 +167,6 @@ class App(QtWidgets.QMainWindow):
         self._evidence_labels = []
         self.evidence_bar.setVisible(False)
         tb.addWidget(self.evidence_bar)
-        # [AGENT EDIT END]
         self.backend_header = QtWidgets.QLabel('')
         self.backend_header.setStyleSheet('font-size:14px; padding:4px 10px;')
         tb.addWidget(self.backend_header)
@@ -223,7 +180,6 @@ class App(QtWidgets.QMainWindow):
         self.rivals = RivalPanel(self.state, actions)
         self.evidence = EvidencePanel(self.state, actions)
         self.chains = ChainPanel(self.state)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an Export button under the tracked panel's buttons when the mode exports, from multiday_viewer.py:295-302 (viewer-split Task 8) | date: 2026-10-06]
         self.export_btn = None
         if self.mode.exports:
             self.export_btn = QtWidgets.QPushButton('Export')
@@ -234,7 +190,6 @@ class App(QtWidgets.QMainWindow):
             grid = next(item.layout() for item in (layout.itemAt(i) for i in range(layout.count()))
                         if item.layout() is not None and item.layout().indexOf(self.tracked.buttons['Merge']) >= 0)
             grid.addWidget(self.export_btn, grid.rowCount(), 0)
-        # [AGENT EDIT END]
         ids = list(self.mode.plots) + [i for i in PANELS if i not in self.mode.plots]
         self.plots = [PANELS[i](self.state) for i in ids]
 
@@ -256,11 +211,9 @@ class App(QtWidgets.QMainWindow):
         self.splitDockWidget(d_wave, d_foot, QtCore.Qt.Horizontal)   # top row
         self.splitDockWidget(d_wave, d_isi, QtCore.Qt.Vertical)      # bottom row
         self.splitDockWidget(d_isi, d_fp, QtCore.Qt.Horizontal)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel gets its own dock beside the footprint and probe pane (drift-view Task 4) | date: 2026-10-08]
         # split before the footprint becomes a tab group: Qt adds a dock split from a tabbed one as another tab
         d_drf = self._dock(p['drift'], QtCore.Qt.RightDockWidgetArea)
         self.splitDockWidget(d_foot, d_drf, QtCore.Qt.Horizontal)
-        # [AGENT EDIT END]
         self.tabifyDockWidget(d_foot, d_prb)    # the probe sits behind the footprint
         self.tabifyDockWidget(d_foot, d_wfm)
         self.tabifyDockWidget(d_fp, d_tun)      # tuning and the mixture share a pane
@@ -324,18 +277,12 @@ class App(QtWidgets.QMainWindow):
         self._bind_keys()
         # a bound method of the window, so the connection ends with it
         keys.notifier().changed.connect(self._bind_keys)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each shortcut takes its action's saved key; a save or reset rebinds every window (day-table-keys Task 4) | date: 2026-10-14]
     def _bind_keys(self) -> None:
         """Give each action's shortcut its key from ``keys.bindings()``; an unbound action (``''``) gets no key, so
         its shortcut never fires."""
         for aid, key in keys.bindings().items():
             self.shortcuts[aid].setKey(QtGui.QKeySequence(key))
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------------ layout
     def _save_layout(self):
@@ -362,15 +309,12 @@ class App(QtWidgets.QMainWindow):
         self.restoreGeometry(geometry)
         self.restoreState(state)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Reset layout fits Browse to the day columns again; tag wraps the whole function (day-table widths) | date: 2026-10-13]
     def _reset_layout(self):
         if self._default_state:
             self.restoreGeometry(self._default_state[0])
             self.restoreState(self._default_state[1])
             QtCore.QTimer.singleShot(0, self, self._fit_days)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Browse opens wide enough for up to five day columns at their narrowest; more days scroll (day-table widths) | date: 2026-10-13]
     def _fit_days(self) -> None:
         """Size the Browse dock so the day table shows its first ``min(days, FIT_DAYS)`` day columns at their
         narrowest; more days scroll. The window never resizes: Browse stops where the other docks, or the
@@ -390,7 +334,6 @@ class App(QtWidgets.QMainWindow):
             self.layout().activate()
             if browse.width() in (target, before):
                 return
-    # [AGENT EDIT END]
 
     def closeEvent(self, event):
         # a failed layout save still releases the run's lock
@@ -431,7 +374,6 @@ class App(QtWidgets.QMainWindow):
             self.statusBar().showMessage(f'Import rejected: {exc}', 20000)
             self.browse.info.setText(f'Import rejected: {exc}')
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project window imports a completed run of its own selection, from multiday_viewer.py:392-408; the selection's inputs are read once; open_result builds the run data and run list before set_data (viewer-split Task 8) | date: 2026-10-06]
     def import_match_result(self, path) -> MatchResult:
         """Open the completed run whose ``result.json`` is ``path``; it must be a run of this window's selection.
 
@@ -486,9 +428,7 @@ class App(QtWidgets.QMainWindow):
             self.statusBar().showMessage(str(exc), 12000)
             return
         self.statusBar().showMessage(str(out), 12000)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header's evidence tags: one amber label per tag, hover = its reasons (event-optional Task 12) | date: 2026-10-10]
     def _show_evidence_tags(self, tags: list) -> None:
         """Replace the header's evidence tags with one amber ``QLabel`` per ``(text, tooltip)``."""
         for label in self._evidence_labels:
@@ -509,10 +449,8 @@ class App(QtWidgets.QMainWindow):
     def evidence_tags_shown(self) -> list:
         """``[(text, tooltip)]`` of the header's evidence tags, in order."""
         return [(label.text(), label.toolTip()) for label in self._evidence_labels]
-    # [AGENT EDIT END]
 
     # ---------------------------------------------------------------- run data
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no day-pair list fill; the tracked list fills under a signal blocker and the day table opens unpicked (native-same-day Task 10 fix round 1) | date: 2026-10-11]
     def set_data(self, data: RunData, *, curation_dir: Optional[Path] = None) -> None:
         """Show ``data``; curate it through ``curation_dir``'s history, or inspect it only (``curation_dir`` is
         ``None`` or the mode does not curate).
@@ -526,9 +464,7 @@ class App(QtWidgets.QMainWindow):
         cluster_lookup = cl.posterior_lookup(data.pairs())
         header_text = display.backend_header_text(result)
         header_summary = display.result_summary(result)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run's evidence tags are read before the controller switch (event-optional Task 12) | date: 2026-10-10]
         evidence_tags = display.run_evidence_tags(result.provenance)
-        # [AGENT EDIT END]
         # the next run's controller opens first; only then is the old one closed and replaced,
         # so a failed open leaves the old run, controller and lock in place
         old = self.curation
@@ -553,16 +489,13 @@ class App(QtWidgets.QMainWindow):
         self.curation = new
         self.tracked.confirming_take_over = False
         try:
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a panel that fails while the run renders reaches the cleanup below (viewer-split Task 7, fix round 1) | date: 2026-10-06]
             with _raising_slot_errors():
                 self.review_threshold = review_threshold
                 self.match_result = result
                 self._shown_key = (result.backend_id, result.run_id)
                 self.backend_header.setText(header_text)
                 self.backend_header.setToolTip(header_summary)
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header shows the run's evidence tags (event-optional Task 12) | date: 2026-10-10]
                 self._show_evidence_tags(evidence_tags)
-                # [AGENT EDIT END]
                 self.state.set_data(data)
                 self.cluster_lookup = cluster_lookup
                 self.setWindowTitle(data.title)
@@ -579,18 +512,12 @@ class App(QtWidgets.QMainWindow):
                 self.tracked.refresh_list()
                 del blocker
                 self.days.show_run()
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Browse fits the new run's day columns once the window has laid out (day-table widths) | date: 2026-10-13]
                 QtCore.QTimer.singleShot(0, self, self._fit_days)
-                # [AGENT EDIT END]
                 self._update_controls()
                 # keep the run list on the run being shown
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project window always lists its runs (viewer-split Task 8) | date: 2026-10-06]
                 if self.selection is not None:
                     self._fill_run_box()
-                # [AGENT EDIT END]
                 self.state.changed.emit()
-            # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed lock release still detaches the controller and updates the controls; the render error is raised, chained from the close error (viewer-split Task 7, fix round 2) | date: 2026-10-06]
         except BaseException as render_exc:
             controller, self.curation = self.curation, None
             try:
@@ -601,8 +528,6 @@ class App(QtWidgets.QMainWindow):
                 raise render_exc from close_exc
             self._update_controls()
             raise
-        # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     # ------------------------------------------------- tracks, verdicts, controls
     def track_state(self) -> curation.CurationState:
@@ -623,8 +548,6 @@ class App(QtWidgets.QMainWindow):
                 for (a, b), v in self.track_state().verdicts.items()]
         return pd.DataFrame(rows, columns=['cellid_a', 'cellid_b', 'siteid_a', 'siteid_b', 'verdict'])
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's actions write only when writable (native-same-day Task 10 fix round 1) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's merge, track and unmatch keys join the writable controls; the movement keys stay enabled; tag wraps the whole function (day-table-keys Task 4) | date: 2026-10-14]
     def _update_controls(self):
         """Enable each mutation control from inspect-only, read-only, and the current row's units and status. The
         verdict, undo and day-table keys work only when writable; the movement keys always do."""
@@ -649,13 +572,9 @@ class App(QtWidgets.QMainWindow):
             control.setEnabled(writable)
         for button in self.days.buttons.values():
             button.setEnabled(writable)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Export is enabled whenever a controller is open, read-only included, from multiday_viewer.py:329-332 (viewer-split Task 8) | date: 2026-10-06]
         if self.export_btn is not None:
             self.export_btn.setEnabled(self.curation is not None)
-        # [AGENT EDIT END]
         self._update_lock_tag()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     def _update_lock_tag(self):
         """Show why the viewer cannot write, and Take over (then Confirm / Cancel) for another host's lock."""
@@ -679,7 +598,6 @@ class App(QtWidgets.QMainWindow):
         panel.confirm_take_over_btn.setVisible(can_take_over and panel.confirming_take_over)
         panel.cancel_take_over_btn.setVisible(can_take_over and panel.confirming_take_over)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table redraws from the replayed history (native-same-day Task 10 fix round 1) | date: 2026-10-11]
     def take_over(self):
         """Take the remote lock, then show the replayed history and set the controls."""
         self.tracked.confirming_take_over = False
@@ -695,17 +613,14 @@ class App(QtWidgets.QMainWindow):
         self.chains.show_for(self._verdict_frame())
         self.days.refresh()
         self._update_controls()
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------------ run list
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run box lists selection_runs plus the remembered imports; refresh_runs takes the list and reads nothing; the Refresh button lists again and shows a failure in the status bar (viewer-split Task 8) | date: 2026-10-06]
     def _use_run_list(self):
         """Show the run row, with a Refresh button that lists the selection's runs again."""
         self.browse.use_runs()
         self.browse.run_box.activated.connect(self._run_chosen)
         self.refresh_btn = QtWidgets.QPushButton('Refresh')
         self.refresh_btn.setToolTip('list the runs again')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - the Refresh button lists the runs in its own handler; refresh_runs requires the prepared list and reads nothing (viewer-split Task 8) | date: 2026-10-07]
         self.refresh_btn.clicked.connect(self.list_runs_again)
         self.browse.run_row.layout().addWidget(self.refresh_btn)
 
@@ -724,14 +639,10 @@ class App(QtWidgets.QMainWindow):
         reading nothing."""
         self._run_entries = list(runs)
         self._fill_run_box()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: listed and remembered entries hold resolved paths, so filling the run box reads nothing (viewer-split Task 8 fix round 1) | date: 2026-10-07]
     def _fill_run_box(self):
         listed = {e.result_path for e in self._run_entries}
         entries = self._run_entries + [e for e in self._imported_runs if e.result_path not in listed]
-    # [AGENT EDIT END]
         entries.sort(key=lambda e: e.finished, reverse=True)
         box = self.browse.run_box
         blocker = QtCore.QSignalBlocker(box)
@@ -764,7 +675,6 @@ class App(QtWidgets.QMainWindow):
             self.statusBar().showMessage(f'rejected · {exc}', 20000)
         self._fill_run_box()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the imported entry is built (the file stat) before the run switch and remembered after it, reading nothing (viewer-split Task 8) | date: 2026-10-06]
     @staticmethod
     def _run_entry(path, result) -> RunEntry:
         """The run-list entry of an imported result, finished at its file's modification time."""
@@ -777,11 +687,8 @@ class App(QtWidgets.QMainWindow):
         if all(e.result_path != entry.result_path for e in self._imported_runs):
             self._imported_runs.append(entry)
         self._fill_run_box()
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: select_pair finds the run's pair row in either order, else selects the two units; a day-table action refreshes Tracked units on its track (native-same-day Task 10) | date: 2026-10-11]
     # ------------------------------------------------------------------ pairs
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a given selection stays selected with the pair or without a row (day-table-keys Task 3) | date: 2026-10-14]
     def select_pair(self, cellid_a: str, cellid_b: str, selection: Optional[list] = None) -> None:
         """Open the run's pair row joining ``cellid_a`` and ``cellid_b``, in either order, with its day pair
         (``None`` within one site); ``selection`` (when given) stays selected, else the two units. Without a row
@@ -797,22 +704,15 @@ class App(QtWidgets.QMainWindow):
         self.state.day_pair = next((dp for dp in self.state.data.day_pairs()
                                     if {dp['siteid_a'], dp['siteid_b']} == {row.siteid_a, row.siteid_b}), None)
         self.state.set_pair(row, selection)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day-table action keeps the pick; a hidden track leaves no Tracked units row current (D36) (native-same-day Task 12) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's string comes back selected after Tracked units re-lists; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
     def _day_curated(self, cellid) -> None:
         """A day-table action was written: list the tracks again on the one now holding ``cellid``; when a filter
         hides it, no row is current and the pick and selection stay. Then the day table's string, when there is
         one, is selected again with its active pair."""
         self.tracked.refresh_list(preferred_id=self.days.track_of(cellid), fallback=False)
         self.days.reselect()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     # ---------------------------------------------------------------- verdicts
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table redraws in place of the candidate verdict cell (native-same-day Task 10 fix round 1) | date: 2026-10-11]
     def set_verdict(self, verdict):
         r = self.state.row
         # a verdict is one Curation.do row; inspect-only writes nothing, a refusal shows its message
@@ -831,11 +731,7 @@ class App(QtWidgets.QMainWindow):
         self.days.refresh()
         self.chains.show_for(self._verdict_frame())
         self._step(1)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table redraws from the undone or redone history (native-same-day Task 10 fix round 1) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's string comes back selected after Tracked units re-lists; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: with a string, Tracked units re-lists on the picked unit's track or no row, so an undone track never re-picks and drops the string; tag wraps the whole function (day-table-keys Task 3 fix round 1) | date: 2026-10-14]
     def _undo_redo(self, operation):
         """Undo or redo one action; a refusal ('nothing to undo') shows in the status bar. With a day-table
         string, Tracked units lists the track now holding the picked unit (no row current when a filter hides
@@ -858,47 +754,34 @@ class App(QtWidgets.QMainWindow):
         days.reselect()
         self.chains.show_for(self._verdict_frame())
         days.refresh()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Up / Down step the day table's active column (native-same-day Task 10) | date: 2026-10-11]
     def _step(self, d):
         self.days.step(d)
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open any completed project run in its selection's mode, and the python -m multiphy.viewer command, from multiday_viewer.py:431-455 and benchmark_viewer.py:395-424 (viewer-split Task 8) | date: 2026-10-06]
 def _canonical_runs(runs) -> list:
     """``runs`` (catalog entries) with resolved result paths, read before the run box is filled."""
     return [dataclasses.replace(e, result_path=e.result_path.resolve()) for e in runs]
 
 
 def open_run(run_dir) -> App:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the refusal before the window is built (event-optional Task 12) | date: 2026-10-10]
     """The viewer window on the completed project run in ``run_dir``, in the mode its selection records.
 
     The result is read first; a run with mixture references but no valid ``run_evidence`` is refused
     (``display.require_run_evidence``) before any window is built. A failure after the window is built
     closes it, releasing any lock it took, and re-raises.
     """
-    # [AGENT EDIT END]
     selection = selection_of_run(run_dir)
     entry = catalog.read_run(run_dir)
     if entry is None:
         raise ValueError(f'{run_dir} is not a completed run')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a run saved before event-optional matchers is refused before any window or panel is built (D56) (event-optional Task 12) | date: 2026-10-10]
     result = backends.load_result(entry.result_path)
     display.require_run_evidence(result.provenance)
-    # [AGENT EDIT END]
     mode = MODES[selection.mode]
     window = App(mode, layout_file=paths.resolve_cache_path(mode.layout_name, root=selection.project.root),
                  selection=selection)
     try:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the result read and checked above (event-optional Task 12) | date: 2026-10-10]
         window.open_result(result, entry.result_path.parent)
-        # [AGENT EDIT END]
     except BaseException as exc:
         try:
             window.close()
@@ -915,16 +798,9 @@ def main(argv: Optional[list] = None) -> int:
     parser.add_argument('--run', required=True, metavar='DIR', help='a completed project run folder')
     args = parser.parse_args(argv)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer opens in the saved theme, dark first (launcher-gui Task 8) | date: 2026-10-07]
     theme.apply_theme(app, theme.saved_theme())
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer opens in the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
     unit_palettes.set_palette(theme.saved_unit_palette())
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every window of the viewer carries the logo icon (logo) | date: 2026-10-13]
     app.setWindowIcon(logo.icon())
-    # [AGENT EDIT END]
     window = open_run(Path(args.run))
     window.show()
     return app.exec()
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a .gz raw file is hashed during the extraction pass, and its recorded sha256 is checked or stored (multiphy project folder Task 12) | date: 2026-09-25]
 """A ``.gz`` raw file's sha256 comes from the extraction pass, at no extra read.
 
 The raw pass hashes the stored (compressed) bytes as ``gzip`` reads them; ``extract_day``
@@ -7,7 +6,6 @@ differs. A flat raw file is never hashed, and hashing never changes a snippet.
 """
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - watch the raw file's opens, reads and seeks and every sha256 input during extraction (multiphy project folder Task 12) | date: 2026-09-25]
 import builtins
 from contextlib import contextmanager
 import dataclasses
@@ -15,7 +13,6 @@ import hashlib
 import io
 import os
 from types import SimpleNamespace
-# [AGENT EDIT END]
 
 import numpy as np
 import pytest
@@ -78,7 +75,6 @@ def _raw_file(project) -> dict:
     return project.read()['days']['D1']['files']['raw']
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the tests see every open, read and seek of the raw file and every sha256 input, so a second traversal or a hashed flat file fails them (multiphy project folder Task 12) | date: 2026-09-25]
 class _WatchedFile:
     """A file opened on the watched path: every byte read and every seek is counted."""
     def __init__(self, stream, watch):
@@ -167,13 +163,11 @@ def test_gz_raw_hashed_during_pass(tmp_path, monkeypatch):
     # One traversal: extraction opened the stored file once and read each of its bytes once, in order.
     opens, seeks, bytes_read = watch.opens, watch.seeks, watch.bytes_read
     assert (opens, seeks, bytes_read) == (1, [], sd.gz_path.stat().st_size)
-# [AGENT EDIT END]
     # The other files keep the hashes add_day recorded.
     files = project.read()['days']['D1']['files']
     assert {files[key]['sha256_from'] for key in files if key != 'raw'} == {'init'}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a flat raw file is read once by the pass and none of its bytes reach a sha256 (multiphy project folder Task 12) | date: 2026-09-25]
 def test_dat_raw_not_hashed(tmp_path, monkeypatch):
     sd = write_day(tmp_path / 'data', 'D1')
     project = _project(tmp_path, sd, DAT_READERS, raw_path=str(sd.raw_path))
@@ -187,7 +181,6 @@ def test_dat_raw_not_hashed(tmp_path, monkeypatch):
     bytes_hashed = sum(len(chunk) for chunk in watch.chunks if chunk in watch.hashed)
     assert opens == 1 and bytes_read > 0
     assert bytes_hashed == 0
-# [AGENT EDIT END]
     assert project.read()['days']['D1']['features']['full'] is not None
 
 
@@ -230,14 +223,12 @@ def test_nonsequential_read_disables_hash():
     assert reader.read() == b'abcdef'
     assert reader.hexdigest() is None
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a forward, relative or end-relative seek that moves also ends the digest (multiphy project folder Task 12) | date: 2026-09-25]
     for offset, whence in ((4, 0), (1, 1), (-1, 2)):
         reader = HashingReader(io.BytesIO(b'abcdef'), hashlib.sha256())
         assert reader.read(2) == b'ab'
         reader.seek(offset, whence)
         reader.read()
         assert reader.hexdigest() is None, (offset, whence)
-    # [AGENT EDIT END]
 
 
 def _set_raw_sha256(project, sha256, sha256_from=None) -> None:
@@ -274,12 +265,9 @@ def test_changed_gz_refused(tmp_path, monkeypatch):
     assert (day_dir / 'features').is_dir()  # refused at the record, after the publish: left unrecorded
     monkeypatch.undo()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - Do 5: a recorded sha256 that matches the pass is stored with sha256_from 'extract' (multiphy project folder Task 12) | date: 2026-09-25]
     # A recorded sha256 that matches the pass is stored with sha256_from 'extract'.
     _set_raw_sha256(project, sha256_file(sd.gz_path), 'verify')
     _extract(project, tmp_path)
     raw = _raw_file(project)
     assert (raw['sha256'], raw['sha256_from']) == (sha256_file(sd.gz_path), 'extract')
-    # [AGENT EDIT END]
     assert project.read()['days']['D1']['features']['full'] is not None
-# [AGENT EDIT END]

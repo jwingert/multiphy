@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: typed provenance replacing free-form dict keys | date: 2026-09-22]
 """Typed provenance carried by inputs and results, plus JSON normalization.
 
 Known fields are attributes; anything else lives in ``extra``. ``to_json`` flattens
@@ -80,4 +79,3 @@ class Provenance:
             value = getattr(self, key)
             return default if value is None else value
         return self.extra.get(key, default)
-# [AGENT EDIT END]

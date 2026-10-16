@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: freeze calibration-selected empirical assignment operating points before separate test application | date: 2026-09-18]
 """Separate select and apply commands for saved matching evidence.
 
 No native method, feature model, or probability transform is fitted here.
@@ -19,19 +18,16 @@ from .backends import MatchResult, _json_safe, load_result, result_digest, resul
 from .benchmark import load_dataset
 from .evaluation import evaluate_result, validate_partitions
 from .paths import new_run_path, resolve_cache_path
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind, backend family and provenance from the contract, not ids or dict keys (Task 12) | date: 2026-09-22]
 from .contract import registry
 from .contract.inputs import Input
 from .contract.provenance import Provenance
-from .contract.results import ScoreBlock, ScoreKind, TrackKind  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: Decision only served score_frozen_local (Task 2) | date: 2026-09-27]
+from .contract.results import ScoreBlock, ScoreKind, TrackKind
 
 
 def _spec(result):
     """The registered spec of a result's backend, or None."""
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no id map (Task 1) | date: 2026-09-27]
     try:
         return registry.get(result.backend_id).spec
-    # [AGENT EDIT END]
     except KeyError:
         return None
 
@@ -44,7 +40,6 @@ def _scalar_scores(result):
 
 def _partition(provenance):
     return provenance.get('partition') or provenance.get('benchmark_partition')
-# [AGENT EDIT END]
 
 
 POPULATION_PARAMETERS = ('n_units', 'n_sessions', 'n_expected_matches')
@@ -53,10 +48,8 @@ CAVEATS = (
     'Zero accepted pairs has undefined false-match fraction. Candidate pairs and track links are dependent.',
     'A single calibration well and a small number of positive identities give a coarse, unstable estimate; '
     '53 accepted pairs change by about 1.9 percentage points per error. No independent-pair confidence interval is claimed.',
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local probability calibration after the fixed-model removal (Task 2 fix round 2) | date: 2026-09-27]
     'Operating-point selection reuses the calibration well; '
     'its observed error is a development-set selection statistic, not independent calibration validation.',
-    # [AGENT EDIT END]
     'Previously inspected pilot tests make this a documented frozen reanalysis, not a newly prospective untouched-test study.',
     'Temporal reference identities inherit the original sort and do not establish cross-day neuron identity.',
     'UnitMatch and DeepUnitMatch score distributions and drift may be estimated unsupervised on each input population. '
@@ -92,22 +85,15 @@ def _validate_full_dataset(dataset):
         raise ValueError('Each assignment domain must be one original recording')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: same-session rows are allowed and left out of coverage; tag wraps the whole function (native-same-day Task 5 fix round 1) | date: 2026-10-11]
 def _validate_scores(dataset, result, partition, manifest_hash):
     _validate_full_dataset(dataset)
     result.validate()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: scalar-score backends from their specs replace the id list (Task 12) | date: 2026-09-22]
     if not _scalar_scores(result):
-    # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local scalar family after native-only scoring (Plan B Task 9) | date: 2026-09-28]
         raise ValueError('Scalar selection supports native UnitMatch and DeepUnitMatch scores; DANT stays a native baseline')
-        # [AGENT EDIT END]
     identity = _dataset_identity(dataset, manifest_hash)
     if any(result.provenance.get(k) != v for k, v in identity.items()):
         raise ValueError('Saved scores do not match the full archive identity')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: typed partition with the pilot benchmark_partition fallback (Task 12) | date: 2026-09-22]
     if _partition(result.provenance) != partition:
-    # [AGENT EDIT END]
         raise ValueError(f'Saved scores must declare the {partition} partition')
     expected = dataset.units[dataset.units.cellid.isin(dataset.labels.loc[dataset.labels.partition == partition, 'cellid'])]
     columns = ['cellid', 'session_id', 'siteid', 'su_type', 'recording_group']
@@ -121,28 +107,18 @@ def _validate_scores(dataset, result, partition, manifest_hash):
         raise ValueError('Score pairs must stay within original recordings')
     observed_pairs = {tuple(sorted((a, b))) for a, b in zip(result.pairs.cellid_a, result.pairs.cellid_b)
                       if sessions[a] != sessions[b]}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: native-only scoring: every cross-session pair within a recording group (Plan B Task 9) | date: 2026-09-28]
     expected_pairs = {tuple(sorted((a.cellid, b.cellid)))
         for _, group in expected.groupby('recording_group')
         for a, b in itertools.combinations(group.itertuples(), 2) if a.session_id != b.session_id}
-    # [AGENT EDIT END]
     if observed_pairs != expected_pairs:
         raise ValueError('Saved score pair coverage is incomplete or differs from the required candidate population; retain missing scores as NaN rows')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind read from result.score, not a per-row score_kind column (Task 12) | date: 2026-09-22]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: native-only scoring: scores are always uncalibrated (Plan B Task 9) | date: 2026-09-28]
     expected_kind = 'uncalibrated_score'
-    # [AGENT EDIT END]
     if len(result.pairs) and result.score.kind.value != expected_kind:
-    # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no frozen model (Task 2 fix round 1) | date: 2026-09-27]
         raise ValueError(f'Score kind {result.score.kind.value!r} does not match the expected {expected_kind!r}')
-        # [AGENT EDIT END]
     return expected_kind
-# [AGENT EDIT END]
 
 
 def _group_provenance(result, group):
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: group_runs (runner) else the pilot recording_group_runs/well_runs; always a plain mapping (Task 12) | date: 2026-09-22]
     p = result.provenance
     runs = p.get('group_runs') or p.get('recording_group_runs') or p.get('well_runs')
     if runs:
@@ -150,11 +126,9 @@ def _group_provenance(result, group):
     if p.get('recording_results'):
         return p.get('recording_results')[str(group)]
     return p.to_json() if isinstance(p, Provenance) else p
-    # [AGENT EDIT END]
 
 
 def scoring_signature(dataset, result):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: docstring names checkpoint content only; no fitted-model signature (Task 2 fix round 2) | date: 2026-09-27]
     """Compare science settings, not paths, native assignments, or fitted population size.
 
     All native parameters are retained except POPULATION_PARAMETERS. File paths,
@@ -163,7 +137,6 @@ def scoring_signature(dataset, result):
     acquisition transforms, geometry, sample representation, and candidate recipe
     are retained. Unknown future native parameters are retained conservatively.
     """
-    # [AGENT EDIT END]
     signatures = []
     sources = {(s['well'], s['source_session']): s for s in dataset.metadata['sources']}
     labels = dataset.labels.set_index('cellid')
@@ -172,7 +145,6 @@ def scoring_signature(dataset, result):
         common = dict(backend_id=result.backend_id, backend_version=result.version,
             extraction_options=dataset.metadata.get('extraction_options', {}),
             pair_options=dataset.metadata.get('pair_options', {}))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fitted-model signature; every signed result carries native scoring provenance (Task 2) | date: 2026-09-27]
         required = ('official_source', 'verified_api_revision', 'implementation', 'parameters', 'pair_reduction')
         if any(k not in p for k in required):
             raise ValueError('Native scores are missing upstream/scoring configuration provenance')
@@ -200,10 +172,8 @@ def scoring_signature(dataset, result):
                              pd.to_numeric(pairs.official_probability_ba, errors='raise').to_numpy(dtype=float))
         if not np.allclose(pairs.match_score, reduced, rtol=0, atol=0, equal_nan=True):
             raise ValueError('Native match_score disagrees with its declared directional reduction')
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: checkpoint-backed scores from the spec (Task 12) | date: 2026-09-22]
         spec = _spec(result)
         if spec is not None and Input.CHECKPOINT in spec.requires:
-        # [AGENT EDIT END]
             for key in ('checkpoint_sha256', 'checkpoint_probe', 'network_preprocessing'):
                 if not p.get(key):
                     raise ValueError('Deep scores require checkpoint and network configuration provenance')
@@ -214,7 +184,6 @@ def scoring_signature(dataset, result):
             if not train_groups or not train_groups <= allowed:
                 raise ValueError('Deep training groups must be verified training wells in the full archive')
             common['deep_training_groups'] = sorted(train_groups)
-        # [AGENT EDIT END]
         source_keys = {tuple(labels.loc[c, ['well', 'source_session']]) for c in units.cellid}
         source_configs = []
         for key in sorted(source_keys):
@@ -241,7 +210,6 @@ def scoring_signature(dataset, result):
 
 
 def _assign_partition(result, threshold, contradiction, ambiguity, *, selection_hash=None):
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind from result.score; 12-field MatchResult with typed Provenance (Task 12) | date: 2026-09-22]
     assigned = []
     kind, reference = result.score.kind, result.score.calibration_reference
     base = result.provenance.to_json()
@@ -262,19 +230,16 @@ def _assign_partition(result, threshold, contradiction, ambiguity, *, selection_
         tuple(t for r in assigned for t in r.tracks), tuple(u for r in assigned for u in r.unmatched), (),
         ScoreBlock(kind, 'match_score', calibration_reference=reference), TrackKind.COMMON, 'common_constrained',
         Provenance.from_json(p)).validate()
-    # [AGENT EDIT END]
 
 
 def _evaluate_partition(result, labels, partition):
     evaluations = {}
     for group, units in result.units.groupby('recording_group', sort=True):
         ids = set(units.cellid)
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: 12-field MatchResult (Task 12) | date: 2026-09-22]
         subset = MatchResult(result.backend_id, result.version, result.run_id, units.copy(),
             result.pairs[result.pairs.cellid_a.isin(ids) & result.pairs.cellid_b.isin(ids)].copy(),
             tuple(t for t in result.tracks if set(t) <= ids), tuple(u for u in result.unmatched if u in ids), (),
             result.score, result.track_kind, result.tracking_rule, result.provenance)
-        # [AGENT EDIT END]
         evaluations[str(group)] = evaluate_result(subset, labels, expected_partition=partition)
     keys = ('true_positive_pairs', 'false_positive_pairs', 'false_negative_pairs', 'n_known_positive_pairs',
         'n_unknown_predicted_pairs', 'n_units', 'n_tracks', 'n_unmatched', 'true_unmatched_units', 'correctly_unmatched_units')
@@ -287,7 +252,6 @@ def _evaluate_partition(result, labels, partition):
     return dict(aggregate=total, per_original_recording=evaluations)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: thresholds come from cross-session rows only; candidate description names cross-session scores; tag wraps the whole function (native-same-day Task 5 fix round 2) | date: 2026-10-11]
 def select_operating_point(dataset, scores, *, input_manifest_sha256, target_fdr,
                            contradiction_threshold=.1, ambiguity_margin=.02):
     """Search calibration scores only; test identities never enter selection."""
@@ -323,7 +287,6 @@ def select_operating_point(dataset, scores, *, input_manifest_sha256, target_fdr
         excluded_parameter_reason='Native population sizes and unsupervised expected-match count vary with the recording; all other native parameters are retained',
         caveats=list(CAVEATS))
     return dict(format='nems_unit_match_operating_point', schema_version=1, sha256=_digest(payload), selection=payload)
-# [AGENT EDIT END]
 
 
 def _validate_selection(document):
@@ -498,19 +461,15 @@ def apply_operating_point(dataset, scores, document, *, input_manifest_sha256,
         if selection_dataset is None or selection_manifest_sha256 is None:
             raise ValueError('Frozen selection belongs to another archive; supply its explicit selection parent for a missing view')
         view_id_map = _validate_missing_view(dataset, selection_dataset, selection_manifest_sha256, selection, input_manifest_sha256)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: stored and recomputed signatures compared directly; no id map (Task 1) | date: 2026-09-27]
     if selection['scoring_signature'] != scoring_signature(dataset, scores):
-    # [AGENT EDIT END]
         raise ValueError('Frozen selection and test scoring/model/checkpoint configurations differ')
     result = _assign_partition(scores, selection['threshold'], selection['contradiction_threshold'],
                               selection['ambiguity_margin'], selection_hash=document['sha256'])
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
     result.provenance = result.provenance.merged(extra=dict(
         target_empirical_false_match_fraction=selection['target_empirical_false_match_fraction'],
         calibration_selection=selection['calibration_selection'],
         calibration_source_groups=selection['calibration_source_groups'],
         calibration_original_recordings=selection['calibration_original_recordings']))
-    # [AGENT EDIT END]
     # First access test source identities for performance evaluation, after assignment.
     if different_input:
         ids = set(view_id_map.values())
@@ -519,12 +478,10 @@ def apply_operating_point(dataset, scores, document, *, input_manifest_sha256,
         if not _same_data(_records(selection_dataset.labels[selection_dataset.labels.cellid.isin(ids)], ['cellid']),
                           _records(normalized_labels, ['cellid'])):
             raise ValueError('Missing view changed source identity references')
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
         result.provenance = result.provenance.merged(extra=dict(
             selection_parent=selection['dataset_identity'],
             verified_view_correspondence_sha256=_digest(view_id_map),
             test_population_policy='Verified test-only omissions from frozen selection parent; threshold unchanged'))
-        # [AGENT EDIT END]
     evaluation = _evaluate_partition(result, dataset.labels[dataset.labels.partition == 'test'], 'test')
     evaluation['combined'] = evaluate_result(result, dataset.labels, expected_partition='test')
     evaluation.update(selection_sha256=document['sha256'], target_empirical_false_match_fraction=selection['target_empirical_false_match_fraction'],
@@ -552,7 +509,6 @@ def _write_json(path, value):
         stream.write('\n')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: METHODS threshold candidates are cross-session scores only; tag wraps the whole function (native-same-day Task 5 fix round 2) | date: 2026-10-11]
 def _notes(output, stage, input_path, *, selection=None, evaluation=None):
     p = selection['selection'] if selection else {}
     lines = ['# Calibration-selected matching operating point', '',
@@ -571,7 +527,6 @@ def _notes(output, stage, input_path, *, selection=None, evaluation=None):
         lines.append('')
     lines.extend(CAVEATS)
     (output / 'report.md').write_text('\n'.join(lines) + '\n')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: METHODS names checkpoint hashes only; no fitted-model hashes (Task 2 fix round 2) | date: 2026-09-27]
     (output / 'METHODS.md').write_text(f'''# Matching operating-point analysis — methods
 
 - Output folder: `{output}`
@@ -591,8 +546,6 @@ Compare assigned-pair yield after selecting a cutoff using calibration reference
 ## Interpretation
 
 ''' + '\n\n'.join(CAVEATS) + '\n')
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def run_select(input_path, calibration_scores, *, target_fdr, output_dir=None, root=None,
@@ -618,10 +571,8 @@ def run_apply(input_path, test_scores, selection_path, *, output_dir=None, root=
     result, evaluation = apply_operating_point(dataset, scores, document, input_manifest_sha256=digest,
         selection_dataset=parent, selection_manifest_sha256=parent_hash)
     output = _new_output(dataset, output_dir, root)
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
     result.provenance = result.provenance.merged(extra=dict(benchmark_input=str(Path(input_path).resolve()),
         selection_path=str(Path(selection_path).resolve()), selection_file_sha256=_file_hash(selection_path)))
-    # [AGENT EDIT END]
     save_result(result, output / 'result.json')
     _write_json(output / 'evaluation.json', evaluation)
     _write_json(output / 'run_manifest.json', dict(status='completed', operation='apply', input_manifest_sha256=digest,
@@ -637,7 +588,6 @@ def run_apply(input_path, test_scores, selection_path, *, output_dir=None, root=
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='operation', required=True)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no score-local subcommand (Task 2) | date: 2026-09-27]
     for operation in ('select', 'apply'):
         command = commands.add_parser(operation)
         command.add_argument('--input', required=True, help='Full train/calibration/test benchmark archive')
@@ -652,7 +602,6 @@ def main(argv=None):
             command.add_argument('--selection-input', help='Explicit complete archive used for selection; required for a test-only missing-counterpart view')
     args = parser.parse_args(argv)
     if args.operation == 'select':
-    # [AGENT EDIT END]
         output = run_select(args.input, args.scores, target_fdr=args.target_fdr, output_dir=args.output,
             contradiction_threshold=args.contradiction_threshold, ambiguity_margin=args.ambiguity_margin)
     else:
@@ -663,4 +612,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Cancel, the grace kill, the queue list, the close confirmation and the real pipeline of the launcher window (launcher-gui Task 7) | date: 2026-10-07]
 """The launcher window's Cancel, kill grace, queue list and close bar, then real CLI children end to
 end; every file lives under ``tmp_path``, and every window gets ``interpreter_lookup=lambda: None``."""
 from __future__ import annotations
@@ -130,7 +129,6 @@ def test_close_bar_hides_when_command_ends(qt, runs):
     window.process.started.emit()
     window.close()
     assert window.close_bar.isHidden() is False
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the visible close bar's waiting count follows the queue, folded into a required test to keep the ten-test gate (launcher-gui Task 7 fix round 2) | date: 2026-10-07]
     assert window.close_label.text() == 'status running · cancel and close?'
     window.run_command('status')
     window.run_command('status')
@@ -140,7 +138,6 @@ def test_close_bar_hides_when_command_ends(qt, runs):
     window.clear_button.click()
     assert window.close_label.text() == 'status running · cancel and close?'
     assert window.close_bar.isHidden() is False
-    # [AGENT EDIT END]
     window.process.ended.emit(0)
     assert window.close_bar.isHidden() is True
     assert window.isVisible() is True
@@ -318,4 +315,3 @@ def test_real_process_pipeline(qt, tmp_path, two_day_from):
         if viewer is not None:
             _close(viewer)
         _close(window)
-# [AGENT EDIT END]

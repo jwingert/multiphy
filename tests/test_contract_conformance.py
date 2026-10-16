@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: conformance suite every registered backend must pass, plus the grep gate and pilot reproduction (Task 13) | date: 2026-09-22]
 """Every registered backend must satisfy the contract on a synthetic input built from its own spec."""
 import subprocess
 import sys
@@ -54,7 +53,7 @@ def test_backend_conforms(spec, tmp_path):
     if not avail.ok:
         pytest.skip(f'{spec.id} unavailable: {avail.reason}')
     if Input.FEATURES in spec.requires or Input.TIMING in spec.requires:
-        pytest.skip(f'{spec.id} needs archived features; covered by tests/test_functional_likelihood.py')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: renamed test module (Task 3) | date: 2026-09-27]
+        pytest.skip(f'{spec.id} needs archived features; covered by tests/test_functional_likelihood.py')
     _assert_conforms(backend, tmp_path)
 
 
@@ -86,11 +85,9 @@ def test_no_backend_ids_outside_backends_package():
     """A backend id must never be compared outside ``backends/``: new callers should hold a
     ``BackendSpec`` or the registry, not branch on a string. No file is exempt.
     """
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: multiday_runner no longer compares an id (Task 2) | date: 2026-09-27]
-    pattern = r"== ?'(dant|unitmatch|deepunitmatch|functional_likelihood)'|in \('(dant|unitmatch|deepunitmatch|functional_likelihood)'"  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: the registered ids (Task 3) | date: 2026-09-27]
+    pattern = r"== ?'(dant|unitmatch|deepunitmatch|functional_likelihood)'|in \('(dant|unitmatch|deepunitmatch|functional_likelihood)'"
     out = subprocess.run(['grep', '-rnE', pattern, 'multiphy', '--include=*.py',
                           '--exclude-dir=backends'],
                          capture_output=True, text=True)
     assert out.stdout == '', out.stdout
 
-# [AGENT EDIT END]

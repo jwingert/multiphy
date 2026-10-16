@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day's raw segments read as one file, a segment of the wrong length stops the pass, and raw-role segment files are recorded unhashed (Plan C Task 2) | date: 2026-10-01]
 """A day's raw segments stream as one file on one clock.
 
 ``SnippetReader`` and ``FilteredSnippetReader`` take a list of ``[path, n_samples]`` segments
@@ -102,4 +101,3 @@ def test_segment_files_recorded_as_raw_unhashed(tmp_path):
         assert (files[key]['role'], files[key]['sha256'], files[key]['sha256_from']) == ('raw', None, None)
     assert files['sort']['role'] == 'sort'
     assert files['sort']['sha256'] == hashlib.sha256(b'sort.npz').hexdigest()
-# [AGENT EDIT END]

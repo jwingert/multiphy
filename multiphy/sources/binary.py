@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the public binary reader: a flat or gzip interleaved raw file serves the raw role (multiphy project folder Task 7; fix round 1: refuse a non-identity channel map) | date: 2026-09-25]
 """The ``binary`` reader: a flat interleaved raw file, optionally gzip, serves the ``raw`` role.
 
 It never reads voltage. It checks its options against the sort's geometry and records them
@@ -95,4 +94,3 @@ class BinaryReader:
 
 
 READER = BinaryReader()
-# [AGENT EDIT END]

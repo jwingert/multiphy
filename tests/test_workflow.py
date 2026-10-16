@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify safe workflow resume and failed-attempt preservation | date: 2026-09-18]
 import json
 from pathlib import Path
 import subprocess
@@ -91,7 +90,7 @@ def test_interrupt_marks_uncertain_and_prohibits_same_owner_retry(tmp_path):
 
 
 def mock_pipeline(monkeypatch, tmp_path, fail_training=False, bad_partition=False):
-    from multiphy import benchmark, benchmark_collection, runners  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: benchmark_local is gone (Task 2) | date: 2026-09-27]
+    from multiphy import benchmark, benchmark_collection, runners
     paths = [tmp_path / name for name in ('training', 'calibration', 'test', 'missing')]
     calls, collections = [], {}
     for i, path in enumerate(paths):
@@ -171,17 +170,15 @@ def test_mocked_complete_workflow_waits_checks_partitions_and_reuses_all_stages(
     output = run_workflow(**kwargs)
     state = json.loads((output / 'workflow.json').read_text())
     assert state['status'] == 'completed'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local_* stages or preflight (Task 2) | date: 2026-09-27]
     assert len(state['stages']) == 15
     assert [c[0] for c in calls].count('wait') == 2
     assert not any(name.startswith('local_') for name in state['stages'])
-    # [AGENT EDIT END]
     assert [c[0] for c in calls].count('prepare') == 1
     assert [c[0] for c in calls].count('train') == 1
     assert [c[0] for c in calls].count('match') == 12
     count = len(calls)
     assert run_workflow(**kwargs) == output
-    assert len(calls) == count  # No stage reruns.  [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no evidence preflight (Task 2) | date: 2026-09-27]
+    assert len(calls) == count  # No stage reruns.
 
 
 def test_training_failure_resume_restages_fresh_data_and_preserves_failed_attempt(monkeypatch, tmp_path):
@@ -195,7 +192,7 @@ def test_training_failure_resume_restages_fresh_data_and_preserves_failed_attemp
     state = json.loads((output / 'workflow.json').read_text())
     assert state['stages']['deep_train']['attempt'] == 2
     assert state['stages']['deep_train']['history'][0]['status'] == 'failed'
-    assert [c[0] for c in calls].count('prepare') == 2  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no local stages (Task 2) | date: 2026-09-27]
+    assert [c[0] for c in calls].count('prepare') == 2
     assert [c[0] for c in calls].count('train') == 2
     assert Path(state['stages']['deep_train']['value']['checkpoint']).parent.name == 'deep_train_002'
 
@@ -216,4 +213,3 @@ def test_explicit_repeat_override_and_existing_checkpoint_skip_new_training(monk
     assert all(c[2] == {'min_repeats': 1} for c in calls if c[0] == 'collection')
     assert not any(c[0] in ('prepare', 'train') for c in calls)
     assert [c[0] for c in calls].count('match') == 12
-# [AGENT EDIT END]

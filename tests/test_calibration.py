@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify independent pair calibration, missing evidence and portable model provenance | date: 2026-09-17]
 import json
 
 import numpy as np
@@ -86,9 +85,6 @@ def test_import_cannot_bypass_fit_provenance_invariants(key, value):
     spec[key] = value
     with pytest.raises(ValueError):
         CalibratedPairModel.from_dict(spec)
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: CalibratedPairModel stays after the fixed-model path is removed (Task 2) | date: 2026-09-27]
 def test_calibrated_pair_model_kept(tmp_path):
     from multiphy.backends.local.calibrated import CalibratedPairModel as Kept
     assert Kept(('fingerprint_r',)).properties == ('fingerprint_r',)
-# [AGENT EDIT END]

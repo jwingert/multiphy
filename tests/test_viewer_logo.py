@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the logo: committed SVGs equal the generator, the trace, the icon sizes and pixmaps, and both entry points setting the window icon (logo) | date: 2026-10-13]
 """The logo: the committed SVGs equal what ``make_logo`` builds, the trace is the unit's waveform scaled, the
 window icon carries every size, and the launcher and the viewer both set it. Settings and theme assets land under
 ``tmp_path`` (``theme_env``)."""
@@ -118,4 +117,3 @@ def test_viewer_main_sets_the_icon(qt, theme_env, monkeypatch):
         app.setWindowIcon(kept)
         for w in opened:
             w.close()
-# [AGENT EDIT END]

@@ -3,9 +3,7 @@
 Every unit-matching method — local or an official published implementation — is a
 `Backend`: an object with a declared `spec` (a `BackendSpec`), an `available()` probe,
 and a `run(inp, options, ctx) -> MatchResult`. The spec is data, not code, so the
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no Qt dialog reads the option schema since backend_job.py was removed (run-curation final review 2) | date: 2026-10-06] -->
 runner, the CLI, and the subprocess launcher all generate their behavior from it instead of
-<!-- [AGENT EDIT END] -->
 special-casing a backend by name. This document explains the objects, their
 validation rules, provenance, the runner, the result file format, errors, and how to
 add a display name. Every code block below runs as pasted, one at a time, with
@@ -43,23 +41,16 @@ print([k.value for k in TrackKind])
 
 `BackendSpec.requires`/`optional` are `frozenset[Input]`; every spec must require
 `Input.UNITS` (`BackendSpec.__post_init__` enforces this and that no input is both
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Provides gains day_offsets (drift-view Task 8) | date: 2026-10-08] -->
 required and optional). `Provides(score_kinds, track_kinds, similarity=False, day_offsets=False)`
 names what a backend's results are allowed to emit. A backend that sets `day_offsets=True` saves a
 `registration` in each group's provenance (section 4), and the viewer's drift panel reads that flag
 to tell a run made before its backend saved offsets from a backend that saves none.
 `MatchResult.validate(spec)` checks a
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: real days are project runs in run/project_run.py (Plan B Task 10) | date: 2026-09-28] -->
 result against it. `real_days` (default `True`) says whether the backend may run
 across real project days; a backend that sets it `False` is a benchmark baseline, and
 `run/project_run.py` (`check_real_day_run`, called by `launch run` and
 `run-backend --project`) refuses it across days before the run folder exists.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: both local matchers allow real days (final review fix round 1) | date: 2026-09-28] -->
 Every registered backend, `functional_likelihood` and `pair_logistic` included,
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: project runs pass per-day trial timing (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: both local matchers take timing as optional and run without events, with a warning, on days without events or a shared condition (event-optional Task 13) | date: 2026-10-10] -->
 sets it `True`. The two local matchers take `Input.TIMING` as optional;
 `run/project_run.py` passes it from the `source/` entry of each day that has trial
 events. On days without events, or days with no condition on every chosen day, either
@@ -67,9 +58,7 @@ runs without events, and `launch run` prints a warning for each fallback: `run_e
 (`contract/inputs.py`) decides once per recording group what the days measured, 5 s chunks
 stand in for trials, and spont comes from the whole recording when a day has no baseline
 windows.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] --> `RunContext(run_id, work_dir, provenance=Provenance(), seed=0)` is
+`RunContext(run_id, work_dir, provenance=Provenance(), seed=0)` is
 what the runner hands a backend's `run()`.
 
 ## 2. Validation rules of MatchingInput
@@ -191,7 +180,6 @@ round trip equal: True
 extra cannot shadow a typed field: extra provenance keys shadow typed fields: ['dataset_id']
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the registration keys, the corrected-depth rule and one row per producer (drift-view Task 8); the comparison rule limited to day-map registrations, pair registrations align session_b to session_a (drift-view Task 8 fix round 2); a pair_logistic row (drift-view post-run fix) | date: 2026-10-08] -->
 ### Day offsets (`registration`)
 
 A backend whose spec sets `day_offsets=True` saves a `registration` mapping in each group's
@@ -232,7 +220,6 @@ shared frame across pairs (drift never chains through a third day).
 that cannot happen (a missing upstream function, an unexpected number of calls, a drift of the
 wrong shape or not finite, …) raises `BackendUnavailable` or `ContractViolation` and the run
 writes no result: a saved offset is never wrong and never silently missing.
-<!-- [AGENT EDIT END] -->
 
 ## 5. The runner's nine steps and the run directory contents
 
@@ -253,8 +240,6 @@ combined `MatchResult`, and write `evaluation.json` when labels exist or
 `availability.json` otherwise; the manifest is updated to `completed` (or `failed`
 with the exception recorded) and rewritten one last time in a `finally` block.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the CLI supplies no trial timing, so functional_likelihood stops at the step-6 input check (Task 3 fix round 1) | date: 2026-09-27] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the CLI builds no timing, so both local matchers run without events and save their reasons (event-optional Task 13) | date: 2026-10-10] -->
 The CLI forwards only a `--checkpoint` as an extra input; it builds no `TrialTiming`.
 Both local matchers therefore run without events: 5 s chunks stand in for trials, spont
 comes from the whole recording, and the reasons are saved as `run_evidence` in each
@@ -283,9 +268,7 @@ The group's `run_evidence` in that result's `group_runs` provenance:
 For a run with events, pass the timing yourself from Python. `runner.run` requires the
 keyword `group_column`; the CLI's default for a benchmark is `recording_group`, and for a
 benchmark it runs the `test` partition:
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01] -->
 ```python
 from multiphy.run import runner
 
@@ -297,11 +280,9 @@ output = runner.run(dataset, 'functional_likelihood', {},
                     root='/tmp/contract_doc_demo_root',
                     extra_inputs={'timing': timing})
 ```
-<!-- [AGENT EDIT END] -->
 
 A completed run folder holds `result.json`, `run_manifest.json`, `METHODS.md` and
 `evaluation.json` (or `availability.json`).
-<!-- [AGENT EDIT END] -->
 
 ## 6. Result file format 2
 
@@ -347,10 +328,8 @@ is `False` — an optional package, checkpoint, or environment is missing; raise
 `spec.requires`; raised by `runner.run()` once per group, before any backend runs),
 and `ContractViolation` (a result, option set, or run broke a rule the contract
 states — an unknown or missing required option in `run.options.validate()`, including a
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the archive runner is retired (Plan B Task 10) | date: 2026-09-28] -->
 misspelled keyword passed to `runners.run_backend_dataset`, which is passed through
 rather than dropped, a merged
-<!-- [AGENT EDIT END] -->
 result whose backend version changed between groups, or a backend that changed the
 run id or dropped an eligible unit).
 
@@ -385,14 +364,12 @@ except BackendUnavailable as exc:
     print('BackendUnavailable:', exc)
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the printed missing inputs no longer name timing, which functional_likelihood takes as optional (event-optional Task 13, final review fix round 1) | date: 2026-10-10] -->
 ```
 ContractViolation (unknown option): backend 'functional_likelihood' does not take options ['not_an_option']
 MissingInputs (the runner.run() check before any run): Backend 'functional_likelihood' cannot run on group 'g': missing inputs features, geometry
 unitmatch available: False - UnitMatchPy is not importable in this interpreter
 BackendUnavailable: UnitMatchPy is not importable in this interpreter
 ```
-<!-- [AGENT EDIT END] -->
 
 ## 8. Names: how to add a display string
 
@@ -426,8 +403,6 @@ print(repr(backend_label('no_such_backend')), repr(backend_short('no_such_backen
       repr(backend_help('no_such_backend')))
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the printed backend label names an event response (launcher-gui Task 10) | date: 2026-10-07] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the printed label names firing, waveform and optional event-response likelihood ratios; the help names trial or 5 s chunk halves (event-optional Task 13, D38) | date: 2026-10-10] -->
 ```
 Functional likelihood — firing, waveform and optional event-response likelihood ratios
 Functional likelihood
@@ -436,8 +411,6 @@ unexplained code refused: 'no_such_stream'
 Functional likelihood — firing, waveform and optional event-response likelihood ratios
 'no_such_backend' 'no_such_backend' ''
 ```
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 A backend with no entry under `'backend'` still runs and is shown by its id:
 `list-backends`, the viewer's method list and the reports all go through the helpers

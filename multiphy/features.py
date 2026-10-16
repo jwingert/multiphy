@@ -1,21 +1,18 @@
 """
 Per-unit features for cross-day matching.
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: template, tuning, fingerprint and rate extraction moved to unit_match_lbhb.baphy_features (Plan C final review fix round 1) | date: 2026-10-02]
 The lab-free helpers the feature code uses: probe geometry and channel maps,
 spike width, trial windows and split halves, stimulus keys, and the spiking
 statistics (inter-spike-interval histogram and autocorrelogram, imported from
 ``extract.unit_features``). The template, tuning, fingerprint and rate
 extraction that reads celldb, BAPHY and spike files lives in
 ``nems_lbhb.unit_match_lbhb.baphy_features``.
-# [AGENT EDIT END]
 
 Split halves are taken by ALTERNATING TRIALS, never by alternate spikes:
 alternate spikes double every interval, so the half-data interval histogram and
 autocorrelogram describe a different process from the full-data ones and cannot
 be compared with them.
 
-# [AGENT EDIT START | agent: claude-opus-5 | user: wingertj | reason: cross-day match curation tool | date: 2026-09-14]
 """
 import glob
 import os
@@ -26,22 +23,14 @@ import numpy as np
 import pandas as pd
 import scipy.io as sio
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: celldb is imported inside the four functions that query it, so importing this module loads no lab module (multiphy project folder Task 1) | date: 2026-09-25]
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ISI_BINS, ACG_BINS, _isi_acg and the temporal extraction functions moved verbatim to extract/unit_features.py and are imported back, so old imports keep working (multiphy project folder Task 11) | date: 2026-09-25]
 from .extract.unit_features import (ACG_BINS, ISI_BINS, _checked_sample_spikes, _isi_acg,
                                     average_spike_waveforms, temporal_sample_windows,
                                     temporal_split_unit_features, waveform_sample_selection)
-# [AGENT EDIT END]
 
 warnings.filterwarnings('ignore')
 
 SPIKE_FS = 30000.0
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ISI_BINS and ACG_BINS moved verbatim to extract/unit_features.py and are imported back above (multiphy project folder Task 11) | date: 2026-09-25]
-# [AGENT EDIT END]
 FP_FS = 20            # 50 ms bins for the fingerprint
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FTC_FS, MIN_SPIKES and MIN_TEST_REPEATS moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
 
 # Which recording the fingerprint, the rates and the spiking statistics come
 # from. They all come from the SAME recording: the physiology references are
@@ -91,8 +80,6 @@ CHANMAP_DEFAULT = {384: 'chanMap_neuropixPhase3A.mat',
 _CHANMAP_CACHE = {}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _SITE_GEOM, settings_files, geometry_from_settings and site_geometry moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
 
 
 def chanmap_files(n_chan=None, directory=CHANMAP_DIR):
@@ -121,7 +108,6 @@ def load_chanmap(path):
     return g
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no siteid: the site's settings.xml geometry (site_geometry) moved to nems_lbhb.unit_match_lbhb.baphy_features, which this module never imports (Plan C Task 7) | date: 2026-10-02]
 def probe_geometry(n_chan, name=None, directory=CHANMAP_DIR):
     """Assumed electrode coordinates for a channel count, best source first.
 
@@ -130,7 +116,6 @@ def probe_geometry(n_chan, name=None, directory=CHANMAP_DIR):
     all still plots. Both are assumptions about the recording; a recording's
     measured geometry travels with its day instead.
     """
-# [AGENT EDIT END]
     if name:
         g = load_chanmap(name if os.path.isabs(name)
                          else os.path.join(directory, name))
@@ -148,8 +133,6 @@ def probe_geometry(n_chan, name=None, directory=CHANMAP_DIR):
     return npx1_geometry(n_chan)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: geometry_source, spk_path and load_sortinfo moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
 
 
 def spike_width_ms(wf, fs=SPIKE_FS):
@@ -164,12 +147,8 @@ def spike_width_ms(wf, fs=SPIKE_FS):
     return 1000.0 * (pk - tr) / fs if pk > tr else np.nan
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: template_features, chan_unit_from_cellid, site_templates, _parmfiles and _load moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tuning and ftc_tuning moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
 
 
 def _windows(ep, name):
@@ -197,8 +176,6 @@ def _split_by_trial(st, trial_win):
     return st[inside & (idx % 2 == 0)], st[inside & (idx % 2 == 1)]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _isi_acg moved verbatim to extract/unit_features.py and is imported back above (multiphy project folder Task 11) | date: 2026-09-25]
-# [AGENT EDIT END]
 
 
 def stimulus_key(epoch):
@@ -238,9 +215,4 @@ def stimulus_key(epoch):
     return ('multi',) + tuple(sorted(items))
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fingerprint_and_rate moved to nems_lbhb.unit_match_lbhb.baphy_features (Plan C Task 7) | date: 2026-10-02]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: temporal_sample_windows, _checked_sample_spikes, waveform_sample_selection, average_spike_waveforms and temporal_split_unit_features moved verbatim to extract/unit_features.py and are imported back above (multiphy project folder Task 11) | date: 2026-09-25]
-# [AGENT EDIT END]

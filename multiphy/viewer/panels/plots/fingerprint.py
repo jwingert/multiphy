@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one fingerprint panel, the sound box from gui.py:827-863 and gui.py:885-905 (_short, _fill_box) with shared() and draw() from benchmark_viewer.py:204-246, reading UnitData; dotted rules and one empty text in both modes, the title noun from the mode (viewer-split Task 5) | date: 2026-10-06]
 """Each selected unit's peristimulus histogram over the exact stimulus conditions every selected unit shares."""
 import numpy as np
 
@@ -10,7 +9,6 @@ from multiphy.viewer.registry import register_panel
 
 @register_panel
 class FingerprintPanel(PlotPanel):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the condition box (launcher-gui Task 10) | date: 2026-10-07]
     """Peristimulus histogram over the conditions every selected unit shares.
 
     One trace per unit: the trial-averaged firing rate through each shared
@@ -20,28 +18,19 @@ class FingerprintPanel(PlotPanel):
     way to see whether two units agree on the detail of a response or only on
     which conditions they like.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the title and the box name conditions, not sounds (launcher-gui Task 10) | date: 2026-10-07]
     panel_id, panel_title = 'fingerprint', 'Fingerprint, shared conditions'
     ALL = '— all conditions —'
-    # [AGENT EDIT END]
 
     def build_controls(self, row):
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the box label is condition (launcher-gui Task 10) | date: 2026-10-07]
         row.addWidget(QtWidgets.QLabel('condition'))
-        # [AGENT EDIT END]
         self.stim_box = QtWidgets.QComboBox()
         self.stim_box.setMinimumWidth(190)
         self.stim_box.setMaxVisibleItems(30)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the box tooltip names conditions (launcher-gui Task 10) | date: 2026-10-07]
         self.stim_box.setToolTip('all conditions end to end, or one at full width')
-        # [AGENT EDIT END]
         self.stim_box.addItem(self.ALL)
         self.stim_box.currentIndexChanged.connect(self._on_stim)
         row.addWidget(self.stim_box)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the comment names a condition (launcher-gui Task 10) | date: 2026-10-07]
         self._want_key = None            # the condition the curator chose, by identity
-        # [AGENT EDIT END]
 
     def _on_stim(self, _i):
         if self._filling:
@@ -118,14 +107,9 @@ class FingerprintPanel(PlotPanel):
         boundary = 0
         for condition in chosen[:-1]:
             boundary += len(first.fingerprints[condition]) * first.fingerprint_bin_seconds
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the condition rules take the theme's muted token, read when the panel draws (launcher-gui Task 8) | date: 2026-10-07]
             ax.axvline(boundary, color=display.colors()['muted'], lw=.7, ls=':')
-            # [AGENT EDIT END]
         ax.set_xlabel('Time within stimulus (s)' if len(chosen) == 1 else 'Stimulus time concatenated (s)', fontsize=8)
         ax.set_ylabel('Spikes/s', fontsize=8)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the axes title says exact conditions (launcher-gui Task 10) | date: 2026-10-07]
         ax.set_title(f'{len(chosen)} exact conditions · {len(selected)} {self.state.data.words.observations}',
                      fontsize=8)
-        # [AGENT EDIT END]
         ax.legend(fontsize=6, frameon=False)
-# [AGENT EDIT END]

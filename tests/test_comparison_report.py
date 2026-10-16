@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify comparison population checks and original-sort reporting | date: 2026-09-18]
 import json
 
 import pytest
@@ -16,23 +15,19 @@ def make_run(root, name, data_path, *, units_override=None):
     units = ds.units if units_override is None else units_override
     pairs = ds.pairs[['cellid_a', 'cellid_b']].copy()
     pairs = pairs[pairs.cellid_a.isin(units.cellid) & pairs.cellid_b.isin(units.cellid)]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: 12-field MatchResult (score block, track kind, rule, typed Provenance) and a contract Decision; the old current_legacy alias is the registered legacy_fresh id; pilot provenance keys kept to exercise the fallbacks (Task 12) | date: 2026-09-22]
     from multiphy.contract.provenance import Provenance
     from multiphy.contract.results import Decision, ScoreBlock, ScoreKind, TrackKind
     pairs['match_score'] = .1
     pairs['selected'] = False
     pairs['decision'] = Decision.BELOW_THRESHOLD.value
-    result = MatchResult('functional_likelihood', '1', name,  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]
+    result = MatchResult('functional_likelihood', '1', name,
         units, pairs, (), tuple(units.cellid), (),
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: legacy_fresh tracks with the common tracker (Task 1) | date: 2026-09-27]
         ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.COMMON, 'mutual_margin_best_first',
-        # [AGENT EDIT END]
         Provenance.from_json(dict(ds.metadata, benchmark_input=str(data_path), benchmark_partition='test'))).validate()
     run = root / name
     run.mkdir()
     save_result(result, run / 'result.json')
-    (run / 'run_manifest.json').write_text(json.dumps(dict(status='completed', backend='functional_likelihood',  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]
-    # [AGENT EDIT END]
+    (run / 'run_manifest.json').write_text(json.dumps(dict(status='completed', backend='functional_likelihood',
         input_path=str(data_path), dataset_id=ds.metadata['dataset_id'], partition='test')))
     (run / 'evaluation.json').write_text(json.dumps(dict(combined=evaluate_result(result, ds.labels))))
     return run
@@ -86,18 +81,15 @@ def test_partial_partition_cannot_be_labeled_as_full_population(tmp_path):
         inspect_run(run)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: aggregate-schema coverage kept; the name carries no fitted-model evidence suffix (Task 2 fix round 1) | date: 2026-09-27]
 def test_local_aggregate_schema_without_backend_or_partition_fields(tmp_path):
     data = save_dataset(dataset(), tmp_path / 'data', cache_root=tmp_path)
     run = make_run(tmp_path, 'local', data)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: former constrained result is a unitmatch result built by result_from_pairs (Task 3 fix round 1) | date: 2026-09-27]
     from multiphy.backends import result_from_pairs
     saved = load_result(run / 'result.json')
     ds = load_dataset(data)
     result = result_from_pairs('unitmatch', '1', ds.units, saved.pairs[['cellid_a', 'cellid_b', 'match_score']],
         run_id=saved.run_id, provenance=dict(ds.metadata, benchmark_input=str(data), benchmark_partition='test',
             evidence_display_name='Stimulus fingerprint and shared-stimulus firing rate'))
-    # [AGENT EDIT END]
     save_result(result, run / 'result.json', overwrite=True)
     manifest = json.loads((run / 'run_manifest.json').read_text())
     manifest.pop('backend')
@@ -110,12 +102,10 @@ def test_local_aggregate_schema_without_backend_or_partition_fields(tmp_path):
     (run / 'evaluation.json').write_text(json.dumps(dict(aggregate=metrics)))
     inspected = inspect_run(run)
     assert inspected['partition'] == 'test'
-    assert inspected['result'].backend_id == 'unitmatch'  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is gone (Task 3) | date: 2026-09-27]
+    assert inspected['result'].backend_id == 'unitmatch'
     assert 'Stimulus fingerprint' not in inspected['name']
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: prevent misleading native-policy labels in common-tracker and calibration-selected reports | date: 2026-09-18]
 @pytest.mark.parametrize('assignment', ['native_intermediate', 'mutual_margin_best_first',
                                        'common_constrained_operating_point'])
 def test_report_names_actual_tracking_policy_and_calibration_target(tmp_path, assignment):
@@ -123,15 +113,11 @@ def test_report_names_actual_tracking_policy_and_calibration_target(tmp_path, as
     run = make_run(tmp_path, 'tracking', data)
     result = load_result(run / 'result.json')
     result.backend_id = 'unitmatch'
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
     result.provenance = result.provenance.merged(extra=dict(assignment=assignment, threshold=.83))
     if assignment == 'common_constrained_operating_point':
         result.provenance = result.provenance.merged(extra=dict(
             assignment='common_constrained', assignment_selection='calibration_operating_point'))
-    # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is frozen; write through .merged (Task 12) | date: 2026-09-22]
         result.provenance = result.provenance.merged(extra={'target_empirical_false_match_fraction': .01})
-        # [AGENT EDIT END]
     save_result(result, run / 'result.json', overwrite=True)
     manifest = json.loads((run / 'run_manifest.json').read_text())
     manifest['backend'] = 'unitmatch'
@@ -148,5 +134,3 @@ def test_report_names_actual_tracking_policy_and_calibration_target(tmp_path, as
         assert 'calibration target: 1% incorrect assigned pairs' in text
         assert 'does not guarantee the same error fraction on test data' in text
     assert 'Recorded threshold: 0.83' in text
-# [AGENT EDIT END]
-# [AGENT EDIT END]

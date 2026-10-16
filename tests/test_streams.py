@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the ensemble fits the streams a run measured, and only those (event-optional Task 6) | date: 2026-10-10]
 """Streams follow the run's evidence: which streams a run has, and an ensemble over any stream dict."""
 import numpy as np
 import pytest
@@ -59,4 +58,3 @@ def test_ensemble_scores_only_its_streams(drift_examples):
     assert sorted(ensemble.score(row)) == ['s_global', 's_phys', 's_wave']
     # the wave properties had references, so the wave stream scored rather than sat neutral at zero
     assert np.any(np.asarray(scores['s_wave']) != 0)
-# [AGENT EDIT END]

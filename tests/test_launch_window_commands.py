@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs build argv from their forms, run CLI children one at a time and follow their end (launcher-gui Task 6) | date: 2026-10-07]
 """The launcher window's command tabs, ``CommandProcess`` and ``child_command``; every file lives under
 ``tmp_path``, and every window gets a ``FakeProcess`` and ``interpreter_lookup=lambda: None``."""
 from __future__ import annotations
@@ -12,18 +11,14 @@ import typing
 import pytest
 from PySide6 import QtCore, QtWidgets
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the greyed-backend test makes dant unavailable (event-optional Task 4) | date: 2026-10-09]
 from multiphy.contract import registry
 from multiphy.contract.backend import Availability
-# [AGENT EDIT END]
 from multiphy.launch import commands
 from multiphy.launch import forms
 from multiphy.launch.plugins import PluginApi, load_plugins
 from multiphy.launch.window import REPO, CommandProcess, LauncherWindow, child_command
 from multiphy.project.folder import Project
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tag tests compare the shown tags with the selection's own reasons (event-optional Task 11) | date: 2026-10-10]
 from multiphy.project.selection import Selection
-# [AGENT EDIT END]
 
 from .launch_window_fixtures import FakeProcess, qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import extracted_project, write_day
@@ -249,14 +244,11 @@ def test_extract_takes_unextracted_checked_days(qt, runs):
     _check(window)
     assert window.run_buttons['extract'].isEnabled() is True
     window.run_command('extract')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: nothing checked sends the days not yet extracted as --day (D80) (launcher-gui Task 11) | date: 2026-10-07]
     assert window.submitted['argv'] == ['extract', 'P', '--day', 'D3']
-    # [AGENT EDIT END]
     window.process.ended.emit(0)
     _close(window)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a waiting extract keeps the days not yet extracted when its Run was pressed (D80) (launcher-gui Task 11) | date: 2026-10-07]
 def test_queued_extract_keeps_days_from_run(qt, tmp_path):
     path = extracted_project(tmp_path, days=('D1',))
     root = path.parent
@@ -285,7 +277,6 @@ def test_queued_extract_keeps_days_from_run(qt, tmp_path):
     assert made[1].calls[0][1][-4:] == ['extract', 'P', '--day', 'D2']
     made[1].ended.emit(0)
     _close(window)
-# [AGENT EDIT END]
 
 
 def test_run_needs_extracted_raw_days(qt, runs, tmp_path):
@@ -304,7 +295,6 @@ def test_run_needs_extracted_raw_days(qt, runs, tmp_path):
 
 def test_backend_greyed_with_reason(qt, tmp_path, monkeypatch):
     path = extracted_project(tmp_path, conditions={'D2': ('C', 'D')})
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an unavailable dant is greyed with its reason; functional_likelihood stays enabled on days without a shared condition (event-optional Task 4) | date: 2026-10-09]
     monkeypatch.setattr(registry.get('dant'), 'available', lambda: Availability(False, None, 'missing package'))
     window = _window(path.parent, 'P')
     _check(window, 'D1', 'D2')
@@ -312,7 +302,6 @@ def test_backend_greyed_with_reason(qt, tmp_path, monkeypatch):
     assert item.isEnabled() is False
     assert item.toolTip() == 'unavailable here: missing package; no verified interpreter'
     assert _item(window, 'functional_likelihood').isEnabled() is True
-    # [AGENT EDIT END]
     _check(window, 'D2')
     assert _item(window, 'functional_likelihood').isEnabled() is True
 
@@ -325,7 +314,6 @@ def test_backend_greyed_with_reason(qt, tmp_path, monkeypatch):
         assert model.item(i).isEnabled() is False
         assert model.item(i).toolTip() == 'error: gone'
     _close(window)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failing interpreter lookup is called at most once per window (launcher-gui Task 6 fix round 1) | date: 2026-10-07]
     monkeypatch.undo()
     calls = []
 
@@ -343,10 +331,8 @@ def test_backend_greyed_with_reason(qt, tmp_path, monkeypatch):
         assert model.item(i).toolTip() == 'error: bad env'
     assert len(calls) == 1
     _close(window)
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run form shows the evidence fallbacks as tags, greys the stimulus stream without events and refreshes on a min_repeats change (event-optional Task 11) | date: 2026-10-10]
 def test_evidence_tags_on_mixed_days(qt, tmp_path):
     path = extracted_project(tmp_path, no_event_days=('D2',))
     window = _window(path.parent, 'P')
@@ -394,7 +380,6 @@ def test_min_repeats_change_refreshes_tags(qt, tmp_path):
     min_repeats.setText('6')
     assert window.evidence_tags_shown() == [('no events', 'no events · shared conditions per day pair: D1+D2 0')]
     assert window.run_buttons['run'].isEnabled() is True
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: min_repeats below 2 shows the error tag, one repeat included (event-optional Task 14) | date: 2026-10-10]
     min_repeats.setText('0')
     assert window.evidence_tags_shown() == [('error', 'min_repeats must be an int >= 2, not 0')]
     assert window.run_buttons['run'].isEnabled() is False
@@ -404,22 +389,16 @@ def test_min_repeats_change_refreshes_tags(qt, tmp_path):
     min_repeats.setText('2.5')
     assert window.evidence_tags_shown() == [('error', "min_repeats must be an int >= 2, not '2.5'")]
     assert window.run_buttons['run'].isEnabled() is False
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a bad min_repeats keeps its error tag with no day checked (event-optional Task 11, fix round 1) | date: 2026-10-10]
     _check(window)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the error tags say >= 2 (event-optional Task 14) | date: 2026-10-10]
     assert window.evidence_tags_shown() == [('error', "min_repeats must be an int >= 2, not '2.5'")]
     min_repeats.setText('0')
     assert window.evidence_tags_shown() == [('error', 'min_repeats must be an int >= 2, not 0')]
-    # [AGENT EDIT END]
     assert window.run_buttons['run'].isEnabled() is False
     _check(window, 'D1', 'D2')
-    # [AGENT EDIT END]
     min_repeats.setText('')
     assert window.evidence_tags_shown() == []
     assert window.run_buttons['run'].isEnabled() is True
     _close(window)
-# [AGENT EDIT END]
 
 
 def test_required_and_unsupported_fields(qt, runs, tmp_path, monkeypatch):
@@ -538,4 +517,3 @@ def test_command_signatures():
     assert hints(child_command) == {'root': Path, 'argv': list, 'return': tuple}
     assert hints(LauncherWindow.run_command) == {'command': str, 'return': type(None)}
     assert hints(LauncherWindow.running) == {'return': bool}
-# [AGENT EDIT END]

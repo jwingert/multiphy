@@ -1,7 +1,4 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: test module docstring: the history is replaced whole on each write (run-curation Task 2, D14) | date: 2026-10-04]
 """One writer per run: the history is replaced whole under a lock; a refused or failed action writes nothing more."""
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller tests (run-curation Task 2) | date: 2026-10-04]
 from __future__ import annotations
 
 import csv
@@ -166,7 +163,6 @@ def test_open_failure_releases_lock(tmp_path):
     assert not (d / 'history.lock').exists()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an existing history with no header is refused, never read as a fresh run (run-curation Task 2, fix round 1 after atomic rewrite) | date: 2026-10-04]
 def test_empty_history_file_refused(tmp_path):
     d = _dir(tmp_path)
     d.mkdir(parents=True)
@@ -175,10 +171,8 @@ def test_empty_history_file_refused(tmp_path):
         _open(tmp_path)
     assert not (d / 'history.lock').exists()
     assert (d / 'history.csv').read_bytes() == b''
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an open that fails after another writer took the lock leaves that writer's lock in place (run-curation Task 2, fix round 2) | date: 2026-10-04]
 def test_open_failure_keeps_successor_lock(tmp_path, monkeypatch):
     d = _dir(tmp_path)
 
@@ -190,11 +184,8 @@ def test_open_failure_keeps_successor_lock(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match='bad history'):
         _open(tmp_path)
     assert _lock(d)['token'] == 'successor'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed rewrite leaves the history unchanged and no temp file; the rewrite keeps the file mode; a last row without a newline is kept (run-curation Task 2, D14) | date: 2026-10-04]
 def test_write_failure_turns_read_only(tmp_path, monkeypatch):
     d = _dir(tmp_path)
     a = _open(tmp_path)
@@ -241,10 +232,8 @@ def test_last_row_without_newline_kept(tmp_path):
     assert a.state.tracks[T]['status'] == 'accepted'
     assert a.state.tracks[cluster_id(['D1:1'])]['status'] == 'accepted'
     assert a.state.skipped == []
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a write-failed controller keeps the lock; a failed lock write leaves no lock (run-curation Task 2, fix round 1) | date: 2026-10-04]
 def test_write_failed_close_keeps_lock(tmp_path, monkeypatch):
     a = _open(tmp_path)
 
@@ -266,10 +255,8 @@ def test_lock_write_failure_leaves_no_lock(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         _open(tmp_path)
     assert not (_dir(tmp_path) / 'history.lock').exists()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a lock whose descriptor fails to close is removed (run-curation Task 2, review r1) | date: 2026-10-04]
 def test_lock_close_failure_leaves_no_lock(tmp_path, monkeypatch):
     real_close = os.close
     calls = []
@@ -285,10 +272,8 @@ def test_lock_close_failure_leaves_no_lock(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert len(calls) == 1
     assert not (_dir(tmp_path) / 'history.lock').exists()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed acquisition removes only the file it created; a successor's lock stays (run-curation Task 2, review r2) | date: 2026-10-04]
 def test_failed_acquisition_keeps_successor_lock(tmp_path, monkeypatch):
     lock = _dir(tmp_path) / 'history.lock'
     successor = json.dumps({'pid': 1, 'host': 'elsewhere', 'token': 'succ'})
@@ -304,10 +289,8 @@ def test_failed_acquisition_keeps_successor_lock(tmp_path, monkeypatch):
         _open(tmp_path)
     monkeypatch.undo()
     assert lock.read_text() == successor
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a multi-line row is refused (run-curation Task 2, fix round 2) | date: 2026-10-04]
 def test_multiline_row_refused(tmp_path):
     a = _open(tmp_path)
     with pytest.raises(ValueError):
@@ -315,10 +298,8 @@ def test_multiline_row_refused(tmp_path):
     assert not (_dir(tmp_path) / 'history.csv').exists()
     assert a.read_only is False
 
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed re-read after a write turns read-only; a bad line never swallows the next (run-curation Task 2, D14) | date: 2026-10-04]
 def test_reread_failure_after_write_goes_read_only(tmp_path, monkeypatch):
     d = _dir(tmp_path)
     a = _open(tmp_path)
@@ -348,30 +329,24 @@ def test_bad_quoted_line_does_not_swallow_next(tmp_path):
     state = curation.replay(_result().tracks, _result().unmatched, curation.read_history(d))
     assert state.tracks[T]['status'] == 'accepted'
     assert len([s for s in state.skipped if s[1].startswith('malformed')]) == 1
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a row replay would skip as malformed is refused before it is written (run-curation Task 2, fix round 3) | date: 2026-10-04]
 def test_row_replay_would_skip_is_refused(tmp_path):
     a = _open(tmp_path)
     with pytest.raises(ValueError):
         a.do('accept', cluster_id=T, parent_ids='not JSON')
     assert not (_dir(tmp_path) / 'history.csv').exists()
     assert a.state.tracks[T]['status'] != 'accepted'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a row the history reader cannot read back is refused before it is written (run-curation Task 2, fix round 4) | date: 2026-10-04]
 def test_row_reader_cannot_read_is_refused(tmp_path):
     a = _open(tmp_path)
     with pytest.raises(ValueError):
         a.do('accept', cluster_id=T, notes='x' * (csv.field_size_limit() + 1))
     assert not (_dir(tmp_path) / 'history.csv').exists()
     assert a.state.tracks[T]['status'] != 'accepted'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a take-over whose re-read or replay fails stays read-only and removes the lock it wrote (run-curation Task 2, D34) | date: 2026-10-04]
 def test_take_over_replay_failure_stays_read_only(tmp_path, monkeypatch):
     d = _dir(tmp_path)
     _write_lock(d, 1, 'elsewhere', 't')
@@ -387,4 +362,3 @@ def test_take_over_replay_failure_stays_read_only(tmp_path, monkeypatch):
     assert a.read_only is True
     assert a.write_failed
     assert not (d / 'history.lock').exists()
-# [AGENT EDIT END]

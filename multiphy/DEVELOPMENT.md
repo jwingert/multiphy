@@ -1,6 +1,4 @@
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: real days are project runs, not multiday archives (Plan B Task 10) | date: 2026-09-28] -->
 # Cross-day single-unit matching: priorities and comparison contract
-<!-- [AGENT EDIT END] -->
 
 Updated 2026-09-18. The objective is to compare cell-identity methods in one
 curation interface, preserve stimulus-response fingerprints as first-class
@@ -42,32 +40,18 @@ matching. A matching method may leave any unit unmatched.
 
 ## Implemented foundations
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer runs no matcher; ids name the mechanism (Task 3) | date: 2026-09-27] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: curation.py holds the one history per across-days run (run-curation Task 10) | date: 2026-10-05] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer package replaces gui.py (viewer-split Task 10) | date: 2026-10-07] -->
 - `viewer/` (see `docs/viewer.md`), `curation.py`: selection-aware curation, explicit unmatched units,
-<!-- [AGENT EDIT END] -->
   consistent plot refresh, run switching, and one history per across-days run
   (`curation/runs/<run>/history.csv`, undo/redo, `history.lock`, `launch export`). The viewer runs no
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cache builder is retired (Plan C Task 7) | date: 2026-10-02] -->
   matcher: it opens project runs.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window and the shared theme and menus (launcher-gui Task 11) | date: 2026-10-07] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher greys backends by selection_inputs and shows evidence tags from Selection.evidence (event-optional Task 13) | date: 2026-10-10] -->
 - `launch/window.py` (`launch gui`) runs every command as a CLI child from forms read off the
   CLI parser (`launch/forms.py`), greys backends by `selection_inputs` and `check_real_day_run`,
   shows the run's evidence tags from `Selection.evidence` and greys the `stimulus` feature stream
   without events, and cancels with SIGINT, then a kill after 10 s; the launcher and the viewer
   share the dark-first theme of `viewer/theme.py` and the `Settings` and `Help` menus of
   `viewer/menus.py`.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no local evidence ablations (Task 2 fix round 1) | date: 2026-09-27] -->
-- `backends/`: the `functional_likelihood` and `pair_logistic` local matchers <!-- [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic listed (final review fix round 1) | date: 2026-09-28] -->, the common tracker,
+- `backends/`: the `functional_likelihood` and `pair_logistic` local matchers, the common tracker,
   result validation, the backend registry, run provenance.
-<!-- [AGENT EDIT END] -->
 - `features.py:temporal_sample_windows()`: shared contiguous sample windows.
 - `features.py:average_spike_waveforms()`: bounded fresh voltage reads, waveform
   means/standard errors, deterministic waveform-only subsampling, no snippets
@@ -76,11 +60,9 @@ matching. A matching method may leave any unit unmatched.
   autocorrelation histograms, acoustic-condition-specific fingerprints, trial
   counts, and separate waveform halves inside each pseudo-session. Unusable
   splits carry an exclusion reason; missing waveforms are never duplicated.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fixed-model path (Task 2) | date: 2026-09-27] -->
 - `evidence.py:CalibratedPairModel`: regularized feature classification and
   separate source-group calibration, explicit missing-feature indicators,
   JSON-compatible model state. No runner fits or loads it.
-<!-- [AGENT EDIT END] -->
 - `evaluation.py`: source-group partition validation and held-out evaluation
   against source-cluster reference identities. Across unrelated source
   recordings, cell identity is unknown rather than automatically negative.
@@ -98,23 +80,13 @@ matching. A matching method may leave any unit unmatched.
 - `extract_benchmark.py`: forward-only reads of compressed voltage, retaining
   only selected snippets temporarily in the cache; explicit input clocks and
   voltage transforms.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: benchmark_local is gone; no frozen-model inference (Task 2) | date: 2026-09-27] -->
 - `runners.py`: official-method comparison/training commands with immutable
   cache outputs.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: real days run through run/project_run.py (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the across_days mode of the viewer package replaces multiday_viewer.py (viewer-split Task 10) | date: 2026-10-07] -->
 - `project/selection.py`, `run/project_run.py`, `viewer/modes/across_days.py`: real dated
-<!-- [AGENT EDIT END] -->
   project days; `launch run` runs any registered backend on a selection of
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the days viewer curates in curation/runs/<run>/history.csv (run-curation Task 10) | date: 2026-10-05] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer curates across-days runs in its across_days mode (viewer-split final review fix round 1) | date: 2026-10-07] -->
   extracted days, and the viewer, in its across_days mode, curates the completed run in the project's
-<!-- [AGENT EDIT END] -->
   `curation/runs/<run>/history.csv`, without fabricated across-day identity labels. Explicit
-<!-- [AGENT EDIT END] -->
   valid analysis windows remain separate from physical raw-file lengths.
-<!-- [AGENT EDIT END] -->
 - `multiday_reuse.py`: reuse complete verified two-part raw-derived summaries as
   independent waveform halves, with pooled moments and freshly recomputed full-day
   spike/fingerprint statistics. The actual PRN069 archive passed read-only conversion
@@ -129,11 +101,10 @@ matching. A matching method may leave any unit unmatched.
   cancelled while verified waiting, before it opened voltage. Its original PRN050
   dependency and permanent cache location remain unchanged. Actual extraction
   and real-recording timing remain pending.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no frozen-model scoring (Task 2 fix round 1) | date: 2026-09-27] -->
 - `operating_points.py`: calibration-only cutoff selection on saved native
   scores and test application. The full calibration curve and source hashes
   are retained.
-<!-- [AGENT EDIT END] --> Independent review identified and corrected incomplete
+Independent review identified and corrected incomplete
   score-pair acceptance and nested-collection identifier mismatches. Exact candidate
   coverage and hash-verified source correspondence are now required; 80 combined
   operating-point/backend/streaming checks passed. Real-data results remain pending.
@@ -189,8 +160,6 @@ The planned local comparison therefore explicitly rebuilds candidate evidence at
 archives remain unchanged. This choice follows an input-availability audit,
 not test outcomes; repeat counts and internal response reliability remain
 recorded.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence-variant preflight is removed with the local stages (Task 2 fix round 1) | date: 2026-09-27] -->
-<!-- [AGENT EDIT END] -->
 
 The GUI has a durable cache-root inference environment created by
 `dependency_setup.py`, containing pinned Python sources and tested small optional
@@ -203,33 +172,23 @@ Process state and artifact manifests are authoritative; these are dated snapshot
 
 ## Remaining development gates
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: connected components are gone and old caches open unassigned (final review fix round 1) | date: 2026-09-28] -->
 - Run `functional_likelihood` and `pair_logistic` on the same fresh temporal
   benchmark inputs as the published methods, with trial timing from verified
   acquisition-clock intervals (`drift_validation` does this for injected shifts).
   Old cached results open unassigned and provide no comparable benchmark.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the real-day gate names the project path, not the retired archive (Plan B Task 10) | date: 2026-09-28] -->
 - Verify the project path end to end on real days: `launch init`, `extract`,
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer command opens the run (viewer-split final review fix round 1) | date: 2026-10-07] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: or all of it from the launcher window (launcher-gui Task 11) | date: 2026-10-07] -->
   `run` (`run/project_run.py`) and `python -m multiphy.viewer --run DIR`, or all of
   it from `launch gui`, with runs that
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
   keep actual dates and invent no across-day reference labels. PRN067a13 and
   PRN069a08 have verified common probe geometry and exact stimulus overlap;
   PRN067 requires explicitly verified exclusion of four trailing acquisition
   trials without stimulus annotations. Production extraction must retain the
   raw-file sample count while honoring that shorter analysis window. Across-day
   published-method runs on these days have not completed.
-<!-- [AGENT EDIT END] -->
 - Complete and inspect the training and calibration archives.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: test populations are collections, scored by the CLI with no GUI view (run-curation Task 10 fix round 1) | date: 2026-10-05] -->
 - Train the genuine official DeepUnitMatch architecture, then verify saved-model
   inference and its CLI scoring on both test populations. Record the published
   channel-shift augmentation's NP1010 geometry limitation explicitly.
-<!-- [AGENT EDIT END] -->
 - Finish report readability review and common-interface integration checks,
   including collections that reference multiple archives without copying voltage.
   The expanded workflow runs UnitMatch and both DANT presets against its exact

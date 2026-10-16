@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: threshold neighbourhood pinned by hand-counted channel masks (threshold neighbourhood) | date: 2026-10-04]
 from __future__ import annotations
 
 import numpy as np
@@ -49,10 +48,8 @@ def test_peak_and_amplitudes_read_the_spike_window():
     result = unit_neighbourhood(_unit(amplitudes, {13: 50, 14: 70, 30: 5}), COLUMN)
     np.testing.assert_array_equal(result['peak_um'], (0.0, 200.0))
     assert np.flatnonzero(result['channels']).tolist() == [8, 9, 10, 11, 12, 13]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair channel union of threshold masks, B moved into A's frame, hand-counted (threshold neighbourhood) | date: 2026-10-04]
 from multiphy.backends.local.examples import pair_properties  # noqa: E402
 from multiphy.backends.local.neighbourhood import pair_channels, spike_window  # noqa: E402
 
@@ -102,10 +99,7 @@ def _local_unit(seed: int) -> dict:
 
 def test_local_r_ignores_far_channels():
     result = pair_properties(_local_unit(0), _local_unit(1), ['s'], 0, offset_um=0)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the peak-to-peak correlations are read by their footprint names (event-optional Task 1) | date: 2026-10-09]
     assert result['waveform_r_local'] == pytest.approx(1.0)
     assert result['footprint_r_local'] == pytest.approx(1.0)
     assert result['waveform_r'] < 0.9
     assert result['footprint_r'] < 0.9
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

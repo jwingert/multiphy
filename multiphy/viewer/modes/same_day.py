@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day mode: result_partition and validate_benchmark_result from benchmark_viewer.py:39-98, run_data from display_cache benchmark_viewer.py:100-173 returning RunData, the labels and info line from benchmark_viewer.py:340-349; fix round 1: validate_benchmark_result declares its BenchmarkDataset return (viewer-split Task 3) | date: 2026-10-06]
 """The same-day mode: the two temporal parts of one recording, inspected only.
 
 ``run_data`` builds a run's ``RunData`` from its benchmark dataset and result. Imports no Qt and no
@@ -16,10 +15,8 @@ from multiphy.benchmark_pairs import _waveform_summary
 from multiphy.viewer.data import (Mode, RunData, UnitData, Words, apply_run_provenance,
                                               complete_day_pairs, display_pairs)
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no pair words (native-same-day Task 10) | date: 2026-10-11]
 WORDS = Words(track_column='parts', member_column='temporal part', observations='temporal observations',
               import_tip='Compare a saved alternative result for this exact temporal benchmark partition')
-# [AGENT EDIT END]
 
 
 def result_partition(result):
@@ -27,7 +24,6 @@ def result_partition(result):
     return result.provenance.get('partition') or result.provenance.get('benchmark_partition')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-part pair row (proposed_link) loads; only a pair crossing recording groups is refused (native-same-day Task 7) | date: 2026-10-11]
 def validate_benchmark_result(dataset, result, *, input_manifest_sha256: Optional[str] = None) -> BenchmarkDataset:
     """Require an entire declared partition with exact dataset/session identity."""
     dataset.validate()
@@ -62,10 +58,8 @@ def validate_benchmark_result(dataset, result, *, input_manifest_sha256: Optiona
         if expected_groups[pair.cellid_a] != expected_groups[pair.cellid_b]:
             raise ValueError('Benchmark pair evidence must stay within one original recording')
     return dataset.subset(ids)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day pairs carry no list label (native-same-day Task 10 fix round 1) | date: 2026-10-11]
 def run_data(dataset, result, *, input_manifest_sha256: Optional[str] = None, extras: Optional[dict] = None) -> RunData:
     """The run's units, pairs and temporal part pairs, never its reference identities; ``extras`` is
     ``{day: full-day extras}``, whose ``tuning_*`` arrays give each site a frequency axis and each unit its tuning curve."""
@@ -128,7 +122,6 @@ def run_data(dataset, result, *, input_manifest_sha256: Optional[str] = None, ex
         day_names={}, freq_axes=freq_axes,
         min_fingerprint_repeats=dataset.metadata.get('pair_options', {}).get('min_repeats', 4),
         parts=frozenset({'isi', 'acg'} | ({'tuning'} if freq_axes else set())))
-# [AGENT EDIT END]
 
 
 def load(selection, dataset, result, extras: dict) -> RunData:
@@ -148,12 +141,7 @@ def merge_refusal(data: RunData, members) -> Optional[str]:
     return None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the plots end with the drift panel (drift-view Task 4) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram are two plots (browse-same-day Task 5) | date: 2026-10-12]
 SAME_DAY = Mode(id='same_day', layout_name='viewer/same_day_layout.json', curates=False, exports=False,
                 words=WORDS, plots=('waveform', 'footprint', 'probe', 'wfmap', 'isi', 'acg', 'fingerprint',
                                     'tuning', 'mixture', 'drift'),
                 load=load, header=header, merge_refusal=merge_refusal)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]

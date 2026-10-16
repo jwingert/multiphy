@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a test plugin that adds a reader and a command through PluginApi (Plan C Task 1) | date: 2026-10-01]
 """A launcher plugin for the tests: one reader, ``example.echo``, and one command, ``hello``."""
 
 
@@ -30,4 +29,3 @@ def register(api) -> None:
     """Add ``READER`` and the ``hello`` command."""
     api.add_reader(READER)
     api.add_command('hello', _configure, _hello, help='print hello, the project and --word')
-# [AGENT EDIT END]

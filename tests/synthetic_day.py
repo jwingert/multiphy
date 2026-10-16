@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one synthetic phy day feeds the old and new extraction paths (multiphy project folder Task 3) | date: 2026-09-25]
 """A synthetic phy day on disk, and the schema 1 inputs the old extraction path reads.
 
 ``write_day(folder, day)`` writes ``folder / day`` in the layout ``init --from`` reads:
@@ -42,9 +41,7 @@ class SyntheticDay:
     sort_dir: Path
     raw_path: Path
     gz_path: Optional[Path]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without events has no events file (event-optional Task 2) | date: 2026-10-09]
     events_path: Optional[Path]
-    # [AGENT EDIT END]
     date: str
     units: list
     spikes: dict
@@ -76,8 +73,6 @@ def _write_tsv(path, column, labels):
     path.write_text('\n'.join(rows) + '\n')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: trials cycle through the given conditions (Plan B Task 1) | date: 2026-09-28]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: events=False writes the day without its events file (event-optional Task 2) | date: 2026-10-09]
 def write_day(folder: Path, day: str, *, seed: int = 0, date: str = '2026-01-01',
               weak_unit: bool = False, gzip_raw: bool = False,
               with_templates: bool = True, conditions: tuple = ('A', 'B'), events: bool = True) -> SyntheticDay:
@@ -86,8 +81,6 @@ def write_day(folder: Path, day: str, *, seed: int = 0, date: str = '2026-01-01'
     ``events=False`` writes no ``events.csv`` and returns ``events_path=None``, no stimuli and
     no baselines; the spikes, raw file and every random draw are the same as with events.
     """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
     folder = Path(folder).resolve()
     root = folder / day
     sort_dir = root / 'sort'
@@ -143,20 +136,16 @@ def write_day(folder: Path, day: str, *, seed: int = 0, date: str = '2026-01-01'
     lines, stimuli, baselines = ['kind,start,stop,trial,condition'], [], []
     for i in range(N_TRIALS):
         start = 60000 * i
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: trials cycle through the given conditions (Plan B Task 1) | date: 2026-09-28]
         condition = conditions[i % len(conditions)]
-        # [AGENT EDIT END]
         lines.append(f'trial,{start},{start + 57000},{i + 1},')
         lines.append(f'baseline,{start},{start + 6000},,')
         lines.append(f'stimulus,{start + 6000},{start + 21000},{i + 1},{condition}')
         stimuli.append({'stimulus': condition, 'start': start + 6000, 'stop': start + 21000, 'trial': i + 1})
         baselines.append([start, start + 6000])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without events skips only the events file and reports no events (event-optional Task 2) | date: 2026-10-09]
     if events:
         events_path.write_text('\n'.join(lines) + '\n')
     else:
         events_path, stimuli, baselines = None, [], np.empty((0, 2), np.int64)
-    # [AGENT EDIT END]
     (root / 'date.txt').write_text(date + '\n')
 
     spikes = {f'{day}:{c}': s for c, s in cluster_spikes.items() if labels[c] == 'good'}
@@ -168,8 +157,6 @@ def write_day(folder: Path, day: str, *, seed: int = 0, date: str = '2026-01-01'
                         n_samples=N_SAMPLES, uv_per_bit=UV_PER_BIT)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project of extracted synthetic days for project-run tests (Plan B Task 1) | date: 2026-09-28]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: extracted_project takes the days written and added without events (event-optional Task 2) | date: 2026-10-09]
 def extracted_project(folder: Path, days: tuple = ('D1', 'D2'), *, project: str = 'P',
                       conditions: Optional[dict] = None, tiers: Optional[dict] = None,
                       weak_units: tuple = (), no_event_days: tuple = ()) -> Path:
@@ -179,22 +166,18 @@ def extracted_project(folder: Path, days: tuple = ('D1', 'D2'), *, project: str 
     its trial conditions and extraction tier, and a day in ``weak_units`` gets the weak unit. A day
     in ``no_event_days`` is written without events and added with ``events=None``.
     """
-# [AGENT EDIT END]
     from multiphy.launch import commands
 
     folder = Path(folder)
     root = folder / 'lab'
     for i, day in enumerate(days):
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day in no_event_days is written and added without events (event-optional Task 2) | date: 2026-10-09]
         sd = write_day(folder / 'in', day, seed=i, date=f'2026-01-{i + 1:02d}', weak_unit=day in weak_units,
                        conditions=(conditions or {}).get(day, ('A', 'B')), events=day not in no_event_days)
         commands.init_day(root, project, day=day, sort=str(sd.sort_dir), date=sd.date,
                           events=None if sd.events_path is None else str(sd.events_path),
                           raw=str(sd.raw_path), uv_per_bit=sd.uv_per_bit)
-        # [AGENT EDIT END]
         commands.extract(root, project, days=[day], tier=(tiers or {}).get(day), scratch_root=folder / 'scratch')
     return root / project
-# [AGENT EDIT END]
 
 
 def write_legacy_inputs(day: SyntheticDay, out_dir: Path, *, dataset_id: str, well: str,
@@ -231,4 +214,3 @@ def write_legacy_inputs(day: SyntheticDay, out_dir: Path, *, dataset_id: str, we
     path = out_dir / 'extraction_manifest.json'
     path.write_text(json.dumps(manifest, indent=2))
     return path
-# [AGENT EDIT END]

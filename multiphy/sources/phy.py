@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the public phy reader: single units, spikes, geometry, channel map and unwhitened templates from a KiloSort or phy folder (multiphy project folder Task 7; fix round 1: channel_map.npy) | date: 2026-09-25]
 """The ``phy`` reader: a KiloSort or phy output folder serves the ``sort`` role.
 
 ``options['sort_dir']`` holds ``params.py``, ``spike_times.npy``, ``spike_clusters.npy``,
@@ -181,7 +180,6 @@ class PhyReader:
             templates=templates, channel_map=channel_map,
         )
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: a raw file's layout comes from params.py whether or not it names a dat_path; an undeclared channel count is refused, never taken from the geometry | date: 2026-09-25]
     def raw_layout(self, options: dict) -> dict:
         """The raw file's layout as ``params.py`` declares it: ``{'dtype', 'offset', 'n_channels', 'sample_rate'}``.
 
@@ -194,9 +192,7 @@ class PhyReader:
             raise ValueError('phy: params.py has no n_channels_dat; a raw file needs its declared channel count.')
         return {'dtype': np.dtype(params.get('dtype', 'int16')).str, 'offset': int(params.get('offset', 0)),
                 'n_channels': int(params['n_channels_dat']), 'sample_rate': float(_param(params, 'sample_rate'))}
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: post-run fix (final review 2): finding params.py's dat_path reads no layout, so a day without a raw file needs no n_channels_dat | date: 2026-09-26]
     def dat_path(self, options: dict) -> Optional[str]:
         """The file ``params.py`` names as ``dat_path`` (a relative one from ``sort_dir``), or ``None``.
 
@@ -215,8 +211,6 @@ class PhyReader:
         """``binary`` parameters for ``params.py``'s ``dat_path``, or ``None`` when it names no file."""
         path = self.dat_path(options)
         return None if path is None else {'path': path, **self.raw_layout(options)}
-    # [AGENT EDIT END]
 
 
 READER = PhyReader()
-# [AGENT EDIT END]

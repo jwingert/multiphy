@@ -1,6 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: functional_likelihood v2: project-wide references, match-driven registration before the proximity gate, a mixture on every gated candidate (functional-likelihood Task 7) | date: 2026-09-27]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names event-response likelihood ratios (launcher-gui Task 10) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the run's evidence, the waveform stream and the registration each run uses (event-optional Task 9) | date: 2026-10-10]
 """Backend ``functional_likelihood``: firing, waveform and optional event-response likelihood ratios.
 
 Per recording group (one project): ``references.evidence_by_group`` decides once what the
@@ -20,8 +17,6 @@ Tracks come from ``tracker.assign`` (mutual margins, one unit per session, measu
 contradictions). Trial timing, where a day has it, arrives as a ``TrialTiming``; this module
 reads no lab format.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from __future__ import annotations
 
 import itertools
@@ -33,16 +28,12 @@ from . import evidence as ev
 from ...contract.backend import COMMON_TRACKER_OPTIONS, Availability, BackendSpec, Option, Provides
 from ...contract.inputs import Input
 from ...contract.results import MatchResult, ScoreKind, TrackKind, single_units
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run decides its evidence per group, refuses units without waveform halves and records the jitter, pair minimum and chunk length (event-optional Task 9) | date: 2026-10-10]
 from .examples import MIN_NEIGHBOUR_PAIRS, WAVEFORM_JITTER_UM, fit_ensemble, labeled_examples, pair_properties
 from .references import CHUNK_SECONDS, evidence_by_group, group_observations, require_waveform_halves
-# [AGENT EDIT END]
 from .registration import functional_offsets
 from .tracker import result_from_pairs, score_column_for
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the streams come from each run's evidence; feature_stream gains the waveform posterior (event-optional Task 9) | date: 2026-10-10]
 FEATURE_STREAMS = ('combined', 'stimulus', 'physiology', 'waveform')
-# [AGENT EDIT END]
 NULL_QUANTILE = 0.99
 REGISTRATION_METHODS = ('matches', 'profile', 'none')
 
@@ -53,10 +44,8 @@ def _rounded(values) -> list:
 
 
 def _with_psth(observation: dict, keys) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: without shared conditions the observation has no psth (event-optional Task 5) | date: 2026-10-09]
     if not len(keys):
         return observation
-    # [AGENT EDIT END]
     return dict(observation, psth=np.concatenate([observation['fingerprints'][k] for k in keys]))
 
 
@@ -70,9 +59,7 @@ def _candidates(obs_a: dict, obs_b: dict, keys, ensemble, crit, rel: float) -> p
             gates = ev.gates_passed(evidence, crit)
             if not gates.get('prox', True):
                 continue
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the waveform properties read day B's waveform at the registered offset; the other properties ignore it (event-optional Task 9, D9) | date: 2026-10-10]
             properties = pair_properties(x, y, keys, 0, offset_um=rel)
-            # [AGENT EDIT END]
             scores = ensemble.score(properties)
             # the row keeps the evidence, then the half-versus-half properties that were scored replace
             # the full-versus-full values of the same name
@@ -83,13 +70,11 @@ def _candidates(obs_a: dict, obs_b: dict, keys, ensemble, crit, rel: float) -> p
     return pd.DataFrame(rows)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture fits the run's streams and the global score, not two fixed streams (event-optional Task 9) | date: 2026-10-10]
 def _mixture(table: pd.DataFrame, same_scores: dict, diff_scores: dict, names) -> dict:
     """Fit each of ``names`` (the run's streams, then ``'global'``) on every candidate; write
     ``p_<stream>`` into ``table``; return the streams entry."""
     streams = {}
     for stream in names:
-# [AGENT EDIT END]
         col = 's_' + stream
         observed = table[col].to_numpy(dtype=float) if col in table else np.array([])
         entry = dict(observed=_rounded(observed))
@@ -121,12 +106,9 @@ def _score_session_pair(obs_a: dict, obs_b: dict, keys, ensemble, crit, rel: flo
                         diff_scores: dict) -> tuple:
     """``(table, streams)``: one session pair's gated candidates with their posteriors, and its mixture entry."""
     table = _candidates(obs_a, obs_b, keys, ensemble, crit, rel)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture fits the ensemble's own streams and the global score (event-optional Task 9) | date: 2026-10-10]
     return table, _mixture(table, same_scores, diff_scores, [*ensemble.streams, 'global'])
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each group's reference split is named from its evidence: trials or 5 s chunks, baseline windows or chunks for spontaneous rate (event-optional Task 9) | date: 2026-10-10]
 def _reference_split(e) -> str:
     """How a group with evidence ``e`` split its references: its trials or 5 s chunks, and its spont windows."""
     chunks = f'{CHUNK_SECONDS:g} s chunks'
@@ -137,10 +119,8 @@ def _reference_split(e) -> str:
     spont = 'baseline windows' if e.spont == 'baseline' else 'the chunks'
     return (f'Seeded splits of {chunks} of the recording window: whole chunks for ISI/ACG and rate, '
             f'{spont} for spontaneous rate; no event responses; split 0 alternates')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run decides its evidence per group before any work, fits the run's streams with the waveform, registers on event response + physiology with events and on aligned physiology + waveform without, and records what it measured (event-optional Task 9) | date: 2026-10-10]
 def run_functional_likelihood(units, features, geometry, timing_by_session, *, threshold=.9,
                               contradiction_threshold=.1, ambiguity_margin=.02, min_repeats=5, min_spikes=200,
                               n_splits=20, seed=0, radius_um=80.0, min_pairs=MIN_NEIGHBOUR_PAIRS,
@@ -231,23 +211,18 @@ def run_functional_likelihood(units, features, geometry, timing_by_session, *, t
         reference_counts=reference_counts, mixture_references=mixture_references,
         session_pairs=session_pairs, skipped_groups=skipped,
         timing_provenance={session: timing_by_session[session].provenance for session in read})
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the chunk length is saved only when a group observed on reference windows used chunks; group_observations skips a group of fewer than 2 sessions before building any (event-optional Task 9, final review fix round 1) | date: 2026-10-10]
     n_sessions = sessions.recording_group.astype(str).value_counts()
     observed = [evidence[group] for group, n in n_sessions.items() if n >= 2]
     if any(not e.events or e.spont != 'baseline' for e in observed):
         metadata.update(chunk_seconds=CHUNK_SECONDS)
-    # [AGENT EDIT END]
     column = score_column_for(pairs, feature_stream)
     metadata.update(feature_stream=feature_stream, calibration_status='provisional, not held-out calibrated',
                     evidence_columns=list(pairs.columns), used_optional_inputs=['timing'] if read else [])
     return result_from_pairs(SPEC.id, SPEC.version, units, pairs, score_column=column, threshold=threshold,
                              contradiction_threshold=contradiction_threshold, ambiguity_margin=ambiguity_margin,
                              provenance=metadata, run_id=run_id)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the functional_likelihood spec declares day_offsets (drift-view Task 2) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: version 3: timing is optional, min_pairs is a run option, feature_stream adds the waveform posterior, help texts name optional events (event-optional Task 9) | date: 2026-10-10]
 SPEC = BackendSpec('functional_likelihood', '3',
     requires=frozenset({Input.UNITS, Input.FEATURES, Input.GEOMETRY}), optional=frozenset({Input.TIMING}),
     provides=Provides(frozenset({ScoreKind.UNCALIBRATED}), frozenset({TrackKind.COMMON}), day_offsets=True),
@@ -265,8 +240,6 @@ SPEC = BackendSpec('functional_likelihood', '3',
              *COMMON_TRACKER_OPTIONS),
     builtin=True,
     real_days=True)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 class FunctionalLikelihoodBackend:
@@ -275,7 +248,6 @@ class FunctionalLikelihoodBackend:
     def available(self):
         return Availability(True, SPEC.version, None)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: timing is optional, so a run without it passes no timing; min_pairs is passed (event-optional Task 9) | date: 2026-10-10]
     def run(self, inp, options, ctx):
         return run_functional_likelihood(
             inp.units, inp.features, inp.geometry, inp.timing or {}, threshold=options['threshold'],
@@ -284,5 +256,3 @@ class FunctionalLikelihoodBackend:
             seed=options['seed'], radius_um=options['radius_um'], min_pairs=options['min_pairs'],
             registration=options['registration'], feature_stream=options['feature_stream'],
             provenance=ctx.provenance.to_json(), run_id=ctx.run_id)
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

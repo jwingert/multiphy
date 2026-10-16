@@ -1,6 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel: each day of the drawn recording group as a probe column with its units, in the anchor day's depth frame read from the run's saved registration (drift-view Task 4) | date: 2026-10-08]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names the dot click; tag wraps the whole docstring (browse-same-day Task 4) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the click lands after the double-click interval, a double-click only resets, a same-run same-group redraw keeps the zoom; tag wraps the whole docstring (browse-same-day Task 6) | date: 2026-10-12]
 """Every day of one recording group side by side, drawn in the anchor day's depth frame.
 
 Each day is one column: its electrodes and its units, shifted by the registration the run saved
@@ -11,12 +8,8 @@ emits ``unit_clicked`` with its cellid once the double-click interval passes, wh
 or takes it out; a double-click only resets the view. A redraw of the same run at the same full-size limits
 (a selection change within one recording group) keeps the zoom and pan.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the click imports: QtCore for the signal, Optional, MouseButton (browse-same-day Task 4) | date: 2026-10-12]
 from typing import Optional
 
-# [AGENT EDIT END]
 import numpy as np
 import pandas as pd
 
@@ -25,11 +18,9 @@ from multiphy.viewer.drift_frame import (drawn_group, drift_frame, electrode_dep
                                                      group_sessions, group_units, unit_depth)
 from multiphy.viewer.panels.plots import probe
 from multiphy.viewer.panels.plots.base import PlotPanel
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: QtCore for the unit_clicked signal (browse-same-day Task 4) | date: 2026-10-12]
 from matplotlib.backend_bases import MouseButton
 
 from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
-# [AGENT EDIT END]
 from multiphy.viewer.registry import register_panel
 
 POINT_COLUMNS = ('cellid', 'session', 'x', 'y', 'shift', 'filled', 'muted')
@@ -48,12 +39,8 @@ class DriftPanel(PlotPanel):
     """Each day's probe and units of the drawn group, mapped into the anchor day's depth frame."""
     panel_id, panel_title = 'drift', 'Drift across days'
     always_draws = True
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a left click on a unit dot emits its cellid (browse-same-day Task 4) | date: 2026-10-12]
     unit_clicked = QtCore.Signal(str)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a single-shot precise click timer, the pending click and the last full-size draw; tag wraps the whole constructor (browse-same-day Task 6) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the click timer is precise so it never fires inside a double-click; tag wraps the whole constructor (browse-same-day Task 6 fix round 1) | date: 2026-10-12]
     def __init__(self, state, parent=None):
         super().__init__(state, parent)
         self.points = pd.DataFrame({c: [] for c in POINT_COLUMNS})
@@ -67,10 +54,7 @@ class DriftPanel(PlotPanel):
         self._click_timer.timeout.connect(self._emit_pending_click)
         self._pending_click = None          # (RunData, cellid) of a press waiting out the double-click interval
         self._full_draw = None              # (RunData, xlim, ylim) of the last draw, at full size
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a redraw of the same run at the same full-size limits restores the zoom and pan; tag wraps the whole function (browse-same-day Task 6) | date: 2026-10-12]
     def refresh(self):
         """Redraw; when the user zoomed or panned and the new draw has the same run and the same full-size
         limits as the last one, the zoom and pan are put back."""
@@ -87,23 +71,16 @@ class DriftPanel(PlotPanel):
                 and new[1:] == last[1:]):
             ax.set_xlim(*view[0])
             ax.set_ylim(*view[1])
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reset redraws at the drawn limits; the inherited relim() ignores the scatter collections, so it hid unselected units and days (drift-view post-run fix) | date: 2026-10-08]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reset forgets the last full-size draw so it draws at full size; tag wraps the whole function (browse-same-day Task 6) | date: 2026-10-12]
     def reset_view(self):
         self._full_draw = None
         self.refresh()
         self.tools.update()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a theme change resets zoom and pan (browse-same-day Task 6) | date: 2026-10-12]
     def restyle(self) -> None:
         """Forget the last full-size draw, then recolour and redraw at full size."""
         self._full_draw = None
         super().restyle()
-    # [AGENT EDIT END]
 
     def draw(self, r):
         ax = self.axes[0]
@@ -192,9 +169,7 @@ class DriftPanel(PlotPanel):
             ax.plot([ring[1] for ring in rings], [ring[2] for ring in rings], color=p['plot_line'], lw=1,
                     gid='selection', zorder=2)
 
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the depth axis fits the electrodes even with no dot drawn: add_collection extends the data limits without rescaling (drift-view Task 4, fix round 2) | date: 2026-10-08]
         ax.autoscale_view(scalex=False)
-        # [AGENT EDIT END]
         ticks = [k * pitch + span / 2 for k in range(len(frame.columns))]
         labels, muted_ticks = [], []
         for column in frame.columns:
@@ -240,7 +215,6 @@ class DriftPanel(PlotPanel):
             return f'{session} · {lo:+.1f} µm · {frame.method}'
         return f'{session} · {lo:+.1f} to {hi:+.1f} µm · {frame.method}'
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the nearest-dot search moves into _nearest_dot, shared by hover_text and unit_at; tag wraps the three functions (browse-same-day Task 4) | date: 2026-10-12]
     def _nearest_dot(self, x: float, y: float) -> Optional[int]:
         """The row of ``self.points`` whose dot is nearest data point ``(x, y)`` in display pixels, when within
         ``HOVER_PIXELS``; ``None`` with no frame, no points or no dot that close."""
@@ -275,7 +249,6 @@ class DriftPanel(PlotPanel):
         """The cellid of the unit whose dot is within ``HOVER_PIXELS`` of data point ``(x, y)``, else ``None``."""
         i = self._nearest_dot(x, y)
         return None if i is None else str(self.points['cellid'].iloc[i])
-    # [AGENT EDIT END]
 
     def _hover(self, ev):
         text = ''
@@ -287,9 +260,6 @@ class DriftPanel(PlotPanel):
             QtWidgets.QToolTip.showText(QtGui.QCursor.pos(), text, self.canvas)
 
     # ------------------------------------------------------------------ click
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a left click on a unit dot, with no pan or zoom on, emits unit_clicked; a double-click resets the view (browse-same-day Task 4) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the click waits out the double-click interval; a double-click only resets; tag wraps the whole functions (browse-same-day Task 6) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the _click docstring names the kept zoom; tag wraps the whole function (browse-same-day Task 6 fix round 1) | date: 2026-10-12]
     def _click(self, ev):
         """A double-click drops any waiting click and only resets the view. A left click on a unit's dot, with
         no pan or zoom on, waits out the double-click interval, then emits ``unit_clicked`` with its cellid
@@ -308,7 +278,6 @@ class DriftPanel(PlotPanel):
         if cellid is not None:
             self._pending_click = (self.state.data, cellid)
             self._click_timer.start(QtWidgets.QApplication.doubleClickInterval())
-    # [AGENT EDIT END]
 
     def _emit_pending_click(self):
         """Emit the waiting click's cellid when its run is still drawn and still lists the unit."""
@@ -318,6 +287,3 @@ class DriftPanel(PlotPanel):
         data, cellid = pending
         if data is self.state.data and cellid in set(self.points['cellid'].astype(str)):
             self.unit_clicked.emit(cellid)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: write and read a day's normalized source/ folder, so extraction never reads original files (multiphy project folder Task 8; Task 10, D11 written once: write_source deletes a folder a stopped extraction left and renames its stage in, with no lock or aside folders, since its caller holds the day's .extract.lock; read_source opens its files by path) | date: 2026-09-25]
 """A day's normalized ``source/`` folder: what its readers found, written once, read by extraction.
 
 ``write_source`` turns a ``DaySource`` into ``spikes.npz``, ``geometry.npy``, ``templates.npz``
@@ -35,9 +34,7 @@ MANIFEST_FILE = 'extraction_manifest.json'
 SPIKES_FILE = 'spikes.npz'
 GEOMETRY_FILE = 'geometry.npy'
 TEMPLATES_FILE = 'templates.npz'
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day's extras are saved in the source folder (Plan C Task 5) | date: 2026-10-01]
 EXTRAS_FILE = 'extras.npz'
-# [AGENT EDIT END]
 METHODS_FILE = 'METHODS.md'
 _ROLE_ORDER = ('sort', 'events', 'raw')
 _MATCHED_FIELDS = ('resolved', 'size_bytes', 'mtime_ns')
@@ -77,17 +74,13 @@ def _entry(day_source: DaySource, *, day: str, project: str, readers: dict, iden
     raw = day_source.raw
     start, stop = (int(value) for value in day_source.analysis_window)
     n_channels = int(np.asarray(day_source.geometry).shape[0])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_voltage is one path, or [path, n_samples] per raw segment in clock order (Plan C Task 2) | date: 2026-10-01]
     raw_voltage = None
     if raw:
         raw_voltage = (raw['path'] if 'path' in raw
                        else [[segment['path'], segment['n_samples']] for segment in raw['segments']])
-    # [AGENT EDIT END]
     entry = {
         'source_session': day,
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_voltage is one path or a segment list (Plan C Task 2) | date: 2026-10-01]
         'raw_voltage': raw_voltage,
-        # [AGENT EDIT END]
         'spikes_file': SPIKES_FILE,
         'geometry_file': GEOMETRY_FILE,
         'single_unit_ids': sorted(spikes),
@@ -109,11 +102,7 @@ def _entry(day_source: DaySource, *, day: str, project: str, readers: dict, iden
     }
     if day_source.templates is not None:
         entry['templates_file'] = TEMPLATES_FILE
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the manifest names the extras file when the day has extras (Plan C Task 5) | date: 2026-10-01]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every new source names its extras file, empty or not (Plan C Task 5 fix round 1) | date: 2026-10-01]
     entry['extras_file'] = EXTRAS_FILE
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     entry['provenance'] = dict(day_source.provenance,
                                files={key: _identity_dict(identities[key]) for key in sorted(identities)})
     return entry
@@ -128,10 +117,8 @@ def _methods(entry: dict, identities: dict) -> str:
     held = 'spikes.npz (unit id to int64 spike samples), geometry.npy (channel x, y in µm)'
     if 'templates_file' in entry:
         held += ", templates.npz (unit id to the sort's unwhitened template)"
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: METHODS.md names the extras file (Plan C Task 5) | date: 2026-10-01]
     if 'extras_file' in entry:
         held += ', extras.npz (per-unit arrays from the readers, such as tone tuning; no backend reads them)'
-    # [AGENT EDIT END]
     start, stop = entry['analysis_window']
     return (f"Normalized source of day {entry['day']} in project {entry['project']}: the output of its readers, "
             f'with no voltage. Readers by role: {reader_text}. Files read, as key (role): {file_text}; each '
@@ -170,12 +157,8 @@ def write_source(day_source: DaySource, target: Path, *, day: str, project: str,
         if day_source.templates is not None:
             np.savez_compressed(stage / TEMPLATES_FILE, **{unit: np.asarray(day_source.templates[unit])
                                                            for unit in sorted(day_source.templates)})
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: save DaySource.extras, so a rerun that reuses source/ still has them (Plan C Task 5) | date: 2026-10-01]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: extras.npz is written for every new source, an empty archive for a day without extras (Plan C Task 5 fix round 1) | date: 2026-10-01]
         np.savez_compressed(stage / EXTRAS_FILE, **{name: np.asarray(value)
                                                     for name, value in (day_source.extras or {}).items()})
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
         (stage / METHODS_FILE).write_text(_methods(entry, identities), encoding='utf-8')
         (stage / MANIFEST_FILE).write_bytes(manifest_bytes)
         if os.path.lexists(target):
@@ -206,7 +189,6 @@ def _only_recording(manifest: dict, path: Path) -> dict:
     return recordings[0]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the recording entry read from extraction_manifest.json alone, shared by read_source and read_source_entry (launcher-gui Task 1) | date: 2026-10-07]
 def _read_entry(source_dir: Path) -> tuple:
     """``(entry, manifest_bytes)`` of ``source_dir``; a schema 1 entry loses its ``partition`` and ``well``."""
     path = source_dir / MANIFEST_FILE
@@ -222,11 +204,9 @@ def _read_entry(source_dir: Path) -> tuple:
 def read_source_entry(source_dir: Path) -> dict:
     """The recording entry ``read_source`` returns, read from ``extraction_manifest.json`` alone."""
     return _read_entry(Path(source_dir))[0]
-# [AGENT EDIT END]
 
 
 def read_source(source_dir: Path) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the extras key (Plan C final review fix round 1) | date: 2026-10-02]
     """``{'entry', 'spikes', 'geometry', 'templates', 'extras', 'source_id'}`` of a schema 2 or schema 1 folder.
 
     ``extras`` holds the arrays of the folder's extras file, ``{}`` when it names none.
@@ -237,11 +217,8 @@ def read_source(source_dir: Path) -> dict:
     schema 1 folder may point outside itself). The ``source_id`` is the sha256 of
     ``extraction_manifest.json``.
     """
-    # [AGENT EDIT END]
     source_dir = Path(source_dir)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: read_source reads its entry through _read_entry (launcher-gui Task 1) | date: 2026-10-07]
     entry, manifest_bytes = _read_entry(source_dir)
-# [AGENT EDIT END]
 
     spikes_path = _input_path(entry['spikes_file'], source_dir)
     with np.load(spikes_path, allow_pickle=False) as saved:
@@ -254,14 +231,12 @@ def read_source(source_dir: Path) -> dict:
     if entry.get('templates_file'):
         with np.load(_input_path(entry['templates_file'], source_dir), allow_pickle=False) as saved:
             templates = {unit: saved[unit].copy() for unit in saved.files}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: read_source returns the saved extras; a folder that names no extras file has none (Plan C Task 5) | date: 2026-10-01]
     extras = {}
     if entry.get('extras_file'):
         with np.load(_input_path(entry['extras_file'], source_dir), allow_pickle=False) as saved:
             extras = {name: saved[name].copy() for name in saved.files}
     return {'entry': entry, 'spikes': spikes, 'geometry': geometry, 'templates': templates, 'extras': extras,
             'source_id': hashlib.sha256(manifest_bytes).hexdigest()}
-    # [AGENT EDIT END]
 
 
 def source_matches(source_dir: Path, files: dict) -> bool:
@@ -280,4 +255,3 @@ def source_matches(source_dir: Path, files: dict) -> bool:
         if not isinstance(stored, dict) or any(stored.get(f) != current.get(f) for f in _MATCHED_FIELDS):
             return False
     return True
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reference windows from trials or 5 s chunks, evidence per recording group and the no-event skips (event-optional Task 5) | date: 2026-10-09]
 """Reference windows: a unit's halves come from its day's trials in event runs, else from 5 s chunks;
 spont reads baselines only when every day has them; no-event groups skip by spikes only."""
 import inspect
@@ -107,19 +106,16 @@ def test_short_window_unit_skipped():
     spikes = np.asarray(feature['spike_samples'])
     features = dict(days.features)
     features[short] = dict(feature, stop_sample=int(8 * FS), spike_samples=spikes[spikes < int(8 * FS)])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a 14.9 s unit's full rate, ISI and ACG skip its 4.9 s leftover, from group_observations and from unit_observation alike (event-optional Task 5, fix round 1) | date: 2026-10-09]
     tail = days.units.cellid.iloc[1]
     tail_spikes = np.asarray(days.features[tail]['spike_samples'])
     assert ((tail_spikes >= int(10 * FS)) & (tail_spikes < int(14.9 * FS))).sum() > 1
     features[tail] = dict(days.features[tail], stop_sample=int(14.9 * FS),
                           spike_samples=tail_spikes[tail_spikes < int(14.9 * FS)])
     chunked = dict(days.features[tail], stop_sample=int(10 * FS), spike_samples=tail_spikes[tail_spikes < int(10 * FS)])
-    # [AGENT EDIT END]
     (group,), skipped = group_observations(days.units, features, days.geometry, days.timing, min_spikes=2,
                                            n_splits=2)
     assert short not in group.observations
     assert any(entry.get('cellid') == short and 'fewer than 2 5 s chunks' in entry['reason'] for entry in skipped)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a 14.9 s unit's full rate, ISI and ACG skip its 4.9 s leftover, from group_observations and from unit_observation alike (event-optional Task 5, fix round 1) | date: 2026-10-09]
     direct = []
     for unit in (features[tail], chunked):
         windows = reference_windows(unit, None, WHOLE)
@@ -129,7 +125,6 @@ def test_short_window_unit_skipped():
         assert np.isclose(observation['rate_session'], direct[1]['rate_session'])
         assert np.allclose(observation['isi'], direct[1]['isi'], equal_nan=True)
         assert np.allclose(observation['acg'], direct[1]['acg'], equal_nan=True)
-    # [AGENT EDIT END]
 
 
 def test_event_group_keeps_reliability_gate(shared):
@@ -177,4 +172,3 @@ def test_reference_signatures():
     assert list(inspect.signature(evidence_by_group).parameters) == ['units', 'features', 'timing_by_session',
                                                                       'min_repeats']
     assert list(inspect.signature(chunk_windows).parameters) == ['start', 'stop', 'sample_rate', 'seconds']
-# [AGENT EDIT END]

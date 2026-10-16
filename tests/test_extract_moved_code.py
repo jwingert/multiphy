@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: moved extraction code is the same object behind the old names, and the extract modules import without lab modules (multiphy project folder Task 11) | date: 2026-09-25]
 """Shared extraction code lives in ``extract/``; ``features`` and ``extract_benchmark`` re-export it."""
 from __future__ import annotations
 
@@ -47,4 +46,3 @@ def test_extract_modules_import_without_lab():
     proc = run_without_lab(code, REPO)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.rstrip().endswith('ok')
-# [AGENT EDIT END]

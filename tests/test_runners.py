@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify executable runners isolate cache outputs and held-out training inputs | date: 2026-09-17]
 import json
 import os
 from pathlib import Path
@@ -11,7 +10,6 @@ import pytest
 
 from multiphy import paths, runners, external_backends
 from multiphy.backends import BackendUnavailable, load_result, result_from_pairs
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: run_backend_dataset now goes through run.runner and the registered UnitMatch backend; patch its defining module and its availability probe (Task 11) | date: 2026-09-22]
 from multiphy.backends import unitmatch as unitmatch_backend
 from multiphy.contract.backend import Availability
 
@@ -19,7 +17,6 @@ from multiphy.contract.backend import Availability
 def _patch_unitmatch(monkeypatch, fn):
     monkeypatch.setattr(unitmatch_backend.UnitMatchBackend, 'available', lambda self: Availability(True, 'mock', None))
     monkeypatch.setattr(unitmatch_backend, 'run_unitmatch', fn)
-# [AGENT EDIT END]
 
 
 class Dataset:
@@ -88,18 +85,16 @@ def test_run_backend_defaults_to_test_partition_and_saves_portable_result(tmp_pa
         evidence = pd.DataFrame({'cellid_a': ['c'], 'cellid_b': ['d'], 'match_score': [.99]})
         return result_from_pairs('unitmatch', 'mock-only', units, evidence,
             provenance=kwargs['provenance'], run_id=kwargs['run_id'])
-    _patch_unitmatch(monkeypatch, run)  # [AGENT EDIT | agent: claude-fable-5-1 | user: wingertj | reason: patch target moved to backends.unitmatch (Task 11) | date: 2026-09-22]
+    _patch_unitmatch(monkeypatch, run)
     output = runners.run_backend_dataset(tmp_path / 'input', 'unitmatch', root=tmp_path)
     assert output.parent == tmp_path / 'benchmarks/example/runs'
     assert seen['native_threshold'] is None
     assert seen['tracking'] == 'native_intermediate'
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: partition is a typed provenance field; Provenance is read with .get (Task 11) | date: 2026-09-22]
     assert seen['provenance']['partition'] == 'test'
     result = load_result(output / 'result.json')
     assert result.tracks == (('c', 'd'),)
     assert result.provenance.get('cache_built') == 'fixture'
     assert len(result.provenance.get('input_manifest_sha256')) == 64
-    # [AGENT EDIT END]
     assert json.loads((output / 'run_manifest.json').read_text())['status'] == 'completed'
     assert json.loads((output / 'evaluation.json').read_text())['combined']['true_positive_pairs'] == 1
     assert '## Data lineage' in (output / 'METHODS.md').read_text()
@@ -111,7 +106,6 @@ def test_failed_backend_leaves_failure_manifest_without_fake_results(tmp_path, m
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())
     def unavailable(*args, **kwargs):
         raise BackendUnavailable('official package missing')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: an unavailable backend now fails before any run directory exists, and this fixture has no spike times (DANT requires them), so the mid-run failure is exercised through UnitMatch (Task 11) | date: 2026-09-22]
     _patch_unitmatch(monkeypatch, unavailable)
     output = tmp_path / 'failed'
     with pytest.raises(BackendUnavailable):
@@ -120,7 +114,6 @@ def test_failed_backend_leaves_failure_manifest_without_fake_results(tmp_path, m
     assert json.loads((output / 'run_manifest.json').read_text())['status'] == 'failed'
     with pytest.raises(FileExistsError):
         runners.run_backend_dataset(tmp_path / 'input', 'unitmatch', output_dir=output, root=tmp_path)
-    # [AGENT EDIT END]
 
 
 def test_matching_never_pools_independent_original_recordings(tmp_path, monkeypatch):
@@ -135,19 +128,17 @@ def test_matching_never_pools_independent_original_recordings(tmp_path, monkeypa
         return result_from_pairs('unitmatch', 'mock-only', units,
             pd.DataFrame({'cellid_a': [a], 'cellid_b': [b], 'match_score': [.99]}),
             provenance=kwargs['provenance'], run_id=kwargs['run_id'])
-    _patch_unitmatch(monkeypatch, run)  # [AGENT EDIT | agent: claude-fable-5-1 | user: wingertj | reason: patch target moved to backends.unitmatch (Task 11) | date: 2026-09-22]
+    _patch_unitmatch(monkeypatch, run)
     output = runners.run_backend_dataset(tmp_path / 'input', 'unitmatch', partition='all', root=tmp_path)
     assert set(groups) == {'original_test', 'original_train'}
     result = load_result(output / 'result.json')
     assert set(result.tracks) == {('a', 'b'), ('c', 'd')}
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: the one runner names per-group records group_runs/groups for every group column (Task 11) | date: 2026-09-22]
     assert result.provenance.get('independent_groups')
     assert len(result.provenance.get('group_runs')) == 2
     assert result.provenance.get('group') is None
     evaluation = json.loads((output / 'evaluation.json').read_text())
     assert evaluation['combined']['n_unknown_predicted_pairs'] == 0
     assert len(evaluation['groups']) == 2
-    # [AGENT EDIT END]
 
 
 def test_prepare_selects_only_training_sources_and_does_not_train(tmp_path, monkeypatch):
@@ -217,7 +208,7 @@ def test_runner_reads_real_persisted_benchmark_contract(tmp_path, monkeypatch):
         return result_from_pairs('unitmatch', 'mock-only', units,
             pd.DataFrame({'cellid_a': ['c'], 'cellid_b': ['d'], 'match_score': [.99]}),
             provenance=kwargs['provenance'], run_id=kwargs['run_id'])
-    _patch_unitmatch(monkeypatch, run)  # [AGENT EDIT | agent: claude-fable-5-1 | user: wingertj | reason: patch target moved to backends.unitmatch (Task 11) | date: 2026-09-22]
+    _patch_unitmatch(monkeypatch, run)
     output = runners.run_backend_dataset(input_path, 'unitmatch', root=tmp_path)
     assert load_result(output / 'result.json').tracks == (('c', 'd'),)
 def test_one_off_extraction_dependency_requires_completed_dataset(tmp_path, monkeypatch):
@@ -248,8 +239,6 @@ def test_dependency_wait_without_pidfd_rejects_pid_reuse(tmp_path, monkeypatch):
     (tmp_path / 'manifest.json').write_text('{}')
     runners.wait_for_extraction(123456, tmp_path)
     assert sleeps == [10]
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a misspelled option is refused, never silently dropped (whole-branch review fix 6) | date: 2026-09-23]
 def test_run_backend_dataset_refuses_an_undeclared_option(tmp_path, monkeypatch):
     from multiphy.contract.errors import ContractViolation
     (tmp_path / 'input').mkdir()
@@ -270,4 +259,3 @@ def test_legacy_cli_forwards_only_declared_or_explicit_shared_flags(tmp_path, mo
     assert seen[-1]['tracking'] == 'native_intermediate' and 'device' not in seen[-1]
     runners.main(['run-backend', '--input', str(tmp_path), '--backend', 'unitmatch', '--device', 'cuda'])
     assert seen[-1]['device'] == 'cuda'  # explicit, so run_backend_dataset refuses it rather than dropping it
-# [AGENT EDIT END]

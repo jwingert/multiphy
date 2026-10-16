@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the templates tier: full-day rows from the sort's unwhitened templates and the complete spike trains, with no raw voltage (multiphy project folder Task 13) | date: 2026-09-25]
 """The templates tier: full-day rows for a day whose raw voltage is not read.
 
 A unit's waveform is the sort's unwhitened template, as the day's normalized ``source/``
@@ -95,4 +94,3 @@ One row per declared single unit over the whole analysis window of one recording
 
 A template is the sort's model of a unit's waveform, in the sort's units and filtering, not a mean of recorded snippets in µV. Compare waveforms only between days of the same tier.
 '''
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: full-day rows pooled from a day's two halves without a second voltage read, and the hash-verified full/ folder (multiphy project folder Task 9) | date: 2026-09-25]
 """Full-day rows pooled from a day's two halves, and the hash-verified ``full/`` folder.
 
 A unit's full-day row comes from its two halves rows: the waveform mean and standard error
@@ -27,9 +26,7 @@ import numpy as np
 import pandas as pd
 
 from ..benchmark import _pack, _unpack
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _checked_sample_spikes and _isi_acg live in extract/unit_features.py (multiphy project folder Task 11) | date: 2026-09-25]
 from .unit_features import _checked_sample_spikes, _isi_acg
-# [AGENT EDIT END]
 
 KIND = 'multiphy_full_day'
 DATA_FILES = ('units.csv', 'features.npz', 'features.json', 'extras.npz')
@@ -149,14 +146,12 @@ def full_day_rows(dataset, spikes: dict, spec: dict, *, day: str, group: str, se
     geometries = [np.asarray(g) for g in dataset.geometry.values()]
     if not geometries or any(not np.array_equal(g, geometries[0]) for g in geometries[1:]):
         raise ValueError('The halves pseudo-sessions need one shared geometry.')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - refuse halves windows that do not cover the analysis window, as reuse_day_summary does before pooling (multiphy project folder Task 9) | date: 2026-09-25]
     windows = np.asarray(windows)
     if (windows.shape != (2, 2) or not np.isfinite(windows).all()
             or not np.equal(windows, np.floor(windows)).all() or (windows[:, 1] <= windows[:, 0]).any()
             or windows[0, 1] != windows[1, 0]
             or [int(windows[0, 0]), int(windows[1, 1])] != [int(v) for v in analysis_window]):
         raise ValueError('The halves windows must be two contiguous parts covering the analysis window.')
-    # [AGENT EDIT END]
     labels = dataset.labels
     table, features = [], {}
     for unit in spec['single_unit_ids']:
@@ -167,7 +162,6 @@ def full_day_rows(dataset, spikes: dict, spec: dict, *, day: str, group: str, se
             raise ValueError(f'Unit {unit} has {len(rows)} halves rows; a day has two halves.')
         reason = ''
         if len(rows) == 2:
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - pool only halves rows extracted on these windows from this spike train, the checks reuse_day_summary runs before pool_day_row (multiphy project folder Task 9) | date: 2026-09-25]
             train = _checked_sample_spikes(spikes[unit])
             if any([row['start_sample'], row['stop_sample']] != bounds.tolist()
                    for row, bounds in zip(rows, windows)):
@@ -178,7 +172,6 @@ def full_day_rows(dataset, spikes: dict, spec: dict, *, day: str, group: str, se
             features[unit] = pool_day_row(rows, train, spec,
                                           analysis_window=analysis_window, windows=windows,
                                           max_spikes=max_spikes)
-            # [AGENT EDIT END]
         else:
             excluded = [e for e in dataset.exclusions if str(e['source_unit_id']) == unit]
             if not excluded:
@@ -287,4 +280,3 @@ def load_full_day(path: Path) -> dict:
         extras = {name: saved[name] for name in saved.files}
     return {'table': table, 'features': contents['features'], 'geometry': contents['geometry'],
             'metadata': contents['metadata'], 'extras': extras}
-# [AGENT EDIT END]

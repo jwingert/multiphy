@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the waveform map panel, from gui.py:674-795, reading UnitData; the peak channel is the unit's peak_chan and the never-set registered branch is gone (viewer-split Task 4) | date: 2026-10-06]
 """Every selected unit's waveform drawn on the electrodes it was recorded from."""
 import numpy as np
 
@@ -126,4 +125,3 @@ class WaveformMapPanel(PlotPanel):
         seen = dict(zip(l, h))
         ax.legend(seen.values(), seen.keys(), fontsize=6, frameon=False,
                   loc='upper right')
-# [AGENT EDIT END]

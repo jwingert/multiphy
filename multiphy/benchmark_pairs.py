@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: build label-free ordinary temporal-benchmark evidence pairs | date: 2026-09-17]
 """Build ordinary candidate evidence from independently recomputed pseudo-units.
 
 This module never reads source-unit labels, learns probabilities, or chooses a
@@ -182,4 +181,3 @@ def build_benchmark_pairs(units, feature_rows, channel_positions, *,
     return pd.DataFrame(columns=['cellid_a', 'cellid_b', 'siteid_a', 'siteid_b',
                                  'recording_group', *ev.ALL_PROPERTIES, 'waveform_r',
                                  'depth_delta_um', 'distance_um'])
-# [AGENT EDIT END]

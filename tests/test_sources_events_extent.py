@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 regression tests: only the last trial stop moves the recording extent (multiphy project folder Task 6) | date: 2026-09-25]
 """Only the stop of the last trial can extend or refuse the recording extent; baselines never do."""
 from __future__ import annotations
 
@@ -72,4 +71,3 @@ def test_baseline_past_known_end_kept(tmp_path):
     ], n_samples_from='raw_size')
     assert day.n_samples == 1000
     assert day.clock['n_samples_from'] == 'raw_size'
-# [AGENT EDIT END]

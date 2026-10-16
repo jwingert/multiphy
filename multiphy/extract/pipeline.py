@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: extract_day for the raw tier: verify, normalize, cut the halves, extract them from raw voltage, pool the full day, publish features/ and record their ids, once per day, logging each step in the stage so nothing is written after the record (multiphy project folder Task 10, D11 written once) | date: 2026-09-25]
 """One pipeline turns a project day into its features, once: ``extract_day``.
 
 ``extract_day`` holds the day's ``.extract.lock`` and, in order: refuses a day already
@@ -52,25 +51,17 @@ import numpy as np
 from .. import extract_benchmark
 from ..benchmark import build_dataset, save_dataset
 from ..project.folder import Project, ProjectLocked
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw pass may find a .gz raw file changed (multiphy project folder Task 12) | date: 2026-09-25]
 from ..project.identity import FileIdentity, SourceChanged, verify
-# [AGENT EDIT END]
 from ..sources.base import read_day
 from ..sources.normalize import geometry_sha256, read_source, source_matches, write_source
 from .full_day import full_day_rows, save_full_day
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_voltage may be a segment list (Plan C Task 2) | date: 2026-10-01]
 from .raw_pass import raw_segments
-# [AGENT EDIT END]
 from .split import halves
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the templates tier builds the full day from the sort's templates (multiphy project folder Task 13) | date: 2026-09-25]
 from .templates import template_full_rows, templates_methods
-# [AGENT EDIT END]
 
 EXTRACTION_OPTIONS = {'before': 41, 'after': 41, 'max_spikes': 100, 'min_spikes': 20, 'seed': 0}
 WAVEFORM_STORAGE = 'snippets'
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tiers extract_day runs (multiphy project folder Task 13) | date: 2026-09-25]
 TIERS = ('raw', 'templates')
-# [AGENT EDIT END]
 LOCK_FILE = '.extract.lock'
 SOURCE_DIR = 'source'
 FEATURES_DIR = 'features'
@@ -140,16 +131,13 @@ def _publish_methods(folder: Path, published: Path) -> None:
 
 
 def _raw_params(entry: dict, geometry: np.ndarray) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: with raw segments, gzip is true when every segment is .gz (Plan C Task 2) | date: 2026-10-01]
     """The raw file's parameters as the normalized source holds them; ``gzip`` is true when every segment is ``.gz``."""
     paths = [path for path, _ in raw_segments(entry['raw_voltage'], int(entry['n_samples']))]
     return {'sample_rate': float(entry['sample_rate']), 'n_channels': int(np.asarray(geometry).shape[0]),
             'dtype': entry['dtype'], 'uv_per_bit': float(entry['voltage_scale']),
             'gzip': all(path.suffix == '.gz' for path in paths)}
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one raw file is found by role and path, under key raw or raw_<k> (Plan C Task 2 fix round 1) | date: 2026-10-01]
 def _raw_key(files: dict, raw_voltage: str) -> str:
     """The key of the raw-role file in ``files`` that ``raw_voltage``, one path, resolves to."""
     resolved = os.path.realpath(raw_voltage)
@@ -158,10 +146,8 @@ def _raw_key(files: dict, raw_voltage: str) -> str:
     if len(keys) != 1:
         raise ValueError(f'{len(keys)} recorded raw-role files are {resolved}, not one.')
     return keys[0]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: check a .gz raw file's recorded sha256 against the digest of the raw pass (multiphy project folder Task 12) | date: 2026-09-25]
 def _checked_raw_sha256(raw_file: dict, digest: Optional[str]) -> str:
     """``digest``, the raw pass's sha256 of the ``.gz`` ``raw_file``; a different recorded ``sha256`` raises ``SourceChanged``."""
     if digest is None:  # the readers only seek forward, so a .gz pass always yields a digest
@@ -170,7 +156,6 @@ def _checked_raw_sha256(raw_file: dict, digest: Optional[str]) -> str:
     if recorded is not None and recorded != digest:
         raise SourceChanged(f"raw source changed: {raw_file['resolved']}")
     return digest
-# [AGENT EDIT END]
 
 
 def _share_mode(path: Path, parent: Path) -> None:
@@ -228,9 +213,7 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
     files = record['files']
     log(f'day {day} recorded, not yet extracted')
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tier None is raw with a raw file, else templates; templates may be forced on a day with raw (multiphy project folder Task 13) | date: 2026-09-25]
     # 2. Tier.
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day has raw voltage when any recorded file has role raw, raw segments included (Plan C Task 2) | date: 2026-10-01]
     has_raw = any(file['role'] == 'raw' for file in files.values())
     if tier is None:
         tier = 'raw' if has_raw else 'templates'
@@ -238,15 +221,11 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
         raise ValueError(f'Unknown tier {tier}.')
     if tier == 'raw' and not has_raw:
         raise ValueError(f'Day {day} has no raw file.')
-    # [AGENT EDIT END]
     log(f'tier {tier}')
-    # [AGENT EDIT END]
 
     # 3. Every recorded file is still the file the day was recorded from; only the raw file is not re-hashed.
     for key in sorted(files):
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a raw-role file is never re-hashed, raw segments included (Plan C Task 2) | date: 2026-10-01]
         verify(FileIdentity.from_dict(files[key]), rehash=files[key]['role'] != 'raw')
-        # [AGENT EDIT END]
     log(f'verified {len(files)} files')
 
     # 4. Normalize, unless source/ was normalized from these files; write_source replaces a source/
@@ -265,17 +244,14 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
     entry = source['entry']
     source_id = source['source_id']
     log(f'{normalized} source {source_id}')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the templates tier needs a sort with templates; checked once the day is verified and normalized (multiphy project folder Task 13) | date: 2026-09-25]
     if tier == 'templates' and source['templates'] is None:
         raise ValueError(f'Day {day} has no templates; the templates tier needs a sort with templates.')
-    # [AGENT EDIT END]
 
     # 5. Geometry.
     geometry_hash = geometry_sha256(source['geometry'])
     _check_geometry(identity, geometry_hash, day)
     log(f'geometry {geometry_hash}')
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only the raw tier cuts halves and reads voltage; the templates tier builds the full day from the sort's templates (multiphy project folder Task 13) | date: 2026-09-25]
     group = identity['group']
     halves_id = raw_sha256 = None  # the templates tier has no halves and hashes no raw file
     if tier == 'raw':
@@ -289,22 +265,15 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
                     spikes_file=str(source_dir / 'spikes.npz'), geometry_file=str(source_dir / 'geometry.npy'))
         extraction = {'schema_version': 1, 'dataset_id': f'{project.name}/{day}', 'recordings': [spec]}
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a .gz raw file is hashed during the pass (multiphy project folder Task 12; Task 13: only in the raw tier) | date: 2026-09-25]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only one .gz raw file has its digest checked and recorded; the digest of raw segments is kept in raw_sha256 with no comparison (Plan C Task 2) | date: 2026-10-01]
     gz_raw = (tier == 'raw' and isinstance(entry['raw_voltage'], str)
               and Path(entry['raw_voltage']).suffix == '.gz')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one raw file's key comes from its role and path, so raw_<k> works as raw does (Plan C Task 2 fix round 1) | date: 2026-10-01]
     raw_key = _raw_key(files, entry['raw_voltage']) if gz_raw else None
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     stage = Path(tempfile.mkdtemp(prefix='.features-', dir=day_dir))
     try:
         _share_mode(stage, day_dir)
         if tier == 'raw':
             # 8. The halves, from raw voltage.
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: hash a .gz raw file during the pass and check it against a recorded sha256 before anything is published (multiphy project folder Task 12) | date: 2026-09-25]
             with extract_benchmark.open_recording_sources(extraction, source_dir / 'extraction_manifest.json',
                                                           options=dict(EXTRACTION_OPTIONS), root=project.root,
                                                           scratch_root=scratch_root,
@@ -313,10 +282,7 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
                                         extraction_options=dict(EXTRACTION_OPTIONS))
                 raw_sha256 = sources[0].read_samples.raw_sha256
             if gz_raw:
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw file's key by role and path (Plan C Task 2 fix round 1) | date: 2026-10-01]
                 raw_sha256 = _checked_raw_sha256(files[raw_key], raw_sha256)
-                # [AGENT EDIT END]
-            # [AGENT EDIT END]
             dataset.metadata.update(extraction_manifest_sha256=source_id, waveform_storage=WAVEFORM_STORAGE,
                                     project=project.name, day=day, halves_rule=h['rule'],
                                     halves_boundary=h['boundary'])
@@ -330,9 +296,7 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
             full = full_day_rows(dataset, source['spikes'], entry, day=day, group=group, session_date=record['date'],
                                  analysis_window=analysis_window, windows=h['windows'],
                                  max_spikes=EXTRACTION_OPTIONS['max_spikes'])
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the source's extras go into the full day (Plan C Task 5) | date: 2026-10-01]
             full['extras'] = dict(source['extras'])
-            # [AGENT EDIT END]
             full_id = save_full_day(full, stage / 'full', metadata={
                 'project': project.name, 'day': day, 'tier': tier, 'halves_id': halves_id, 'source_id': source_id,
                 'halves_rule': h['rule'], 'halves_boundary': h['boundary'],
@@ -347,9 +311,7 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
             # 9. The full day, from the sort's templates and the complete spike trains.
             full = template_full_rows(source, day=day, group=group, session_date=record['date'],
                                       min_spikes=EXTRACTION_OPTIONS['min_spikes'])
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the source's extras go into the full day (Plan C Task 5) | date: 2026-10-01]
             full['extras'] = dict(source['extras'])
-            # [AGENT EDIT END]
             full_id = save_full_day(full, stage / 'full', metadata={
                 'project': project.name, 'day': day, 'tier': tier, 'halves_id': None, 'source_id': source_id,
                 'halves_rule': None, 'halves_boundary': None, 'extraction_options': dict(EXTRACTION_OPTIONS)})
@@ -358,7 +320,6 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
             _share_mode(stage / 'full', day_dir)
             _publish_methods(stage / 'full', features_dir / 'full')
             log(f'full {full_id}')
-        # [AGENT EDIT END]
 
         # 10. Publish. Recorded features are never replaced; an unrecorded features/ is what a
         # stopped extraction left, and this one's stage takes its place. The log is written into the
@@ -380,9 +341,7 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
     # 11. Record the features. A failure from here on leaves features/ in place, unrecorded; once the
     # record is written, nothing else is.
     features = {'halves': halves_id, 'full': full_id}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without a raw file has no raw parameters (multiphy project folder Task 13) | date: 2026-09-25]
     raw_params = _raw_params(entry, source['geometry']) if entry.get('raw_voltage') else None
-    # [AGENT EDIT END]
 
     def change(current: dict) -> None:
         day_record = _not_extracted(current, project, day)
@@ -390,14 +349,10 @@ def _extract_locked(project: Project, day: str, day_dir: Path, *, tier: Optional
         day_record.update(tier=tier, source_id=source_id, features=dict(features), raw_params=raw_params)
         if current['identity'].get('geometry_sha256') is None:
             current['identity']['geometry_sha256'] = geometry_hash
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record the digest of a .gz raw file with its features; a sha256 recorded meanwhile must match it (multiphy project folder Task 12; fix round 1: Do 5 stores it with sha256_from 'extract' even when a matching one was recorded) | date: 2026-09-25]
         if gz_raw:
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw file's key by role and path (Plan C Task 2 fix round 1) | date: 2026-10-01]
             raw_file = day_record['files'][raw_key]
-            # [AGENT EDIT END]
             _checked_raw_sha256(raw_file, raw_sha256)
             raw_file.update(sha256=raw_sha256, sha256_from='extract')
-        # [AGENT EDIT END]
 
     _update_waiting(project, change)
     return {'day': day, 'tier': tier, 'source_id': source_id, 'features': dict(features)}
@@ -417,4 +372,3 @@ def _update_waiting(project: Project, change) -> dict:
             if monotonic() >= deadline:
                 raise
         sleep(PROJECT_LOCK_POLL)
-# [AGENT EDIT END]

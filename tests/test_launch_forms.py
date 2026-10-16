@@ -1,9 +1,6 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window's forms are read from the CLI's own parser (launcher-gui Task 3) | date: 2026-10-07]
 """``launch.forms``: form fields read from the CLI parser, and the argv a filled form sends."""
 import argparse
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the selection_evidence signature test reads inspect.signature (event-optional Task 11) | date: 2026-10-10]
 import inspect
-# [AGENT EDIT END]
 import json
 import typing
 from types import SimpleNamespace
@@ -17,11 +14,9 @@ from multiphy.launch.__main__ import _parse, build_parser
 from multiphy.launch.forms import (BOUND, Field, command_argv, commands_of, form_fields,
                                                has_value)
 from multiphy.launch.plugins import load_plugins
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher reads a selection's evidence through selection_evidence (event-optional Task 11) | date: 2026-10-10]
 from multiphy.contract.inputs import RunEvidence
 from multiphy.launch.forms import EVENT_CHOICES, selection_evidence
 from multiphy.project.folder import Project
-# [AGENT EDIT END]
 from multiphy.run import options as opt
 from multiphy.sources.base import clear_readers_for_tests
 
@@ -113,7 +108,6 @@ def test_unsupported_actions_tagged():
     with pytest.raises(ValueError) as caught:
         command_argv('export', export_fields, {}, project='P')
     assert str(caught.value) == 'run is required'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a custom subclass of store_true/store_false stays unsupported (Do 5) (launcher-gui Task 3) | date: 2026-10-07]
     class _CustomTrue(argparse._StoreTrueAction):
         pass
 
@@ -126,7 +120,6 @@ def test_unsupported_actions_tagged():
     with pytest.raises(ValueError) as caught:
         command_argv('x', custom_fields, {'on': '--no-on'})
     assert str(caught.value) == '--on runs only from the command line'
-    # [AGENT EDIT END]
 
 
 def test_required_flag_needs_check():
@@ -208,7 +201,6 @@ def test_forms_signatures():
                                             'browse': Optional[str], 'placeholder': str}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selection_evidence's parameters, min_repeats keyword-only, and the event-only choices (event-optional Task 11) | date: 2026-10-10]
 def test_selection_evidence_signature():
     parameters = inspect.signature(selection_evidence).parameters
     assert list(parameters) == ['project', 'days', 'backend_id', 'min_repeats']
@@ -216,5 +208,3 @@ def test_selection_evidence_signature():
     assert typing.get_type_hints(selection_evidence) == {'project': Project, 'days': tuple, 'backend_id': str,
                                                          'min_repeats': int, 'return': Optional[RunEvidence]}
     assert EVENT_CHOICES == {'feature_stream': frozenset({'stimulus'})}
-# [AGENT EDIT END]
-# [AGENT EDIT END]

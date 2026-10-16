@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: adding a day records its file identities, and source/ holds the normalized reader output (multiphy project folder Task 8; Task 10, D11 written once: a day is added once, so the replace and archive tests go, as do the source lock, aside-folder and pinned-read scenarios; write_source replaces a source/ a stopped extraction left) | date: 2026-09-25]
 """Adding a day records its files; ``source/`` holds the normalized reader output and round-trips.
 
 A day is added once: a second ``add_day`` for it is refused and changes nothing.
@@ -193,7 +192,6 @@ def test_add_day_refuses_existing(project, sd, options, tmp_path):
     assert not (project.path / 'project.lock').exists()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: a day folder that cannot be made leaves no day in project.json, so a rerun adds the day | date: 2026-09-25]
 def test_day_folder_made_before_the_record(project, sd, options, monkeypatch):
     """The day folder is made before ``project.json`` records the day: a failed ``mkdir`` records nothing."""
     day_dir = project.day_dir('D1')
@@ -216,7 +214,6 @@ def test_day_folder_made_before_the_record(project, sd, options, monkeypatch):
     record = _add(project, sd, options)
     assert project.read()['days'] == {'D1': record}
     assert day_dir.is_dir()
-# [AGENT EDIT END]
 
 
 def test_write_source_roundtrip(project, sd, options, tmp_path):
@@ -287,10 +284,8 @@ def test_write_source_replaces_leftover(project, sd, options, tmp_path, monkeypa
     assert _listing(target.parent) == ['source']
     assert source['source_id'] == source_id
     written = _tree(target)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every new source holds extras.npz (Plan C Task 5 fix round 1) | date: 2026-10-01]
     assert sorted(written) == ['METHODS.md', 'extraction_manifest.json', 'extras.npz', 'geometry.npy', 'spikes.npz',
                                'templates.npz']
-    # [AGENT EDIT END]
 
     # The stage is complete before source/ is touched: a failure while staging leaves source/ as it was.
     def disk_full(*args, **kwargs):
@@ -445,4 +440,3 @@ def test_geometry_sha256_stable(project, sd, options, tmp_path):
     buffer = io.BytesIO()
     np.save(buffer, wide.astype(float))
     assert geometry_sha256(wide) == hashlib.sha256(buffer.getvalue()).hexdigest() != geometry_sha256(wide[:8])
-# [AGENT EDIT END]

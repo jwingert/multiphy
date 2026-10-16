@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Qt-free display texts, RunData and Selection.mode (viewer-split Task 2) | date: 2026-10-06]
 """The viewer's Qt-free modules: display texts, the typed `RunData` panels read, and a selection's mode."""
 import os
 import subprocess
@@ -20,10 +19,8 @@ from .test_run_provenance_panels import _group_run
 REPO = Path(__file__).resolve().parents[1]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Words has four fields, no pair words (native-same-day Task 10) | date: 2026-10-11]
 def _words():
     return data.Words(track_column='track', member_column='days', observations='days', import_tip='')
-# [AGENT EDIT END]
 
 
 def _run_data(**overrides):
@@ -41,9 +38,7 @@ def test_qt_free_modules_import_no_qt():
     code = ('import sys\n'
             'import multiphy.viewer.display\n'
             'import multiphy.viewer.data\n'
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift frame reader imports no Qt either (drift-view Task 1) | date: 2026-10-08]
             'import multiphy.viewer.drift_frame\n'
-            # [AGENT EDIT END]
             "print(sorted(m for m in sys.modules if m.startswith(('PySide6', 'PyQt5', "
             "'matplotlib.backends.backend_qt'))))\n")
     proc = subprocess.run([sys.executable, '-c', code], cwd=REPO, capture_output=True, text=True,
@@ -61,19 +56,15 @@ def test_run_data_refuses_missing_pair_column():
 def test_run_data_refuses_unknown_part():
     with pytest.raises(ValueError, match='unknown parts'):
         _run_data(parts=frozenset({'psth'}))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: offsets is no longer a part (drift-view Task 3) | date: 2026-10-08]
     with pytest.raises(ValueError, match='unknown parts'):
         _run_data(parts=frozenset({'offsets'}))
-    # [AGENT EDIT END]
 
 
 def test_run_data_defaults():
     run = _run_data()
     assert run.day_name('D1') == 'D1'
     assert run.geometry_source('D1') == 'unknown'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: RunData has no day_offset (drift-view Task 3) | date: 2026-10-08]
     assert not hasattr(run, 'day_offset')
-    # [AGENT EDIT END]
     assert run.freq_axis('D1') is None
     assert run.sites() == {'a-1': 'D1'}
 
@@ -105,12 +96,9 @@ def test_selection_mode(tmp_path):
     assert two.mode == 'across_days'
     assert one.record()['mode'] == one.mode
     assert two.record()['mode'] == two.mode
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: complete_day_pairs skips a site pair within one site (native-same-day Task 7) | date: 2026-10-11]
 def test_complete_day_pairs_skips_same_site():
     out = data.complete_day_pairs([{'siteid_a': 'A', 'siteid_b': 'A', 'days_apart': 0}],
                                   pd.DataFrame({'siteid_a': ['A', 'A'], 'siteid_b': ['A', 'B']}))
     assert out == [{'siteid_a': 'A', 'siteid_b': 'B', 'days_apart': 'unknown'}]
-# [AGENT EDIT END]

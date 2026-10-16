@@ -1,10 +1,7 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: match-driven depth registration tests (functional-likelihood Task 6) | date: 2026-09-27]
 """Match-driven depth registration: profile seed, match refinement and the functional score."""
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the signature test reads both registration signatures (event-optional Task 8) | date: 2026-10-10]
 import inspect
-# [AGENT EDIT END]
 import itertools
 
 import numpy as np
@@ -42,10 +39,8 @@ def _relative_errors(offsets, truth):
             for a, b in itertools.combinations(sorted(truth), 2)}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - recovery tests pin the zero-mean convention | date: 2026-09-27]
 def _assert_mean_zero(offsets):
     assert sum(offsets.values()) / len(offsets) == pytest.approx(0.0, abs=1e-9), offsets
-# [AGENT EDIT END]
 
 
 def test_profile_offsets_recover_shift(drift):
@@ -54,7 +49,7 @@ def test_profile_offsets_recover_shift(drift):
     assert len(measurements) == 3
     errors = _relative_errors(offsets, days.truth_offsets)
     assert max(errors.values()) <= 20.0, errors
-    _assert_mean_zero(offsets)  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    _assert_mean_zero(offsets)
 
 
 def test_match_offsets_recover_injected_shift(drift):
@@ -64,7 +59,7 @@ def test_match_offsets_recover_injected_shift(drift):
     # the day1-day2 pair is 100 µm apart and day0-day2 60 µm: both must be recovered
     assert abs(days.truth_offsets['day2'] - days.truth_offsets['day0']) == pytest.approx(60.0)
     assert max(errors.values()) <= 10.0, errors
-    _assert_mean_zero(offsets)  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    _assert_mean_zero(offsets)
     assert {p['source'] for p in diagnostics['pairs']} == {'matches'}
     assert diagnostics['null_threshold'] == NULL
 
@@ -76,13 +71,12 @@ def test_failed_seed_recovered(drift):
     offsets, diagnostics = match_offsets(obs, _same_neuron(days), NULL, seed, [])
     errors = _relative_errors(offsets, days.truth_offsets)
     assert max(errors.values()) <= 10.0, errors
-    _assert_mean_zero(offsets)  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    _assert_mean_zero(offsets)
     assert diagnostics['converged'] is True
 
 
 def test_no_matches_keeps_profile(drift):
     days, obs = drift
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - wrong starting offsets and hand-set measurements, so the result must be solved, not the seed returned | date: 2026-09-27]
     # z1 - z0 = 40, z2 - z0 = -60, z2 - z1 = -100 (consistent); mean 0 gives z0 = 20/3
     seed_measurements = [('day0', 'day1', 40.0, 1.0), ('day0', 'day2', -60.0, 1.0), ('day1', 'day2', -100.0, 1.0)]
     expected = {'day0': 20.0 / 3, 'day1': 20.0 / 3 + 40.0, 'day2': 20.0 / 3 - 60.0}
@@ -91,7 +85,6 @@ def test_no_matches_keeps_profile(drift):
     assert offsets == pytest.approx(expected)
     assert [p['offset_um'] for p in diagnostics['pairs']] == [40.0, -60.0, -100.0]
     assert diagnostics['groups'] == [['day0', 'day1', 'day2']]
-    # [AGENT EDIT END]
     assert len(diagnostics['pairs']) == 3
     assert all(p['source'] == 'profile' for p in diagnostics['pairs'])
     assert all(p['n_matches'] == 0 for p in diagnostics['pairs'])
@@ -101,18 +94,15 @@ def test_functional_offsets_recover_synthetic_drift(drift):
     days, obs = drift
     observations = {c: o for session in obs.values() for c, o in session.items()}
     session_of = dict(zip(days.units.cellid, days.units.session_id))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fit_ensemble takes the streams; these tests fit the fixed two (event-optional Task 6) | date: 2026-10-10]
     ensemble, _, diff_ref = fit_ensemble(labeled_examples(observations, session_of, KEYS), ev.STREAMS)
-    # [AGENT EDIT END]
     offsets, diagnostics = functional_offsets(obs, ensemble, diff_ref, KEYS)
     errors = _relative_errors(offsets, days.truth_offsets)
     assert max(errors.values()) <= 10.0, errors
-    _assert_mean_zero(offsets)  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 | date: 2026-09-27]
+    _assert_mean_zero(offsets)
     assert diagnostics['method'] == 'matches' and diagnostics['null_quantile'] == 0.99
     assert {p['source'] for p in diagnostics['pairs']} == {'matches'}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - unusable measurements, non-finite scores and a single session | date: 2026-09-27]
 @pytest.mark.parametrize('measurement', [('day0', 'day1', -40.0, 0.0), ('day0', 'day1', np.nan, 1.0),
                                          ('day0', 'day1', -40.0, np.nan)])
 def test_unusable_profile_measurement_is_no_source(drift, measurement):
@@ -141,16 +131,13 @@ def test_single_session_is_zero(drift):
     assert diagnostics['pairs'] == [] and diagnostics['groups'] == [['day0']]
     with pytest.raises(ValueError, match='0 sessions'):
         profile_offsets({})
-# [AGENT EDIT END]
 
 
 def test_functional_offsets_methods(drift):
     days, obs = drift
     observations = {c: o for session in obs.values() for c, o in session.items()}
     session_of = dict(zip(days.units.cellid, days.units.session_id))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fit_ensemble takes the streams; these tests fit the fixed two (event-optional Task 6) | date: 2026-10-10]
     ensemble, _, diff_ref = fit_ensemble(labeled_examples(observations, session_of, KEYS), ev.STREAMS)
-    # [AGENT EDIT END]
     none, diagnostics = functional_offsets(obs, ensemble, diff_ref, KEYS, method='none')
     assert none == {s: 0.0 for s in obs}
     assert all(p['source'] == 'none' for p in diagnostics['pairs'])
@@ -158,10 +145,8 @@ def test_functional_offsets_methods(drift):
     assert profile == pytest.approx(profile_offsets(obs)[0])
     with pytest.raises(ValueError, match='method'):
         functional_offsets(obs, ensemble, diff_ref, KEYS, method='gate')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - guard the threshold, search bound, mutuality, seed, minimum support and quantile rules | date: 2026-09-27]
 def _depth_obs(depths: dict) -> dict:
     """session -> cellid -> {'depth': d}: all ``match_offsets`` reads from an observation."""
     return {s: {c: {'depth': float(d)} for c, d in units.items()} for s, units in depths.items()}
@@ -224,26 +209,19 @@ def test_functional_offsets_null_quantile(drift):
     days, obs = drift
     observations = {c: o for session in obs.values() for c, o in session.items()}
     session_of = dict(zip(days.units.cellid, days.units.session_id))
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fit_ensemble takes the streams; these tests fit the fixed two (event-optional Task 6) | date: 2026-10-10]
     ensemble, _, diff_ref = fit_ensemble(labeled_examples(observations, session_of, KEYS), ev.STREAMS)
-    # [AGENT EDIT END]
     reference = np.asarray(ensemble.reference_scores(diff_ref)['s_global'], dtype=float)
     expected = float(np.quantile(reference[np.isfinite(reference)], 0.9))
     for method in ('none', 'profile', 'matches'):
         _, diagnostics = functional_offsets(obs, ensemble, diff_ref, KEYS, method=method, null_quantile=0.9)
         assert diagnostics['null_threshold'] == expected and diagnostics['null_quantile'] == 0.9
     assert expected != float(np.quantile(reference[np.isfinite(reference)], 0.99))
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an empty offset schedule refuses instead of reaching an unbound name (Plan B Task 9) | date: 2026-09-28]
 def test_match_offsets_refuses_empty_schedule():
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal comes before any work, so no drift days are built (Plan B Task 9 fix round 2) | date: 2026-09-29]
     obs = {'s0': {}, 's1': {}}
-    # [AGENT EDIT END]
     with pytest.raises(ValueError, match='needs at least one window and one iteration'):
         match_offsets(obs, lambda a, b: 0.0, NULL, {s: 0.0 for s in obs}, [], windows_um=(), max_iter=0)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each empty-schedule condition refuses on its own (Plan B Task 9 fix round 1) | date: 2026-09-29]
     for windows_um, max_iter in [((), 3), ((50.0,), 0)]:
         expected = (f'match_offsets needs at least one window and one iteration; '
                     f'got windows_um={windows_um!r}, max_iter={max_iter}')
@@ -251,11 +229,8 @@ def test_match_offsets_refuses_empty_schedule():
             match_offsets(obs, lambda a, b: 0.0, NULL, {s: 0.0 for s in obs}, [],
                           windows_um=windows_um, max_iter=max_iter)
         assert str(err.value) == expected
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a negative iteration count and an empty schedule refuse before any other check (Follow-up Task 5) | date: 2026-09-29]
 def test_match_offsets_refuses_negative_iterations():
     with pytest.raises(ValueError) as err:
         match_offsets({'s0': {}, 's1': {}}, lambda a, b: 0.0, NULL, {'s0': 0.0, 's1': 0.0}, [],
@@ -273,10 +248,8 @@ def test_match_offsets_schedule_guard_runs_first():
     with pytest.raises(ValueError) as err:
         match_offsets({'s0': {}, 's1': {}}, lambda a, b: 0.0, NULL, {}, [], windows_um=(), max_iter=3)
     assert str(err.value).startswith('match_offsets needs at least one window')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: aligned registration scores each pair at every relative offset tried (event-optional Task 8) | date: 2026-10-10]
 def test_aligned_scores_at_each_offset():
     obs = _depth_obs({'s1': {f'a{k}': d for k, d in enumerate([0.0, 100.0, 200.0, 300.0])},
                       's2': {f'b{k}': d for k, d in enumerate([-40.0, 60.0, 160.0, 260.0])}})
@@ -307,4 +280,3 @@ def test_registration_signatures():
         parameter = inspect.signature(function).parameters['aligned']
         assert parameter.kind is inspect.Parameter.KEYWORD_ONLY, function.__name__
         assert parameter.default is False, function.__name__
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher loads plugins from <root>/multiphy.json and the multiphy.plugins entry points (Plan C Task 1) | date: 2026-10-01]
 """Launcher plugins: ``<root>/multiphy.json`` names modules whose ``register(api)`` adds readers and commands."""
 import json
 import sys
@@ -40,5 +39,4 @@ def test_no_config_loads_no_plugin(tmp_path, monkeypatch):
     code = main(['--root', str(tmp_path), 'hello', 'P'])
     assert code == 1
     assert EXAMPLE not in sys.modules
-# [AGENT EDIT END]
 

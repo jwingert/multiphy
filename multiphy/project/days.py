@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: add a day to a project by recording its readers and file identities (multiphy project folder Task 8; Task 10, D11 written once: a day is added once, so replace_day, archive_features and their helpers are removed, and a day already added is refused before its inputs are read) | date: 2026-09-25]
 """Adding a day to a project.
 
 ``add_day`` asks each of the day's readers which files it will open, records each file's
@@ -47,11 +46,9 @@ def _record_files(by_role: dict, reader_options: dict) -> dict:
                 raise ValueError(f'Readers {owner[key].id} and {reader.id} both name the file key {key}.')
             owner[key] = reader
             paths[key] = path
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a raw-role file (key raw or raw_<k>) is never hashed (Plan C Task 2) | date: 2026-10-01]
     roles = {key: file_role(owner[key], key) for key in paths}
     return {key: record(roles[key], str(path), hash_contents=roles[key] != 'raw')
             for key, path in paths.items()}
-    # [AGENT EDIT END]
 
 
 def _refuse_existing(manifest: dict, day: str) -> None:
@@ -81,11 +78,8 @@ def add_day(project: Project, day: str, *, readers: dict, reader_options: dict, 
 
     def change(manifest: dict) -> None:
         _refuse_existing(manifest, day)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: make the day folder before project.json records the day, so a failed mkdir leaves a rerunnable add_day, not a recorded day without a folder | date: 2026-09-25]
         project.day_dir(day).mkdir(exist_ok=True)
-        # [AGENT EDIT END]
         manifest['days'][day] = day_record
 
     project.update(change)
     return day_record
-# [AGENT EDIT END]

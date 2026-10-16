@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: TDD coverage for the one runner loop and its command line | date: 2026-09-22]
 import json
 import numpy as np
 import pandas as pd
@@ -127,9 +126,6 @@ def test_cli_list_and_run(fake, tmp_path, capsys):
     from multiphy.run.__main__ import main
     assert main(['list-backends']) == 0
     assert 'fake' in capsys.readouterr().out
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: pin the CLI safeguards: fitted model required on real days, benchmarks default to test (review fix) | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a units-only fake replaces the fitted-model fake (Task 2) | date: 2026-09-27]
 class FakeUnitsBackend(FakeBackend):
     spec = BackendSpec('fake_units', '1', frozenset({Input.UNITS}), frozenset(),
                        Provides(frozenset({ScoreKind.NONE}), frozenset({TrackKind.COMMON})), (Option('k', 'int', 1),))
@@ -143,17 +139,12 @@ class FakeUnitsBackend(FakeBackend):
 def test_cli_benchmark_defaults_to_test_partition(fake, tmp_path, monkeypatch):
     from multiphy.run import __main__ as cli
     registry.register(FakeUnitsBackend())
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _load_dataset returns the dataset alone (Plan B Task 8) | date: 2026-09-28]
     monkeypatch.setattr(cli, '_load_dataset', lambda path: Dataset())
-    # [AGENT EDIT END]
     assert cli.main(['run-backend', '--input', str(tmp_path), '--backend', 'fake_units', '--root', str(tmp_path)]) == 0
-    # [AGENT EDIT END]
     manifests = list(tmp_path.rglob('run_manifest.json'))
     assert len(manifests) == 1
     m = json.loads(manifests[0].read_text())
     assert m['partition'] == 'test' and m['status'] == 'completed'
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a waveform-bundle failure is reported, not disguised as absent inputs (whole-branch review fix 5) | date: 2026-09-23]
 class FakeWaveformBackend(FakeBackend):
     spec = BackendSpec('fake_waveforms', '1', frozenset({Input.UNITS, Input.WAVEFORM_HALVES}), frozenset(),
                        Provides(frozenset({ScoreKind.NONE}), frozenset({TrackKind.COMMON})), (Option('k', 'int', 1),))
@@ -185,18 +176,14 @@ def test_missing_inputs_without_a_bundle_error_keep_the_plain_message(fake, tmp_
     with pytest.raises(MissingInputs) as info:
         runner.run(Dataset(), 'fake', {}, group_column='recording_group', root=tmp_path)
     assert 'waveform bundle' not in str(info.value)
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run CLI has no --model flag (Task 2); the refusal is argparse's unknown-argument error (fix round 1) | date: 2026-09-27]
 def test_run_cli_refuses_model_flag(tmp_path, capsys):
     from multiphy.run.__main__ import main
     with pytest.raises(SystemExit) as exc:
-        main(['run-backend', '--input', str(tmp_path), '--backend', 'unitmatch', '--model', 'x.json'])  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
+        main(['run-backend', '--input', str(tmp_path), '--backend', 'unitmatch', '--model', 'x.json'])
     assert exc.value.code == 2
     assert 'unrecognized arguments: --model x.json' in capsys.readouterr().err
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an undeclared extra input is refused, with or without a waveform bundle (Task 2 fix round 1) | date: 2026-09-27]
 @pytest.mark.parametrize('bundle', [True, False])
 def test_build_input_refuses_unknown_extra_inputs(tmp_path, monkeypatch, bundle):
     if not bundle:
@@ -204,14 +191,10 @@ def test_build_input_refuses_unknown_extra_inputs(tmp_path, monkeypatch, bundle)
     with pytest.raises(ValueError, match='fitted_model'):
         runner.build_input(Dataset().subset(['a-1', 'a-2']), 'a', provenance=Provenance(),
                            extra_inputs={'fitted_model': str(tmp_path / 'model.json')})
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a merged run names every group's calibration reference (Task 8 fix round 1) | date: 2026-09-27]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: new tests take tmp_path per the Global Constraints (Task 8 fix round 2) | date: 2026-09-27]
 def test_merge_keeps_every_groups_calibration_reference(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)  # a stray relative write lands in tmp_path, never the repo
-# [AGENT EDIT END]
     def calibrated(group, reference):
         u = Dataset().units
         u = u[u.recording_group == group].reset_index(drop=True)
@@ -226,10 +209,8 @@ def test_merge_keeps_every_groups_calibration_reference(tmp_path, monkeypatch):
     assert merged.score.calibration_reference == (
         "a: trained on ['a0'], calibrated on held-out ['a1']; b: trained on ['b0'], calibrated on held-out ['b1']")
     assert merged.score.kind is ScoreKind.CALIBRATED_PROBABILITY and merged.score.column == 'match_score'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend input units carry n_spikes from features, NaN when absent (native-same-day Task 2) | date: 2026-10-11]
 @pytest.mark.parametrize('bundle', [True, False])
 def test_build_input_adds_n_spikes(monkeypatch, bundle):
     if not bundle:
@@ -241,4 +222,3 @@ def test_build_input_adds_n_spikes(monkeypatch, bundle):
     assert got['a-1'] == 1770.0
     assert np.isnan(got['a-2'])
     assert 'n_spikes' not in subset.units
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: assemble and persist temporal-split identity benchmarks outside the code repository | date: 2026-09-17]
 """Temporal benchmark datasets with reference labels kept out of matcher inputs.
 
 The voltage reader and all input times must already share a verified raw sample
@@ -13,9 +12,7 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: SourceRecording.partition may be None (multiphy project folder Task 2) | date: 2026-09-25]
 from typing import Optional
-# [AGENT EDIT END]
 
 import numpy as np
 import pandas as pd
@@ -30,9 +27,7 @@ class SourceRecording:
     """One original sort with sample-clock stimuli and measured probe geometry."""
     source_session: str
     well: str
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: halves archives carry no partition; None on every source leaves it out (multiphy project folder Task 2) | date: 2026-09-25]
     partition: Optional[str]
-    # [AGENT EDIT END]
     sample_rate: float
     channel_positions: np.ndarray
     windows: np.ndarray
@@ -45,7 +40,6 @@ class SourceRecording:
     baseline_windows: object = None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fingerprint block of BenchmarkDataset.waveform_bundle, moved verbatim so project selections share it (Plan B Task 1) | date: 2026-09-28]
 def fingerprint_matrix(rows: list) -> tuple:
     """``(peth, keys)``: each row's fingerprints over the conditions every row shares; ``peth`` is ``None`` without keys."""
     common = set.intersection(*(set(r.get('fingerprints', {})) for r in rows))
@@ -61,7 +55,6 @@ def fingerprint_matrix(rows: list) -> tuple:
             out.extend(r['fingerprints'][stimulus])
     peth = np.asarray(values, dtype=float) if keys else None
     return peth, tuple(keys)
-# [AGENT EDIT END]
 
 
 @dataclass
@@ -82,20 +75,16 @@ class BenchmarkDataset:
             raise ValueError('A benchmark requires unique eligible pseudo-units.')
         if self.units[list(required)].isna().any().any() or not self.units.su_type.eq('SU').all():
             raise ValueError('Benchmark unit metadata must be complete and single-unit only.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: partition is an optional label column (multiphy project folder Task 2) | date: 2026-09-25]
         if not {'cellid', 'source_unit_id', 'source_session', 'well'} <= set(self.labels):
             raise ValueError('Separate reference labels are required for every pseudo-unit.')
         partitioned = 'partition' in self.labels
-        # [AGENT EDIT END]
         ids = set(self.units.cellid)
         if ids != set(self.features) or ids != set(self.labels.cellid) or self.labels.cellid.duplicated().any():
             raise ValueError('Features, units, and reference labels must describe identical unique pseudo-units.')
         if self.labels.source_unit_id.isna().any() or self.labels.source_unit_id.astype(str).str.strip().eq('').any():
             raise ValueError('Source cluster reference IDs must not be missing.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: partition is an optional label column (multiphy project folder Task 2) | date: 2026-09-25]
         if partitioned:
             validate_partitions(self.labels)
-        # [AGENT EDIT END]
         joined = self.units[['cellid', 'session_id', 'recording_group']].merge(
             self.labels[['cellid', 'well', 'source_session', 'source_unit_id']], on='cellid', validate='one_to_one')
         if (joined.groupby('recording_group')[['well', 'source_session']].nunique().gt(1).any().any()
@@ -104,10 +93,8 @@ class BenchmarkDataset:
             raise ValueError('Recording groups and pseudo-sessions must preserve original recording identities.')
         if joined.duplicated(['well', 'source_session', 'session_id', 'source_unit_id']).any():
             raise ValueError('Each source unit has at most one observation per pseudo-session.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: partition is an optional label column (multiphy project folder Task 2) | date: 2026-09-25]
         if partitioned and not set(self.labels.partition) <= {'train', 'calibration', 'test'}:
             raise ValueError('Partition labels must be train, calibration, or test.')
-        # [AGENT EDIT END]
         if {'source_unit', 'source_unit_id', 'same_unit', 'partition'} & set(self.units):
             raise ValueError('Reference labels do not belong in matcher unit inputs.')
         if not {'cellid_a', 'cellid_b'} <= set(self.pairs):
@@ -142,9 +129,7 @@ class BenchmarkDataset:
         self.validate()
         ids = tuple(self.units.cellid)
         rows = [self.features[c] for c in ids]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fingerprint block moved to fingerprint_matrix, shared with project selections (Plan B Task 1) | date: 2026-09-28]
         peth, keys = fingerprint_matrix(rows)
-        # [AGENT EDIT END]
         labels = self.labels.set_index('cellid')
         group_map = {}
         for r in self.units.itertuples():
@@ -167,7 +152,6 @@ class BenchmarkDataset:
         else:
             provenance.pop('probe_type', None)
         provenance['source_probe_types'] = {json.dumps(key): value for key, value in probe_types.items()}
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: retain acquisition rate for learned waveform compatibility | date: 2026-09-18]
         rates = {float(r['sample_rate']) for r in rows}
         provenance['session_sample_rates'] = {str(s): float(r['sample_rate'])
             for s, r in zip(self.units.session_id, rows)}
@@ -175,7 +159,6 @@ class BenchmarkDataset:
             provenance['sample_rate'] = next(iter(rates))
         else:
             provenance.pop('sample_rate', None)
-        # [AGENT EDIT END]
         return RawWaveformBundle(ids, np.stack([r['waveform_halves'] for r in rows]),
             tuple(self.units.session_id), self.geometry,
             tuple((np.asarray(r['spike_samples']) - r['start_sample']) / r['sample_rate'] for r in rows),
@@ -192,18 +175,14 @@ def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
     recorded separately; no source identity is given to the matching code.
     """
     from .benchmark_pairs import build_benchmark_pairs
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: temporal_split_unit_features lives in extract/unit_features.py (multiphy project folder Task 11) | date: 2026-09-25]
     from .extract.unit_features import temporal_split_unit_features
-    # [AGENT EDIT END]
     recordings = list(recordings)
     if not recordings:
         raise ValueError('Supply at least one original sorted recording.')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: all-None partitions build an archive without a partition; a mix is refused before extraction (multiphy project folder Task 2) | date: 2026-09-25]
     carries_partition = [source.partition is not None for source in recordings]
     if any(carries_partition) and not all(carries_partition):
         raise ValueError('Every source needs a partition, or none does.')
     partitioned = all(carries_partition)
-    # [AGENT EDIT END]
     requested = set(tuple(o) for o in omitted)
     omitted_sessions = {o[0] for o in requested}
     for session in omitted_sessions:
@@ -227,14 +206,12 @@ def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
             raise ValueError('Single-unit source IDs must be nonempty strings.')
         if len(source_ids) != len(set(source_ids)) or not set(source_ids) <= set(source.spike_samples):
             raise ValueError('Single-unit IDs must be unique and have sorted spike samples.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: leave the partition key out when no source carries one (multiphy project folder Task 2) | date: 2026-09-25]
         entry = dict(source_session=source.source_session, well=source.well,
                      partition=source.partition, preprocessing=source.preprocessing,
                      provenance=source.provenance)
         if not partitioned:
             del entry['partition']
         sources.append(entry)
-        # [AGENT EDIT END]
         # IDs vary independently across pseudo-sessions, so suffix equality is
         # not a source-identity hint available to an algorithm.
         serial = 0
@@ -260,13 +237,11 @@ def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
                 geometry[session] = g.copy()
                 table.append(dict(cellid=cid, session_id=session, siteid=session, su_type='SU',
                                   recording_group=json.dumps(key)))
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: leave the partition key out when no source carries one (multiphy project folder Task 2) | date: 2026-09-25]
                 row = dict(cellid=cid, source_unit_id=str(source_unit),
                            source_session=source.source_session, well=source.well, partition=source.partition)
                 if not partitioned:
                     del row['partition']
                 labels.append(row)
-                # [AGENT EDIT END]
                 features[cid] = {k: v for k, v in f.items() if k not in ('source_unit', 'source_session')}
     if seen_omissions != requested:
         raise ValueError('An omission does not identify an extracted source observation.')
@@ -274,10 +249,8 @@ def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
         raise ValueError('No temporal observations passed waveform/spike requirements.')
     units = pd.DataFrame(table)
     references = pd.DataFrame(labels)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no partition leakage to check when no source carries one (multiphy project folder Task 2) | date: 2026-09-25]
     if partitioned:
         validate_partitions(references)
-    # [AGENT EDIT END]
     pairs = build_benchmark_pairs(units, features, geometry, **(pair_options or {}))
     now = datetime.now(timezone.utc).isoformat()
     metadata = dict(schema_version=1, dataset_id=dataset_id, block_id=dataset_id,
@@ -357,14 +330,12 @@ def save_dataset(dataset, path, *, cache_root=None):
 def load_dataset(path, _ancestors=()):
     """Read a hash-verified, non-pickle dataset without importing data loaders."""
     path = Path(path).resolve()
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: hash-verified dataset collections without duplicated waveform archives | date: 2026-09-18]
     if path in _ancestors:
         raise ValueError('Cyclic benchmark collection references.')
     manifest = json.loads((path / 'manifest.json').read_text())
     if manifest.get('schema_version') == 2 and manifest.get('kind') == 'collection':
         from .benchmark_collection import load_collection
         return load_collection(path, manifest, _ancestors + (path,))
-    # [AGENT EDIT END]
     required = {'units.csv', 'pairs.csv', 'reference_labels.csv', 'features.npz', 'features.json'}
     if manifest.get('schema_version') != 1 or set(manifest.get('sha256', {})) != required:
         raise ValueError('Unsupported or incomplete benchmark manifest.')
@@ -410,4 +381,3 @@ No figures are produced by this extraction step. Later method runs consume the s
 
 Original sorting contamination remains part of the reference. Temporal splitting does not reproduce probe reinsertion. Stimulus-based identity selection can bias conclusions about response stability. Missing or insufficient waveform halves are excluded, never duplicated.
 '''
-# [AGENT EDIT END]

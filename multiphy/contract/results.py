@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: single result contract with declared score and track kinds | date: 2026-09-22]
 """What every backend returns.
 
 A MatchResult partitions the eligible single units into tracks and unmatched units,
@@ -42,15 +41,11 @@ class Decision(str, Enum):
     UNMATCHED_BY_NATIVE_TRACKING = 'unmatched_by_native_tracking'
     NATIVE_CLUSTER = 'native_cluster'
     UNMATCHED_BY_NATIVE_CLUSTERING = 'unmatched_by_native_clustering'
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: operating-point scoring decisions (Task 12 ruling) and the unassigned multiday display's not-run pairs, both already written by existing modules | date: 2026-09-22]
     SCORED = 'scored'
     SCORED_NOT_ASSIGNED = 'scored_not_assigned'
     NOT_RUN = 'not_run'
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: proposed_link decision for native same-day groups (native-same-day Task 1) | date: 2026-10-11]
     # A pair inside one native group that the one-unit-per-session rule separated.
     PROPOSED_LINK = 'proposed_link'
-    # [AGENT EDIT END]
 
 
 DECISIONS = frozenset(d.value for d in Decision)
@@ -155,20 +150,16 @@ class MatchResult:
         if self.score.kind is ScoreKind.NONE:
             if self.score.column is not None or scores.notna().any():
                 raise ValueError('score kind none requires column None and all-missing match_score')
-        # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a scoring backend may decide every pair missing_evidence; all-NaN no longer implies kind none (Task 7 ruling) | date: 2026-09-22]
         else:
             if self.score.column is None or (len(self.pairs) and self.score.column not in self.pairs):
                 raise ValueError('score column must name a pairs column')
-        # [AGENT EDIT END]
         if self.score.kind is ScoreKind.CALIBRATED_PROBABILITY and not self.score.calibration_reference:
             raise ValueError('Calibrated probabilities require a calibration_reference')
         if self.score.similarity_column and len(self.pairs) and self.score.similarity_column not in self.pairs:
             raise ValueError('similarity column must name a pairs column')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-session track collision is refused for every track kind (Task 1) | date: 2026-09-27]
         sessions = units.set_index('cellid').session_id.to_dict()
         if any(len({sessions[u] for u in t}) != len(t) for t in self.tracks):
             raise ValueError('Result contains a same-session track collision')
-        # [AGENT EDIT END]
         if spec is not None:
             if self.backend_id != spec.id:
                 raise ValueError(f'Result backend_id {self.backend_id!r} does not match spec {spec.id!r}')
@@ -196,4 +187,3 @@ class MatchResult:
     def digest(self):
         self.validate()
         return payload_digest(self.payload())
-# [AGENT EDIT END]

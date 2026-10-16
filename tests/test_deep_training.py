@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify genuine official two-stage DeepUnitMatch training and checkpoint inference on synthetic NP1010 voltage means | date: 2026-09-18]
 """Optional source integration smoke; synthetic outputs are not scientific models."""
 import json
 import os
@@ -74,7 +73,6 @@ def test_shared_voltage_signature_excludes_heldout_sources_but_rejects_mixed_tra
         ext._deep_input_signature(bundle)
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: ensure streaming storage is compatible but all voltage transforms remain checkpoint-bound | date: 2026-09-18]
 def test_checkpoint_signature_ignores_storage_only_and_detects_padding_scaling_and_unknown_transforms():
     import copy
     _, bundle = synthetic_np1010()
@@ -99,7 +97,6 @@ def test_checkpoint_signature_ignores_storage_only_and_detects_padding_scaling_a
     candidate = replace(bundle, provenance=dict(bundle.provenance, sources=[source, changed]))
     with pytest.raises(ValueError, match='inconsistent voltage'):
         ext._deep_input_signature(candidate)
-# [AGENT EDIT END]
 
 
 @pytest.mark.skipif(not os.environ.get('UNITMATCH_SOURCE_CHECKOUT'),
@@ -149,8 +146,5 @@ def test_official_two_stage_synthetic_training_and_checkpoint_inference(tmp_path
         checkpoint=result['checkpoint'], checkpoint_probe='NP1010')
     assert len(matched.units) == 64
     assert np.isfinite(matched.pairs.match_score).all()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: result provenance is a Provenance object; read with .get (Task 9) | date: 2026-09-22]
     assert matched.provenance.get('network_preprocessing')['n_xchannelpos'] == 4
     assert matched.provenance.get('training')['training_seed'] == 13
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

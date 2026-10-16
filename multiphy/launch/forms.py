@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window's forms, read from the CLI's own parser (launcher-gui Task 3) | date: 2026-10-07]
 """The launcher window's forms, read from the CLI's own parser (D3).
 
 ``commands_of`` lists the parser's commands, ``form_fields`` turns one command's arguments into
@@ -12,16 +11,12 @@ import argparse
 from dataclasses import dataclass
 from typing import Optional
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend_refusal reads the selection's inputs, the real-day check and the registry (launcher-gui Task 4) | date: 2026-10-07]
 from ..contract import registry
 from ..contract.inputs import Input
 from ..project.folder import Project
 from ..project.selection import Selection, selection_inputs
 from ..run.project_run import check_real_day_run
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selection_evidence returns the run's evidence (event-optional Task 11) | date: 2026-10-10]
 from ..contract.inputs import RunEvidence
-# [AGENT EDIT END]
 
 BOUND = {'init': frozenset(), 'extract': frozenset({'project', 'days'}), 'status': frozenset({'project'}),
          'run': frozenset({'project', 'backend', 'day', 'days'}), 'export': frozenset({'project'})}
@@ -83,7 +78,6 @@ def form_fields(subparser: argparse.ArgumentParser, bound: frozenset, spec=None)
         if isinstance(action, argparse._HelpAction) or action.dest in bound:
             continue
         flag = max(action.option_strings, key=len) if action.option_strings else None
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - merge a --no-<name> half only on the exact store_false type (launcher-gui Task 3) | date: 2026-10-07]
         if type(action) is argparse._StoreFalseAction:  # exact type: a custom subclass stays unsupported (D35)
             index = store_true.pop(action.dest, None)
             if index is not None:  # D36: the --no-<name> half of a bool option
@@ -91,7 +85,6 @@ def form_fields(subparser: argparse.ArgumentParser, bound: frozenset, spec=None)
                 fields[index] = Field(first.dest, first.flag, first.label, first.help, 'switch',
                                       (first.flag, flag), first.required, None, first.placeholder)
                 continue
-        # [AGENT EDIT END]
         label = action.dest.replace('_', ' ') if flag is None else flag.lstrip('-').replace('-', ' ')
         option = _spec_option(spec, action.dest)
         required = bool(action.required) or bool(option is not None and option.required)
@@ -116,10 +109,8 @@ def form_fields(subparser: argparse.ArgumentParser, bound: frozenset, spec=None)
             placeholder = str(action.default)
         else:
             placeholder = ''
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - record a --<name> half only on the exact store_true type (launcher-gui Task 3) | date: 2026-10-07]
         if type(action) is argparse._StoreTrueAction:
             store_true[action.dest] = len(fields)
-        # [AGENT EDIT END]
         fields.append(Field(action.dest, flag, label, help_text, kind, choices, required, browse, placeholder))
     return fields
 
@@ -189,10 +180,8 @@ def command_argv(command: str, fields: list, values: dict, *, project: Optional[
             if items:
                 argv += [field.flag, *items]
     return argv
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend_refusal names why a backend cannot run on the checked days (launcher-gui Task 4) | date: 2026-10-07]
 def backend_refusal(project: Project, days: tuple, backend_id: str, *, interpreter: Optional[str]) -> str:
     """``''`` when ``backend_id`` can run on ``days`` of ``project``, else the first refusal (D5): missing
     inputs (or the ``Selection`` refusal), then the real-day check, then an unavailable backend with no
@@ -213,10 +202,8 @@ def backend_refusal(project: Project, days: tuple, backend_id: str, *, interpret
     if not availability.ok and interpreter is None:
         return f'unavailable here: {availability.reason}; no verified interpreter'
     return ''
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run form reads the evidence a selection measured, and greys the option choices only events can measure (event-optional Task 11) | date: 2026-10-10]
 EVENT_CHOICES = {'feature_stream': frozenset({'stimulus'})}  # option -> the choices a run without events cannot measure
 
 
@@ -228,4 +215,3 @@ def selection_evidence(project: Project, days: tuple, backend_id: str, *, min_re
     if Input.TIMING not in spec.requires | spec.optional:
         return None
     return Selection(project, tuple(days)).evidence(min_repeats)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher's plugin hook: multiphy.json and multiphy.plugins entry points add readers and commands (Plan C Task 1) | date: 2026-10-01]
 """Launcher plugins: modules that add source readers and launcher commands.
 
 A plugin is a module with ``register(api)``, where ``api`` is a ``PluginApi``. ``load_plugins(root)``
@@ -19,11 +18,7 @@ from ..sources import base
 
 CONFIG_FILE = 'multiphy.json'
 ENTRY_POINT_GROUP = 'multiphy.plugins'
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: export is a builtin command a plugin cannot take (run-curation Task 3) | date: 2026-10-04]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: gui is a builtin command a plugin cannot take (launcher-gui Task 5) | date: 2026-10-07]
 BUILTIN_COMMANDS = ('init', 'extract', 'status', 'run', 'export', 'gui')
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 class PluginApi:
@@ -59,12 +54,10 @@ def _config_modules(root: Path) -> list:
     path = Path(root) / CONFIG_FILE
     if not path.exists():
         return []
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unreadable JSON raises the path-qualified configuration error (Plan C Task 1 fix round 1) | date: 2026-10-01]
     try:
         config = json.loads(path.read_text(encoding='utf-8'))
     except ValueError:  # JSONDecodeError and UnicodeDecodeError: not the configuration shape
         config = None
-    # [AGENT EDIT END]
     names = config.get('plugins', []) if isinstance(config, dict) else None
     if not isinstance(names, list) or not all(isinstance(name, str) for name in names):
         raise ValueError(f'{path}: "plugins" must be a list of module names')
@@ -94,4 +87,3 @@ def load_plugins(root: Path) -> PluginApi:
         except Exception as exc:
             raise ValueError(f'plugin {ep.name}: {type(exc).__name__}: {exc}') from exc
     return api
-# [AGENT EDIT END]

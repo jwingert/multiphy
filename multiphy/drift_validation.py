@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: drift validation harness - injected shifts measure registration and calibration (functional-likelihood Task 9) | date: 2026-09-28]
 """Drift validation: inject a known rigid shift into one day and measure what the matchers recover.
 
 A ``DriftDataset`` is one project's units, features, geometry and trial timing with its reference
@@ -28,11 +27,9 @@ from typing import Optional, Sequence
 import numpy as np
 import pandas as pd
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: n_offset_pairs - the session pairs each offset error compares (final review fix round 1) | date: 2026-09-28]
 SUMMARY_COLUMNS = ('dataset', 'backend', 'registration', 'shift_um', 'status', 'reason', 'offset_error_um',
                    'n_offset_pairs',
                    'precision', 'recall', 'n_true_pairs', 'brier', 'n_scored_pairs')
-# [AGENT EDIT END]
 CALIBRATION_COLUMNS = ('dataset', 'backend', 'registration', 'shift_um', 'bin_lower', 'bin_upper', 'n',
                        'mean_score', 'observed_same_fraction')
 N_BINS = 10
@@ -55,12 +52,9 @@ class DriftDataset:
     timing: dict
     ground_truth: pd.DataFrame
     truth_offsets: dict
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a dataset carries its source path so the specified validate_datasets signature keeps provenance | date: 2026-09-28]
     source: Optional[str] = None  # where the dataset was read from (load_benchmark sets it); None = in memory
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - bind the extraction manifest recording to the hash-verified dataset source provenance | date: 2026-09-28]
 TIMING_FILES = ('parmfile', 'ap_ttl_samples', 'ap_ttl_states')
 
 
@@ -92,7 +86,6 @@ def _check_extraction_provenance(recording: dict, metadata: dict, well: str, sou
         raise ValueError(f'extraction_manifest.json recording {source_session!r} differs from the hash-verified '
                          f'dataset beside it in {differ}; its timing would not belong to these units. Restore '
                          f'the manifest the dataset was extracted from, or re-extract {path}')
-# [AGENT EDIT END]
 
 
 def load_benchmark(path: Path) -> DriftDataset:
@@ -103,14 +96,11 @@ def load_benchmark(path: Path) -> DriftDataset:
     The sessions are time windows of one recording, so every truth offset is ``0.0``.
     """
     from .benchmark import load_dataset
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01]
     from nems_lbhb.unit_match_lbhb.prepare_baphy import recover_baphy_timing
-    # [AGENT EDIT END]
 
     path = Path(path)
     dataset = load_dataset(path / 'dataset')
     manifest = json.loads((path / 'dataset' / 'extraction_manifest.json').read_text())
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - timing comes only from a manifest recording that agrees with the hash-verified dataset's own source provenance | date: 2026-09-28]
     joined = dataset.units[['cellid', 'session_id']].merge(dataset.labels[['cellid', 'well', 'source_session']],
                                                            on='cellid', validate='one_to_one')
     timing, recovered = {}, {}
@@ -130,14 +120,11 @@ def load_benchmark(path: Path) -> DriftDataset:
             _check_extraction_provenance(recordings[0], dataset.metadata, well, source_session,
                                          [dataset.features[c] for c in rows.cellid], path)
             recovered[source] = recover_baphy_timing(recordings[0])
-    # [AGENT EDIT END]
         timing[str(session)] = recovered[source]
     name = str(dataset.metadata.get('dataset_id') or path.name)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - load_benchmark records the benchmark path on the dataset | date: 2026-09-28]
     return DriftDataset(name, dataset.units, dataset.features, dataset.geometry, timing,
                         dataset.labels.drop(columns=['partition'], errors='ignore'),
                         {s: 0.0 for s in timing}, source=str(path.resolve()))
-    # [AGENT EDIT END]
 
 
 def _row_pitch(geometry: np.ndarray) -> float:
@@ -157,13 +144,11 @@ def inject_shift(dataset: DriftDataset, session: str, shift_um: float) -> DriftD
     """
     if session not in dataset.geometry:
         raise ValueError(f'session {session!r} has no geometry; sessions: {sorted(dataset.geometry)}')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - an infinite shift is refused before the whole-row check | date: 2026-09-28]
     pitch = _row_pitch(dataset.geometry[session])
     if not np.isfinite(float(shift_um)) or not (np.isfinite(pitch) and pitch > 0):
         raise ValueError(f'shift {shift_um} µm is not a whole number of rows of {session}; its row pitch is '
                          f'{pitch:g} µm. Use a finite multiple of {pitch:g}')
     rows = float(shift_um) / pitch
-    # [AGENT EDIT END]
     if not np.isclose(rows, np.round(rows), rtol=0, atol=1e-9):
         raise ValueError(f'shift {shift_um} µm is not a whole number of rows of {session}; its row pitch is '
                          f'{pitch:g} µm. Use a multiple of {pitch:g}')
@@ -174,7 +159,6 @@ def inject_shift(dataset: DriftDataset, session: str, shift_um: float) -> DriftD
     return dataclasses.replace(dataset, geometry=geometry, truth_offsets=truth_offsets)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - session order is the matcher order, not lexical | date: 2026-09-28]
 def _sessions(dataset: DriftDataset) -> list:
     """Session ids in the matcher's day order (``references._session_order``: session_date, else start_sample)."""
     from .backends.local.references import _session_order
@@ -182,10 +166,8 @@ def _sessions(dataset: DriftDataset) -> list:
     if 'session_date' not in units:
         units = units[units.cellid.isin(set(dataset.features))]
     return [str(s) for s in _session_order(units, dataset.features)]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 review 3 critical - both backends register each recording_group in its own mean-centred frame, so relative offsets exist only within a group | date: 2026-09-28]
 def _session_pairs(dataset: DriftDataset) -> list:
     """Session pairs ``(a, b)``, in session order, whose sessions share a ``recording_group``.
 
@@ -207,20 +189,16 @@ def _offset_error(offsets: dict, truth: dict, pairs: list, shifted: str) -> tupl
     """
     if not pairs:
         return np.nan, 'no two sessions share a recording_group, so no relative offset is defined'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 1 (a4) - the shifted session must be scored | date: 2026-09-28]
     if not any(shifted in pair for pair in pairs):
         return np.nan, (f'shifted session {shifted} shares a recording_group with no other session, '
                         'so its injected shift is not measured')
-    # [AGENT EDIT END]
     sessions = list(dict.fromkeys(s for pair in pairs for s in pair))
     missing = [s for s in sessions if s not in offsets or offsets[s] is None or not np.isfinite(offsets[s])]
     if missing:
         return np.nan, f'no registered offset for sessions {missing}'
     return float(max(abs((offsets[b] - offsets[a]) - (truth[b] - truth[a])) for a, b in pairs)), ''
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 2 (a4 r2) - offsets are comparable only within a registration component; unmeasured connections are named | date: 2026-09-28]
 def _registered_pairs(result, pairs: list, registration: str) -> tuple:
     """``(kept, unmeasured)``: the ``pairs`` whose sessions the run registered to each other, and the rest.
 
@@ -260,7 +238,6 @@ def _registration_error(result, registration: str, truth: dict, pairs: list, shi
         reason = (f'unmeasured session pairs {unmeasured} (different registration components) are not scored; '
                   f'offset error is over {kept}')
     return error, reason
-# [AGENT EDIT END]
 
 
 def _known_pairs(result, ground_truth: pd.DataFrame) -> dict:
@@ -286,12 +263,10 @@ def _brier(result, truth: dict) -> tuple:
     return (float(np.mean(errors)) if errors else np.nan), len(errors)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - JSON-safe requested shifts | date: 2026-09-28]
 def _json_shift(shift):
     """A requested shift for manifest.json: a finite float, else its text (a refused run's shift, e.g. 'inf')."""
     value = float(shift)
     return value if np.isfinite(value) else str(shift)
-# [AGENT EDIT END]
 
 
 def _git_head() -> str:
@@ -375,7 +350,6 @@ def _n_text(summary: pd.DataFrame, column: str) -> str:
     return '\n'.join(lines)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the legend gives each point's compared session pairs, not a dataset-wide count (final review fix round 1) | date: 2026-09-28]
 def _drift_legend(summary: pd.DataFrame) -> str:
     return f'''# drift_recovery.png
 
@@ -396,7 +370,6 @@ Session pairs compared per offset-error point:
 Known same-unit pairs per point:
 {_n_text(summary, 'n_true_pairs')}
 '''
-# [AGENT EDIT END]
 
 
 def _calibration_legend(calibration: pd.DataFrame) -> str:
@@ -406,7 +379,6 @@ def _calibration_legend(calibration: pd.DataFrame) -> str:
         lines.append(f'- {dataset} · {backend}: pairs per bin (low to high score) '
                      + ', '.join(str(int(n)) for n in rows.n))
     counts = '\n'.join(lines) or '- no scored run at shift 0 with matches'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair_logistic holds out sessions, not only days (Follow-up Task 4) | date: 2026-09-29]
     return f'''# calibration.png
 
 **Score calibration without injected shift.** For each dataset and backend, run at shift 0 with
@@ -420,14 +392,11 @@ drawn. Each dataset is shown separately; nothing is pooled across datasets.
 Pairs per point:
 {counts}
 '''
-    # [AGENT EDIT END]
 
 
 def _methods(datasets, shifted: dict, options: dict, shifts_um, radius_um: float, seed: int,
              commit: str) -> str:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the source path comes from the dataset | date: 2026-09-28]
     rows = '\n'.join(f'| {d.name} | {d.source or "in memory (no path)"} | {len(d.units)} | '
-    # [AGENT EDIT END]
                      f'{len(_sessions(d))} | {shifted[d.name]} |' for d in datasets)
     backend_options = '\n'.join(f'- `{b}`: `{json.dumps(o, sort_keys=True)}`' for b, o in options.items())
     return f'''# Drift validation · methods
@@ -524,7 +493,7 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
     summary, calibration, shifted = [], [], {}
     for dataset in datasets:
         sessions = _sessions(dataset)
-        pairs = _session_pairs(dataset)  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: offset error within each recording_group (Task 9 review 3) | date: 2026-09-28]
+        pairs = _session_pairs(dataset)
         shifted[dataset.name] = sessions[-1]
         for shift in shifts_um:
             for backend in backends:
@@ -536,7 +505,6 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
                                status='ok', reason='', offset_error_um=np.nan, n_offset_pairs=np.nan,
                                precision=np.nan, recall=np.nan,
                                n_true_pairs=np.nan, brier=np.nan, n_scored_pairs=np.nan)
-                    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - evaluation ValueErrors are refusals too; the result is saved after it is scored; refused runs keep 10 empty calibration bins | date: 2026-09-28]
                     try:
                         data = inject_shift(dataset, sessions[-1], float(shift))
                         options = dict(options_by_backend[backend], registration=registration)
@@ -544,14 +512,10 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
                                             geometry=data.geometry, timing=data.timing).validate()
                         result = registry.get(backend).run(inp, options, RunContext(run_id, work_dir=work_dir,
                                                                                     seed=int(seed)))
-                        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 2 (a4 r2) - offset error within registration components | date: 2026-09-28]
                         offset_error, offset_reason = _registration_error(result, registration, data.truth_offsets,
                                                                           pairs, sessions[-1])
-                        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the pairs this point's offset error compares (final review fix round 1) | date: 2026-09-28]
                         n_offset_pairs = (len(_registered_pairs(result, pairs, registration)[0])
                                           if np.isfinite(offset_error) else 0)
-                        # [AGENT EDIT END]
-                        # [AGENT EDIT END]
                         scores = evaluate_result(result, data.ground_truth, expected_partition=None, n_bins=N_BINS)
                         brier = _brier(result, _known_pairs(result, data.ground_truth))
                         bins = [(b['lower'], b['upper'], b['n_pairs'], b['mean_score'], b['observed_same_fraction'])
@@ -572,7 +536,6 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
                         calibration.append(dict(dataset=dataset.name, backend=backend, registration=registration,
                                                 shift_um=shift, bin_lower=lo, bin_upper=hi, n=n,
                                                 mean_score=mean_score, observed_same_fraction=same))
-                    # [AGENT EDIT END]
 
     summary_table = pd.DataFrame(summary, columns=list(SUMMARY_COLUMNS))
     calibration_table = pd.DataFrame(calibration, columns=list(CALIBRATION_COLUMNS))
@@ -580,7 +543,7 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
     calibration_table.to_csv(output / 'calibration.csv', index=False)
     _drift_figure(summary_table, output / 'drift_recovery.png')
     _calibration_figure(calibration_table, output / 'calibration.png')
-    (output / 'drift_recovery_legend.md').write_text(_drift_legend(summary_table))  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: per-point pair counts come from summary (final review fix round 1) | date: 2026-09-28]
+    (output / 'drift_recovery_legend.md').write_text(_drift_legend(summary_table))
     (output / 'calibration_legend.md').write_text(_calibration_legend(calibration_table))
     commit = _git_head()
     (output / 'METHODS.md').write_text(_methods(datasets, shifted, options_by_backend, shifts_um,
@@ -592,9 +555,7 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
         inputs=[dict(name=d.name, source=d.source, n_units=int(len(d.units)), sessions=_sessions(d),
                      shifted_session=shifted[d.name],
                      truth_offsets_um={str(k): float(v) for k, v in d.truth_offsets.items()}) for d in datasets],
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - a refused non-finite shift stays in the manifest as text, so the manifest is still written | date: 2026-09-28]
         options=dict(shifts_um=[_json_shift(s) for s in shifts_um], backends=list(backends),
-        # [AGENT EDIT END]
                      registrations=list(registrations), radius_um=float(radius_um), seed=int(seed),
                      backend_options=options_by_backend),
         files=files + runs, git_commit=commit)
@@ -620,4 +581,3 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
-# [AGENT EDIT END]

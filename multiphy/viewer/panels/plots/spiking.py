@@ -1,13 +1,9 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and autocorrelogram panel, from gui.py:797-825, reading UnitData (viewer-split Task 4) | date: 2026-10-06]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram are two panels, one plot each (browse-same-day Task 5) | date: 2026-10-12]
 """Each selected unit's interval histogram (``IntervalHistogramPanel``) and autocorrelogram
 (``AutocorrelogramPanel``), one plot per panel."""
 import numpy as np
 
 from multiphy.extract.unit_features import ISI_BINS
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: colours come from the active theme's tokens (launcher-gui Task 8) | date: 2026-10-07]
 from multiphy.viewer.display import colors
-# [AGENT EDIT END]
 from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.registry import register_panel
 
@@ -45,9 +41,5 @@ class AutocorrelogramPanel(PlotPanel):
                 a1.plot(np.concatenate([-lag[::-1], lag]),
                         np.concatenate([y[::-1], y]), color=c, lw=1.1)
         a1.set_xlabel('lag (ms)', fontsize=8)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the zero-lag rule takes the theme's muted token (launcher-gui Task 8) | date: 2026-10-07]
         a1.axvline(0, color=colors()['muted'], lw=0.6)
-        # [AGENT EDIT END]
         a1.set_title(f"autocorr  {r.get('acg_cosine', np.nan):.2f}" if r is not None else 'autocorr', fontsize=8)
-# [AGENT EDIT END]
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the templates tier gives a day without raw voltage its full-day features from the sort's templates (multiphy project folder Task 13) | date: 2026-09-25]
 """The templates tier: a day's full day from its sort's unwhitened templates, with no raw voltage.
 
 ``extract_day`` runs the templates tier by default on a day without a raw file, and on request
@@ -255,4 +254,3 @@ def test_raw_after_templates_refused(tmp_path):
     assert _tree(day_dir) == tree
     assert (project.path / 'project.json').read_bytes() == before
     assert project.read()['days']['D1']['tier'] == 'templates'
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record and verify the identity of each day file, and detect retargeted links (multiphy project folder Task 5) | date: 2026-09-25]
 """File identities: which file a day was built from, and whether it is still that file.
 
 ``record`` stores the path as given (made absolute) and the file it resolved to, with that
@@ -86,4 +85,3 @@ def verify(identity: FileIdentity, *, rehash: bool) -> None:
 def retargeted(identity: FileIdentity) -> bool:
     """True when the recorded path now resolves to a file other than the recorded one."""
     return os.path.realpath(identity.given) != identity.resolved
-# [AGENT EDIT END]

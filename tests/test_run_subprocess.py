@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: argv for another interpreter is built from the option schema (Task 12) | date: 2026-09-22]
 import json
 import sys
 import pytest
@@ -38,4 +37,3 @@ def test_symlinked_venv_interpreter_keeps_its_prefix(tmp_path):
     src = tmp_path / 'ds'; src.mkdir(); (src / 'manifest.json').write_text('{}')
     program, _ = sp.build_command(src, 'dant', {}, output=tmp_path / 'o', interpreter=link)
     assert program == str(link.absolute())
-# [AGENT EDIT END]

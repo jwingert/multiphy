@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the phy and binary readers read a KiloSort or phy folder and its raw file (multiphy project folder Task 7) | date: 2026-09-25]
 """The phy reader reads a synthetic phy day; binary takes the sample count from the raw file and refuses what it cannot read."""
 from __future__ import annotations
 
@@ -197,4 +196,3 @@ def test_binary_refusals(sd, options, setup, message):
 def test_only_public_readers_without_plugins(monkeypatch):
     monkeypatch.setattr(base, '_entry_points', lambda: ())
     assert reader_ids() == ('binary', 'events_csv', 'phy')
-# [AGENT EDIT END]

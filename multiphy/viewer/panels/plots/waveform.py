@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the peak-channel waveform panel, from gui.py:485-498, reading UnitData (viewer-split Task 4) | date: 2026-10-06]
 """The peak-channel waveform of each selected unit."""
 import numpy as np
 
@@ -20,4 +19,3 @@ class WaveformPanel(PlotPanel):
         ax.set_xlabel('sample', fontsize=8)
         ax.set_ylabel('normalised amplitude', fontsize=8)
         ax.legend(fontsize=6, frameon=False, ncol=2 if len(self.selected()) > 4 else 1)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: shared upstream-package helpers for the published-method adapters (Task 9) | date: 2026-09-22]
 """Helpers shared by the UnitMatch, DANT and DeepUnitMatch adapters.
 
 Moved from ``external_backends.py``: package import with a BackendUnavailable on failure,
@@ -9,12 +8,10 @@ backends never imports an upstream numerical stack.
 from __future__ import annotations
 from pathlib import Path
 import hashlib
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: imports for recording upstream calls during one call (drift-view Task 5) | date: 2026-10-08]
 import contextlib
 import threading
 from dataclasses import dataclass
 from typing import Iterator, Optional
-# [AGENT EDIT END]
 import importlib
 import importlib.metadata
 import importlib.util
@@ -72,7 +69,6 @@ def prepare_bundle(units, bundle):
     if not set(eligible.cellid) <= set(ids):
         raise ValueError('Every eligible single unit requires an explicitly mapped waveform')
     index = {u: i for i, u in enumerate(ids)}
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: chronological native grouping for real recording dates while preserving benchmark order | date: 2026-09-18]
     if 'session_date' in eligible:
         from datetime import date
         if eligible.session_date.isna().any() or eligible.groupby('session_id').session_date.nunique().gt(1).any():
@@ -84,7 +80,6 @@ def prepare_bundle(units, bundle):
     else:
         ordering = ['session_id', 'cellid']
     eligible = eligible.sort_values(ordering).reset_index(drop=True)
-    # [AGENT EDIT END]
     order = np.array([index[u] for u in eligible.cellid], dtype=int)
     sessions = list(dict.fromkeys(eligible.session_id))
     if len(sessions) < 2:
@@ -120,7 +115,6 @@ def deep_module(name):
     return module('DeepUnitMatch.' + name)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: record named upstream functions during one call and restore them after it, also after an error (drift-view Task 5) | date: 2026-10-08]
 @dataclass(frozen=True)
 class Call:
     """One completed call of a recorded upstream function; ``parent`` is the recorded caller."""
@@ -169,7 +163,6 @@ def recording(module, *names: str) -> Iterator[list]:
         finally:
             for name, original in originals.items():
                 setattr(module, name, original)
-# [AGENT EDIT END]
 
 
 def availability(package, *, extra_reason=None):
@@ -183,4 +176,3 @@ def availability(package, *, extra_reason=None):
     if extra_reason:
         return Availability(False, version(package), extra_reason)
     return Availability(True, version(package), None)
-# [AGENT EDIT END]

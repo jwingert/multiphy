@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: provenance-checked native and local matching comparison reports | date: 2026-09-18]
 """Create a cache-only report from completed benchmark run directories.
 
 Run: python -m multiphy.comparison_report --run RUN_DIRECTORY
@@ -22,7 +21,6 @@ from .benchmark import load_dataset
 from .evaluation import evaluate_result
 from .paths import resolve_cache_path
 from .reporting_names import FEATURES, METHODS, METRICS, TRACKING, DEFINITIONS, count_range, display
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend behavior from specs by registered id; no id map (Task 1) | date: 2026-09-27]
 from .contract import names, registry
 from .contract.inputs import Input
 
@@ -32,7 +30,6 @@ def _spec(backend_id):
         return registry.get(backend_id).spec
     except KeyError:
         return None
-# [AGENT EDIT END]
 
 
 COUNTS = ('n_units', 'n_tracks', 'n_unmatched', 'n_known_positive_pairs',
@@ -52,10 +49,8 @@ def _hash(value):
 
 
 def _provenances(result):
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: group_runs (runner) else the pilot recording_group_runs/well_runs (Task 12) | date: 2026-09-22]
     grouped = (result.provenance.get('group_runs') or result.provenance.get('recording_group_runs')
                or result.provenance.get('well_runs'))
-    # [AGENT EDIT END]
     if grouped:
         return [(name, data['provenance']) for name, data in sorted(grouped.items())]
     grouped = result.provenance.get('recording_results')
@@ -63,26 +58,18 @@ def _provenances(result):
 
 
 def method_name(result):
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: display name from contract.names; DANT preset labels keyed on the spec declaring a preset option (Task 12) | date: 2026-09-22]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a backend with no NAMES entry is named by its id (whole-branch review fix 3) | date: 2026-09-23]
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no id map (Task 1) | date: 2026-09-27]
     name = names.backend_short(result.backend_id)
-    # [AGENT EDIT END]
     spec = _spec(result.backend_id)
     option_names = {o.name for o in spec.options} if spec is not None else set()
     if 'preset' in option_names:
         from .dant_settings import PRESETS
-    # [AGENT EDIT END]
         labels = {PRESETS[p['parameters']['_nems_preset']['name']]
                   if '_nems_preset' in p.get('parameters', {}) else
                   'Explicit custom settings: ' + ', '.join(display(f, FEATURES)
                       for f in p['parameters']['clustering']['features'])
                   for _, p in _provenances(result)}
         return name + ' — ' + '; '.join(sorted(labels))
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no fitted-model evidence branch (Task 2) | date: 2026-09-27]
     tracking = result.provenance.get('assignment')
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: distinguish calibration-selected operating points from native and default tracker comparisons | date: 2026-09-18]
     operating_point = (result.provenance.get('assignment_selection') == 'calibration_operating_point'
                        or tracking == 'common_constrained_operating_point')
     name += (' — ' + display('common_constrained_operating_point' if operating_point else tracking, TRACKING)
@@ -93,7 +80,6 @@ def method_name(result):
             raise ValueError('A calibration-selected result must declare its empirical false-match target')
         name += f' (calibration target: {100 * target:g}% incorrect assigned pairs)'
     return name
-    # [AGENT EDIT END]
 
 
 def inspect_run(run_dir, *, datasets=None):
@@ -108,22 +94,16 @@ def inspect_run(run_dir, *, datasets=None):
     if not isinstance(metrics, dict):
         raise ValueError('Unsupported evaluation schema')
     input_path = Path(manifest['input_path']).resolve()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: input_path (runner) else the pilot benchmark_input (Task 12) | date: 2026-09-22]
     result_input = result.provenance.get('input_path') or result.provenance.get('benchmark_input')
     if result_input is None or Path(result_input).resolve() != input_path:
-    # [AGENT EDIT END]
         raise ValueError('Result and manifest reference different benchmark inputs')
     if result.run_id != manifest.get('run_id', run_dir.name):
         raise ValueError('Result run identity disagrees with manifest')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ids compared directly; no id map (Task 1) | date: 2026-09-27]
     if manifest.get('backend', result.backend_id) != result.backend_id:
-    # [AGENT EDIT END]
         raise ValueError('Result backend disagrees with manifest')
     if metrics.get('run_id', result.run_id) != result.run_id:
         raise ValueError('Saved evaluation run identity disagrees with result')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ids compared directly; no id map (Task 1) | date: 2026-09-27]
     if metrics.get('backend_id', result.backend_id) != result.backend_id:
-    # [AGENT EDIT END]
         raise ValueError('Saved evaluation backend disagrees with result')
     digest = hashlib.sha256((input_path / 'manifest.json').read_bytes()).hexdigest()
     for provenance in (manifest, result.provenance):
@@ -138,9 +118,7 @@ def inspect_run(run_dir, *, datasets=None):
             raise ValueError(f'Result benchmark provenance disagrees on {key}')
     if manifest['dataset_id'] != dataset.metadata['dataset_id']:
         raise ValueError('Manifest dataset identity disagrees with input')
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: typed partition (runner) else the pilot benchmark_partition (Task 12) | date: 2026-09-22]
     partition = result.provenance.get('partition') or result.provenance.get('benchmark_partition')
-    # [AGENT EDIT END]
     if manifest.get('partition', partition) != partition:
         raise ValueError('Manifest and result partitions disagree')
     labels = dataset.labels if partition == 'all' else dataset.labels[dataset.labels.partition == partition]
@@ -294,23 +272,16 @@ def render_report(runs):
                   '### Run details', '']
         for row in rows:
             lines += [f"- **{row['name']}** — [saved result]({row['run_dir'] / 'result.json'}), [evaluation]({row['run_dir'] / 'evaluation.json'}), [methods]({row['run_dir'] / 'METHODS.md'})."]
-            # [AGENT EDIT START | agent: codex | user: wingertj | reason: describe the tracker actually used and separate empirical calibration targets from test outcomes | date: 2026-09-18]
             assignment = row['result'].provenance.get('assignment')
             if (assignment == 'common_constrained_operating_point'
                     or row['result'].provenance.get('assignment_selection') == 'calibration_operating_point'):
                 p = row['result'].provenance
-                # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: Provenance is read with .get (Task 12) | date: 2026-09-22]
                 lines.append(f"  - The cutoff {p.get('threshold'):.6g} was selected using calibration identities and frozen before application to these scores. The target is {100 * p.get('target_empirical_false_match_fraction'):g}% incorrect pairs among all assigned calibration pairs after track construction; the observed test precision is reported above. This target does not guarantee the same error fraction on test data. Original native assignments remain separately saved.")
-                # [AGENT EDIT END]
-            # [AGENT EDIT END]
             for group, provenance in _provenances(row['result']):
-                # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: native UnitMatch direction notes follow the spec (waveform halves, no spike times, no checkpoint), not the id (Task 12) | date: 2026-09-22]
                 spec = _spec(row['result'].backend_id)
                 requires = spec.requires if spec is not None else frozenset()
                 if (Input.WAVEFORM_HALVES in requires and Input.SPIKE_TIMES not in requires
                         and Input.CHECKPOINT not in requires):
-                # [AGENT EDIT END]
-                    # [AGENT EDIT START | agent: codex | user: wingertj | reason: avoid describing common tracker results as native intermediate assignments | date: 2026-09-18]
                     threshold = row['result'].provenance.get('threshold', provenance.get('threshold', 'unavailable'))
                     policy = assignment or provenance.get('assignment')
                     detail = (DEFINITIONS['intermediate'] if policy == 'native_intermediate' else
@@ -318,10 +289,7 @@ def render_report(runs):
                         if policy in ('common_constrained', 'mutual_margin_best_first', 'common_constrained_operating_point') else
                         'Assignments use the native tracking policy named in the method row.')
                     lines.append(f'  - {DEFINITIONS["directions"]} Recorded threshold: {threshold}. {detail}')
-                    # [AGENT EDIT END]
-                # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: native clustering note follows the declared native-cluster similarity, not the id (Task 12) | date: 2026-09-22]
                 if row['result'].score.similarity_column is not None:
-                # [AGENT EDIT END]
                     lines.append('  - Assignments are the native automatic clustering and automatic curation output; no human edits were applied by this report. Curation removes inconsistent or low-similarity links and may split a proposed group. The native similarity is not a probability; its learned threshold and cluster decisions jointly determine the saved tracks.')
                 diag = provenance.get('native_diagnostics', {})
                 if 'SimilarityWeights' in diag:
@@ -401,4 +369,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
-# [AGENT EDIT END]

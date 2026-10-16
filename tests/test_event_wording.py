@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the generic layer names the fingerprint an event response, not a sound; stored keys keep their names (launcher-gui Task 10) | date: 2026-10-07]
 """The generic layer's words: an event response and events, never a sound."""
 import os
 import re
@@ -8,9 +7,7 @@ import pandas as pd
 import pytest
 from PySide6 import QtWidgets
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the streams test builds its result with saved weights (event-optional Task 12) | date: 2026-10-10]
 from multiphy import backends
-# [AGENT EDIT END]
 from multiphy.contract import names
 from multiphy.contract.names import backend_label
 from multiphy.viewer import display
@@ -21,11 +18,8 @@ from multiphy.viewer.panels.plots.mixture import MixturePanel
 
 from .viewer_fakes import FAKE_MODE, DictData
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the label names firing, waveform and optional event-response likelihood ratios (event-optional Task 13, D38) | date: 2026-10-10]
 LABEL = 'Functional likelihood — firing, waveform and optional event-response likelihood ratios'
-# [AGENT EDIT END]
 PKG = Path(__file__).resolve().parents[1] / 'multiphy'
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's text is checked too (native-same-day Task 9) | date: 2026-10-11]
 GENERIC = ['contract/names.py', 'viewer/display.py', 'viewer/app.py',
            'viewer/panels/plots/mixture.py', 'viewer/panels/plots/fingerprint.py',
            'viewer/panels/tables/evidence.py', 'viewer/panels/tables/rivals.py',
@@ -33,7 +27,6 @@ GENERIC = ['contract/names.py', 'viewer/display.py', 'viewer/app.py',
            'backends/local/functional_likelihood.py', 'backends/local/pair_logistic.py',
            'backends/local/evidence.py', 'clusters.py', '__init__.py', 'docs/viewer.md',
            'docs/contract.md', 'docs/adding_a_backend.md']
-# [AGENT EDIT END]
 
 
 @pytest.fixture(scope='module')
@@ -50,7 +43,6 @@ def test_backend_label_says_event_response():
     assert dant.endswith('event-relative time bins.')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the rivals table alone carries the evt column (native-same-day Task 10 fix round 1) | date: 2026-10-11]
 def test_viewer_strings_say_events(qt, tmp_path):
     assert display.P_EVENT == 'p_stim'
     assert not hasattr(display, 'P_SOUND')
@@ -64,7 +56,6 @@ def test_viewer_strings_say_events(qt, tmp_path):
     for header in (window.rivals.table.horizontalHeaderItem(2),):
         assert header.text() == 'evt'
         assert header.toolTip() == 'event-response fingerprint only'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the streams line names the streams the pair's group saved weights for, so the result saves its group's event and physiology weights and run_evidence (event-optional Task 12) | date: 2026-10-10]
     units = pd.DataFrame({'cellid': ['a-01', 'b-01'], 'siteid': ['a', 'b'], 'su_type': 'SU'})
     pairs = pd.DataFrame({'cellid_a': ['a-01'], 'cellid_b': ['b-01'], 'recording_group': ['G'], 'p_global': [0.9],
                           'p_stim': [0.8], 'p_phys': [0.6]})
@@ -73,24 +64,18 @@ def test_viewer_strings_say_events(qt, tmp_path):
     result = backends.result_from_pairs('dict_data', '1', units, pairs, score_column='p_global', run_id='dict_data',
                                         provenance=provenance)
     window.set_data(DictData(units, {}, {}, dict(zip(units.cellid, units.siteid)), result=result))
-    # [AGENT EDIT END]
     window.select_pair('a-01', 'b-01')
     assert window.evidence.streams.text() == 'events 80% · physiology 60%'
     window.close()
-# [AGENT EDIT END]
 
 
 def test_no_sound_in_generic_layer():
     sound = re.compile(r'(?i)\bsounds?\b')
     for rel in GENERIC:
         for n, line in enumerate((PKG / rel).read_text().splitlines(), 1):
-            if '[AGENT EDIT' in line:
-                continue
             assert not sound.search(line), f'{rel}:{n}: {line}'
     readme = (PKG / 'README.md').read_text()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the README names firing, waveform and optional event-response likelihood ratios (event-optional Task 13) | date: 2026-10-10]
     for new in ('scores firing, waveform and optional event-response likelihood ratios',
-                # [AGENT EDIT END]
                 '| event response | fingerprint correlation |',
                 'The event response comes out heavier wherever it has been fitted',
                 'A pair the event response convinces on but the',
@@ -101,4 +86,3 @@ def test_no_sound_in_generic_layer():
     for old in ('scores sound and firing', '| sound | fingerprint correlation |',
                 'Matching on sound responses'):
         assert old not in readme, old
-# [AGENT EDIT END]

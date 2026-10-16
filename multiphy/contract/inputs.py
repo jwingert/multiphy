@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: single input object with declared availability | date: 2026-09-22]
 """What a backend may consume.
 
 MatchingInput carries every input any backend could want; each field is optional and
@@ -8,13 +7,11 @@ containers already produce; ``from_bundle`` unpacks it and ``bundle()`` repacks 
 the published-method adapters.
 """
 from __future__ import annotations
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run_evidence counts conditions per day and pairs the days (event-optional Task 3) | date: 2026-10-09]
 import itertools
 from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Sequence
-# [AGENT EDIT END]
 
 import numpy as np
 import pandas as pd
@@ -32,7 +29,6 @@ class Input(str, Enum):
     SPIKE_TIMES = 'spike_times'
     FINGERPRINT = 'fingerprint'
     TIMING = 'timing'
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no fixed-model input (Task 2) | date: 2026-09-27]
     CHECKPOINT = 'checkpoint'
 
 
@@ -79,11 +75,9 @@ class RawWaveformBundle:
     waveform_spike_counts: np.ndarray = None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: named by what it holds: LegacyTiming -> TrialTiming (Task 3) | date: 2026-09-27]
 # --- TrialTiming: verified acquisition-clock trial, stimulus and baseline windows ---
 @dataclass(frozen=True)
 class TrialTiming:
-# [AGENT EDIT END]
     source_session: str
     sample_rate: float
     analysis_window: tuple
@@ -100,34 +94,27 @@ class TrialTiming:
         start, stop = self.analysis_window
         if not all(np.isfinite(x) and int(x) == x for x in (start, stop)) or not 0 <= start < stop:
             raise ValueError('Invalid verified analysis window')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an empty baseline list is accepted; such a day reads spont from the whole recording (event-optional Task 3) | date: 2026-10-09]
         for name in ('trial_windows', 'baseline_windows'):
             windows = np.asarray(getattr(self, name))
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an empty baseline list or tuple is read as (0, 2) windows, as the (0, 2) array is (event-optional Task 3, final review fix round 1) | date: 2026-10-10]
             if name == 'baseline_windows' and not windows.size:
                 windows = windows.reshape(0, 2)
-            # [AGENT EDIT END]
             if (windows.ndim != 2 or windows.shape[1] != 2 or (name == 'trial_windows' and not len(windows))
                     or not np.isfinite(windows).all() or not np.equal(windows, np.floor(windows)).all()
                     or (windows[:, 0] < start).any() or (windows[:, 1] > stop).any()
                     or (windows[:, 1] <= windows[:, 0]).any()
                     or (windows[1:, 0] < windows[:-1, 1]).any()):
                 raise ValueError(f'{name} must contain complete ordered disjoint acquisition intervals')
-        # [AGENT EDIT END]
         for trial in self.stimuli:
             a, b = trial['start'], trial['stop']
             if (not isinstance(trial['stimulus'], str) or not trial['stimulus']
                     or not all(np.isfinite(x) and int(x) == x for x in (a, b)) or not start <= a < b <= stop):
                 raise ValueError('Complete exact-condition stimulus timing is required')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the containment loop reads baselines as (n, 2), n may be 0 (event-optional Task 3) | date: 2026-10-09]
         for a, b in [*np.asarray(self.baseline_windows).reshape(-1, 2).tolist(),
                      *[(t['start'], t['stop']) for t in self.stimuli]]:
             if not ((self.trial_windows[:, 0] <= a) & (self.trial_windows[:, 1] >= b)).any():
                 raise ValueError('Stimulus or baseline is outside its nominal TRIALSTART/TRIALSTOP interval')
-        # [AGENT EDIT END]
         return self
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: timing built from a day's source/ entry (functional-likelihood Task 4) | date: 2026-09-27]
     @classmethod
     def from_source_entry(cls, entry: dict) -> 'TrialTiming':
         """The validated timing of a day's ``source/`` recording entry (``read_source(...)['entry']``).
@@ -139,18 +126,14 @@ class TrialTiming:
             raise ValueError(f"day {entry.get('day')}: timing needs trial events and this day's source has none; "
                              'add an events reader')
         provenance = dict(entry['clock_verification'], day=entry.get('day'), project=entry.get('project'))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without baseline windows gets an empty (0, 2) baseline array (event-optional Task 3) | date: 2026-10-09]
         baselines = (np.asarray(entry['baseline_windows']) if len(entry['baseline_windows'])
                      else np.empty((0, 2), np.int64))
         return cls(source_session=entry['source_session'], sample_rate=float(entry['sample_rate']),
                    analysis_window=tuple(entry['analysis_window']), trial_windows=np.asarray(trials),
                    stimuli=tuple(dict(stimulus) for stimulus in entry['stimuli']),
                    baseline_windows=baselines, provenance=provenance).validate()
-        # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one function decides which evidence a run's days measured; each fallback is a saved reason (event-optional Task 3) | date: 2026-10-09]
 NO_EVENTS_TAG = 'no events'
 WHOLE_RECORDING_TAG = 'spont · whole recording'
 _TAG_ORDER = (NO_EVENTS_TAG, WHOLE_RECORDING_TAG)
@@ -180,14 +163,12 @@ class RunEvidence:
 
 
 def run_evidence(sessions: Sequence[str], timing_by_session: dict, *, min_repeats: int = 5) -> RunEvidence:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: min_repeats must be an int >= 2 (event-optional Task 14) | date: 2026-10-10]
     """The evidence the days ``sessions`` measured, from ``timing_by_session`` (keyed only by days with timing).
 
     A day's measured conditions are the stimuli with at least ``min_repeats`` entries in its timing; a day
     without timing measures none. Events need every day timed and a condition measured on every day.
     ``min_repeats`` must be an int >= 2: a reference splits a condition's repeats in two.
     """
-    # [AGENT EDIT END]
     sessions = tuple(sessions)
     if not sessions:
         raise ValueError('no sessions')
@@ -195,10 +176,8 @@ def run_evidence(sessions: Sequence[str], timing_by_session: dict, *, min_repeat
         raise ValueError(f'sessions must be strings: {sessions!r}')
     if len(set(sessions)) != len(sessions):
         raise ValueError(f'duplicate sessions: {sorted(s for s, n in Counter(sessions).items() if n > 1)}')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one repeat is refused, as group_observations refuses it (event-optional Task 14) | date: 2026-10-10]
     if isinstance(min_repeats, bool) or not isinstance(min_repeats, int) or min_repeats < 2:
         raise ValueError(f'min_repeats must be an int >= 2, not {min_repeats!r}')
-    # [AGENT EDIT END]
     timed = {session: timing_by_session[session] for session in sessions if session in timing_by_session}
     measured = {}
     for session in sessions:
@@ -228,7 +207,6 @@ def evidence_tags(reasons: Sequence[str]) -> list:
         if reason not in grouped[tag]:
             grouped[tag].append(reason)
     return [(tag, '\n'.join(found)) for tag, found in grouped.items() if found]
-# [AGENT EDIT END]
 
 
 @dataclass(frozen=True)
@@ -246,7 +224,6 @@ class MatchingInput:
     fingerprint: np.ndarray | None = None
     fingerprint_bin_keys: tuple = ()
     timing: dict | None = None
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no fitted_model field (Task 2) | date: 2026-09-27]
     checkpoint: CheckpointRef | None = None
     waveform_provenance: dict = field(default_factory=dict)
     provenance: Provenance = field(default_factory=Provenance)
@@ -319,11 +296,9 @@ class MatchingInput:
             raise ValueError('checkpoint must be a CheckpointRef')
         return self
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fitted_model parameter (Task 2) | date: 2026-09-27]
     @classmethod
     def from_bundle(cls, units, bundle, *, group, pairs=None, features=None, timing=None,
                     checkpoint=None, provenance=None):
-        # [AGENT EDIT END]
         if not isinstance(bundle, RawWaveformBundle):
             raise ValueError('from_bundle requires a RawWaveformBundle')
         ids = tuple(map(str, bundle.cellids))
@@ -335,7 +310,7 @@ class MatchingInput:
                    waveform_spike_counts=bundle.waveform_spike_counts,
                    geometry={str(k): np.asarray(v, dtype=float) for k, v in bundle.channel_positions.items()},
                    spike_times=spikes, fingerprint=bundle.peth, fingerprint_bin_keys=tuple(bundle.peth_bin_keys),
-                   timing=timing, checkpoint=checkpoint,  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no fitted_model (Task 2) | date: 2026-09-27]
+                   timing=timing, checkpoint=checkpoint,
                    waveform_provenance=dict(bundle.provenance), provenance=provenance or Provenance())
 
     def bundle(self) -> RawWaveformBundle:
@@ -346,4 +321,3 @@ class MatchingInput:
                                  dict(self.waveform_provenance), peth=self.fingerprint,
                                  peth_bin_keys=tuple(self.fingerprint_bin_keys),
                                  waveform_spike_counts=self.waveform_spike_counts)
-# [AGENT EDIT END]

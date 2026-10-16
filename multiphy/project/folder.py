@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: create, open and update a project folder under the lab root (multiphy project folder Task 4) | date: 2026-09-25]
 """A project folder: ``<root>/<name>/`` with ``project.json``, ``days/<day>/`` and ``logs/``.
 
 ``update`` is the only writer of ``project.json``: it takes ``project.lock`` (created
@@ -20,9 +19,7 @@ RESERVED_NAMES = ('collections', 'reports', 'logs', '_runtime', 'dependencies', 
 NAME_PATTERN = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.-]*\Z')
 MANIFEST_FILE = 'project.json'
 LOCK_FILE = 'project.lock'
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs folder name lives with the project folder layout (Plan B Task 1) | date: 2026-09-28]
 RUNS_DIR = 'runs'
-# [AGENT EDIT END]
 
 
 class ProjectLocked(RuntimeError):
@@ -114,4 +111,3 @@ class Project:
     def log(self, line: str) -> None:
         with (self.path / 'logs' / 'launcher.log').open('a', encoding='utf-8') as stream:
             stream.write(line + '\n')
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: DANT adapter as a declared backend; run_dant, settings presets and compat guard moved here (Task 9) | date: 2026-09-22]
 """Backend ``dant``: official pyDANT native clustering in a disposable directory.
 
 Verified upstream API: jiumao2/pyDANT revision 741240511e6a4ed9315b2c80d71ab5cfe4c588eb.
@@ -25,17 +24,13 @@ from ..contract.provenance import Provenance
 from ..contract.results import Decision, MatchResult, ScoreBlock, ScoreKind, TrackKind
 from ._upstream import (DANT_REVISION, DANT_SOURCE, availability, module as _module,
                         prepare_bundle as _prepare_bundle, source_info as _source_info, version as _version)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: imports for capturing the motion DANT applied (drift-view Task 6) | date: 2026-10-08]
 import contextlib
 import math
 from typing import Optional
 
 from ..contract.errors import ContractViolation
 from ._upstream import recording as _recording
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the shared native group resolver (native-same-day Task 4) | date: 2026-10-11]
 from .native_groups import label_pairs, resolve_groups
-# [AGENT EDIT END]
 
 SOURCE = 'https://github.com/jiumao2/pyDANT/blob/741240511e6a4ed9315b2c80d71ab5cfe4c588eb/settings.json'
 PRESETS = {
@@ -76,7 +71,6 @@ def default_dant_settings(preset='waveform_acg', *, n_jobs=1):
 _DANT_RUN_LOCK = threading.RLock()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: with motion_log, run_native_dant records the initial motion, each fitted round with its pairs, and the motion DANT last applied (drift-view Task 6) | date: 2026-10-08]
 def run_native_dant(runner, motion_module, config, seed, motion_log: Optional[dict] = None) -> list:
     """Execute the actual pipeline, restoring patched globals and RNG on exit.
 
@@ -243,11 +237,8 @@ def _dant_registration(log: dict, sessions: list, cellids: list, sid: np.ndarray
     registration['diagnostics'] = {group: {'groups': _dant_components(sessions, pairs), 'pairs': pairs,
                                            'motion': final, 'sources': sources}}
     return registration
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: reproducible native DANT defaults and diagnostics | date: 2026-09-18]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-session DANT cluster keeps one unit per day and proposes the rest; rows are every unit pair; wraps the whole function and the earlier tags inside it (native-same-day Task 4 fix round 1) | date: 2026-10-11]
 def run_dant(units, pairs=None, *, waveform_bundle=None, settings=None,
              provenance=None, run_id=None, seed=0, **options):
     """Run official DANT in a disposable directory and preserve native clusters.
@@ -299,18 +290,14 @@ def run_dant(units, pairs=None, *, waveform_bundle=None, settings=None,
                 raise ValueError('DANT needs at least two finite spike times per unit')
             np.save(data / 'spike_times' / f'Unit{k}.npy', 1000 * times)
         config.update(path_to_data=str(data), output_folder=str(output))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: log the motion DANT applied and keep its unit locations (drift-view Task 6) | date: 2026-10-08]
         motion_module = _module('pyDANT.MotionEstimation')
         motion_log = {}
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: read the correction function's module while the run lock is held, before another run can swap in its recorder (drift-view Task 6 fix round 1) | date: 2026-10-08]
         with _DANT_RUN_LOCK:
             compatibility_events = run_native_dant(runner, motion_module, config, seed, motion_log)
             correction_module = motion_module.computeWaveformFeatures.__module__
-        # [AGENT EDIT END]
         # Rows in waveform_all.npy order, which is eligible order.
         locations = (np.load(output / 'locations.npy', allow_pickle=False)
                      if (output / 'locations.npy').is_file() else None)
-        # [AGENT EDIT END]
         with np.load(output / 'Output.npz', allow_pickle=True) as saved:
             # Only unpickle a file just produced by the explicitly invoked library.
             out = saved['arr_0' if 'arr_0' in saved else 'Output'].item()
@@ -354,15 +341,10 @@ def run_dant(units, pairs=None, *, waveform_bundle=None, settings=None,
                     peth_bin_keys=waveform_bundle.peth_bin_keys if peth is not None else (),
                     enforce_session_unique=True,
                     spike_time_conversion='seconds to milliseconds')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: save the registration DANT applied, read from its motion log (drift-view Task 6) | date: 2026-10-08]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the correction source from the module read under the run lock (drift-view Task 6 fix round 1) | date: 2026-10-08]
     sources = [_source_info(motion_module), _source_info(_module(correction_module))]
-    # [AGENT EDIT END]
     metadata.update(registration=_dant_registration(
         motion_log, list(dict.fromkeys(eligible.session_id)), list(eligible.cellid), sid, locations,
         str((provenance or {}).get('group', '')), sources))
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: record fingerprint use; format-2 MatchResult (Task 9) | date: 2026-09-22]
     metadata.update(used_optional_inputs=['fingerprint'] if peth is not None else [],
                     fingerprint_used=peth is not None)
     return MatchResult('dant', _version('pyDANT'), run_id or f'dant_{uuid.uuid4().hex}',
@@ -370,12 +352,8 @@ def run_dant(units, pairs=None, *, waveform_bundle=None, settings=None,
                        tuple(u for u in ids if u not in selected), excluded,
                        ScoreBlock(ScoreKind.NONE, None, similarity_column='dant_similarity'),
                        TrackKind.NATIVE, 'native_DANT', Provenance.from_json(metadata)).validate()
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the dant spec declares day_offsets (drift-view Task 2) | date: 2026-10-08]
 SPEC = BackendSpec('dant', '1',
     requires=frozenset({Input.UNITS, Input.WAVEFORM_HALVES, Input.GEOMETRY, Input.SPIKE_TIMES}),
     optional=frozenset({Input.FINGERPRINT}),
@@ -385,7 +363,6 @@ SPEC = BackendSpec('dant', '1',
                     choices=('waveform_acg', 'waveform_acg_stimulus', 'upstream_example')),
              Option('settings', 'json', None, 'Complete upstream settings mapping; overrides preset'),
              Option('seed', 'int', 0, 'Random seed')), builtin=True)
-# [AGENT EDIT END]
 
 
 class DantBackend:
@@ -405,4 +382,3 @@ class DantBackend:
             raise MissingInputs(SPEC.id, inp.group, {Input.FINGERPRINT})
         return run_dant(inp.units, inp.candidate_pairs, waveform_bundle=inp.bundle(), settings=settings,
                         provenance=ctx.provenance.to_json(), run_id=ctx.run_id, seed=opts['seed'])
-# [AGENT EDIT END]

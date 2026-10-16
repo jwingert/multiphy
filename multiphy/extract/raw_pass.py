@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _voltage_stream, plan_snippets, SnippetReader and FilteredSnippetReader moved verbatim from extract_benchmark.py, which imports them back (multiphy project folder Task 11) | date: 2026-09-25]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says how a raw segment list is hashed (Plan C Task 2 fix round 2) | date: 2026-10-01]
 """The raw-voltage pass: plan the snippets a day's features read, and read them in one pass.
 
 ``plan_snippets`` is the union of the full and half waveform reads that feature extraction
@@ -16,20 +14,13 @@ that digest in ``raw_sha256``.
 This code moved verbatim from ``extract_benchmark.py``, which imports every name back; the
 gzip hashing came after the move. The module imports no lab module.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw segments stream as one file (Plan C Task 2) | date: 2026-10-01]
 import bisect
-# [AGENT EDIT END]
 from contextlib import contextmanager, nullcontext
 import gzip
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: hash a gzip raw file during the pass (multiphy project folder Task 12) | date: 2026-09-25]
 import hashlib
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw segments stream as one file (Plan C Task 2) | date: 2026-10-01]
 import os
-# [AGENT EDIT END]
 from pathlib import Path
 
 import numpy as np
@@ -38,7 +29,6 @@ from ..waveform_preprocessing import SharedWaveformPreprocessor
 from .unit_features import waveform_sample_selection
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: HashingReader hashes the bytes a gzip stream reads from its file while the reads stay sequential; _voltage_stream takes on_digest and hashes a .gz file, never a flat one (multiphy project folder Task 12) | date: 2026-09-25]
 HASH_CHUNK_BYTES = 8 * 1024 * 1024
 
 
@@ -89,7 +79,6 @@ class HashingReader:
         return self._digest.hexdigest() if self._sequential else None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw_segments and _SegmentStream: a day's raw segments read as one file on one clock (Plan C Task 2) | date: 2026-10-01]
 def raw_segments(raw_voltage, n_samples: int) -> list:
     """``[(Path, n_samples)]`` per raw segment, in clock order.
 
@@ -108,7 +97,6 @@ def raw_segments(raw_voltage, n_samples: int) -> list:
     return segments
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: segment hashing keeps its own cursor, so backward seeks keep the digest (Plan C Task 2 fix round 2) | date: 2026-10-01]
 class _FeedingReader:
     """A binary file that reports each read as ``feed(position, data)``, ``position`` being where ``data`` starts."""
     def __init__(self, fileobj, feed):
@@ -279,11 +267,9 @@ class _SegmentStream:
 
     def close(self):
         self._close()
-# [AGENT EDIT END]
 
 
 @contextmanager
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a segment list of one segment streams and hashes as segments; only one_file keeps the one-path stream (Plan C Task 2 fix round 1) | date: 2026-10-01]
 def _voltage_stream(segments, row_bytes, on_digest=None, *, one_file=False):
     """One stream over ``segments`` (from ``raw_segments``); with ``one_file`` it streams one raw path as before.
 
@@ -293,7 +279,6 @@ def _voltage_stream(segments, row_bytes, on_digest=None, *, one_file=False):
     one sha256 with every segment's stored bytes, in order. ``on_digest`` gets the hex digest.
     """
     if not one_file:
-# [AGENT EDIT END]
         stream = _SegmentStream(segments, row_bytes, hashlib.sha256() if on_digest is not None else None)
         try:
             yield stream
@@ -303,7 +288,6 @@ def _voltage_stream(segments, row_bytes, on_digest=None, *, one_file=False):
             on_digest(stream.hexdigest())
         return
     path = Path(segments[0][0])
-    # [AGENT EDIT END]
     # Gzip's small compressed reads are expensive on remote filesystems.
     # Buffer the underlying file independently from decompression.
     with open(path, 'rb', buffering=8 * 1024 * 1024) as raw:
@@ -319,7 +303,6 @@ def _voltage_stream(segments, row_bytes, on_digest=None, *, one_file=False):
                 yield stream
         else:
             yield raw
-# [AGENT EDIT END]
 
 
 def plan_snippets(spikes, windows, *, before=41, after=41, max_spikes=1000,
@@ -347,13 +330,11 @@ def plan_snippets(spikes, windows, *, before=41, after=41, max_spikes=1000,
 
 class SnippetReader:
     """Preload selected snippets in one forward pass, retaining raw integer values."""
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: SnippetReader takes hash_raw; raw_sha256 holds the digest of a .gz raw file, else None (multiphy project folder Task 12) | date: 2026-09-25]
     def __init__(self, raw_path, samples, *, n_channels, n_samples, directory,
                  before=41, after=41, dtype='<i2', voltage_scale=1.,
                  common_median=False, baseline_samples=0, progress=None, hash_raw=False):
         self.hash_raw = bool(hash_raw)
         self.raw_sha256 = None
-    # [AGENT EDIT END]
         self.samples = np.asarray(samples, dtype=np.int64)
         self.before, self.after = int(before), int(after)
         self.n_channels = int(n_channels)
@@ -384,44 +365,30 @@ class SnippetReader:
             self.close()
             raise
 
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: permit opt-in verified summaries without opening a nonexistent snippet file | date: 2026-09-18]
     def _open_prefetched_data(self, shape):
         return np.memmap(self.cache_path, mode='r', dtype=self.dtype, shape=shape)
 
     def _snippet_lookup(self):
         return {int(t) - self.before: i for i, t in enumerate(self.samples)}
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the on_digest both _prefetch methods pass to _voltage_stream: None without hash_raw (multiphy project folder Task 12) | date: 2026-09-25]
     def _on_digest(self):
         return self._store_raw_sha256 if self.hash_raw else None
 
     def _store_raw_sha256(self, digest):
         self.raw_sha256 = digest
-    # [AGENT EDIT END]
 
     def _prefetch(self, raw_path, n_samples, progress):
         before, after, n_channels = self.before, self.after, self.n_channels
         row_bytes = n_channels * self.dtype.itemsize
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw voltage is one path or a segment list; each flat segment's size is checked (Plan C Task 2) | date: 2026-10-01]
         segments = raw_segments(raw_path, n_samples)
         for path, count in segments:
             if path.suffix != '.gz' and path.stat().st_size != count * row_bytes:
                 raise ValueError('Raw byte count disagrees with declared sample/channel dimensions.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one path keeps the one-file stream; a segment list, even of one segment, is drained and hashed (Plan C Task 2 fix round 1) | date: 2026-10-01]
         one_file = isinstance(raw_path, (str, os.PathLike))
         drain = not one_file or segments[0][0].suffix == '.gz'
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
         # Sequential buffered writes avoid a read fault for every page of a
         # sparse writable memmap on NFS. Map the completed cache read-only later.
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pass on_digest so a .gz raw file is hashed during this pass (multiphy project folder Task 12) | date: 2026-09-25]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream reads the segment list (Plan C Task 2) | date: 2026-10-01]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream knows whether the raw voltage was one path (Plan C Task 2 fix round 1) | date: 2026-10-01]
         with _voltage_stream(segments, row_bytes, self._on_digest(), one_file=one_file) as stream, open(self.cache_path, 'wb', buffering=8 * 1024 * 1024) as output:
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
             previous_start, previous = 0, b''
             progress_step = 0
             for i, sample in enumerate(self.samples):
@@ -443,9 +410,7 @@ class SnippetReader:
                     progress(f'Voltage stream {100 * (int(sample) + after) / n_samples:.1f}% read; '
                              f'{i + 1}/{len(self.samples)} selected snippets extracted')
                     progress_step = step
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: segments are drained too, so the last one is checked and hashed (Plan C Task 2) | date: 2026-10-01]
             if drain:
-            # [AGENT EDIT END]
                 # Verify the complete compressed stream and CRC, including
                 # samples after the last selected spike, before accepting it.
                 while stream.read(8 * 1024 * 1024):
@@ -472,11 +437,9 @@ class SnippetReader:
 
 class FilteredSnippetReader(SnippetReader):
     """Filter buffered blocks; store float32 snippets or exact planned summaries."""
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FilteredSnippetReader takes hash_raw and passes it to SnippetReader (multiphy project folder Task 12) | date: 2026-09-25]
     def __init__(self, raw_path, samples, *, n_channels, n_samples, directory,
                  sample_rate, preprocessing, before=41, after=41, dtype='<i2',
                  voltage_scale=1., progress=None, summary_plan=None, hash_raw=False):
-    # [AGENT EDIT END]
         config = dict(preprocessing)
         if config.get('profile') != 'shared_unwhitened_v1':
             raise ValueError('Unknown waveform preprocessing profile.')
@@ -487,7 +450,6 @@ class FilteredSnippetReader(SnippetReader):
         self.processing_metadata = self.preprocessor.metadata()
         self.processing_metadata.update(chunk_seconds=1., output_dtype='float32',
             storage='temporary processed snippets only; persistent waveform summaries')
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: accumulate exact float32-derived summaries in memory only when explicitly requested | date: 2026-09-18]
         self._summary_store = None
         if summary_plan is not None:
             from ..streaming_waveforms import StreamingWaveformSummaries
@@ -496,44 +458,30 @@ class FilteredSnippetReader(SnippetReader):
                 raise ValueError('Summary plan differs from the requested snippet union or crop dimensions.')
             self._summary_store = StreamingWaveformSummaries(summary_plan, n_channels)
             self.processing_metadata['storage'] = 'in-memory streaming summaries; no temporary snippet files'
-        # [AGENT EDIT END]
         self.raw_dtype = np.dtype(dtype)
         if self.raw_dtype.kind not in 'if' or self.raw_dtype.itemsize > 8:
             raise ValueError('Specify a numeric raw voltage dtype.')
         # Parent handles plan validation, exception cleanup and final mapping.
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FilteredSnippetReader takes hash_raw and passes it to SnippetReader (multiphy project folder Task 12) | date: 2026-09-25]
         super().__init__(raw_path, samples, n_channels=n_channels, n_samples=n_samples,
             directory=directory, before=before, after=after, dtype='<f4',
             voltage_scale=voltage_scale, progress=progress, hash_raw=hash_raw)
-        # [AGENT EDIT END]
 
     def _prefetch(self, raw_path, n_samples, progress):
         row_bytes = self.n_channels * self.raw_dtype.itemsize
         expected_bytes = n_samples * row_bytes
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw voltage is one path or a segment list; each flat segment's size is checked (Plan C Task 2) | date: 2026-10-01]
         segments = raw_segments(raw_path, n_samples)
         for path, count in segments:
             if path.suffix != '.gz' and path.stat().st_size != count * row_bytes:
                 raise ValueError('Raw byte count disagrees with declared sample/channel dimensions.')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one path keeps the one-file stream; a segment list, even of one segment, is drained and hashed (Plan C Task 2 fix round 1) | date: 2026-10-01]
         one_file = isinstance(raw_path, (str, os.PathLike))
         drain = not one_file or segments[0][0].suffix == '.gz'
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
         fs = self.preprocessor.sample_rate
         chunk = max(1, int(round(fs)))
         padding = int(np.ceil(fs * self.preprocessor.padding_seconds))
         blocks = self.samples // chunk
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: preserve the same filtering blocks and crop quantization in both storage modes | date: 2026-09-18]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pass on_digest so a .gz raw file is hashed during this pass (multiphy project folder Task 12) | date: 2026-09-25]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream reads the segment list (Plan C Task 2) | date: 2026-10-01]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream knows whether the raw voltage was one path (Plan C Task 2 fix round 1) | date: 2026-10-01]
         with _voltage_stream(segments, row_bytes, self._on_digest(), one_file=one_file) as stream, (
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
                 open(self.cache_path, 'wb', buffering=8 * 1024 * 1024)
                 if self._summary_store is None else nullcontext(None)) as output:
-        # [AGENT EDIT END]
             previous_start, previous = 0, b''
             progress_step = 0
             for block in np.unique(blocks):
@@ -566,29 +514,23 @@ class FilteredSnippetReader(SnippetReader):
                     progress(f'Voltage stream {100 * hi / n_samples:.1f}% read; '
                              f'{indices[-1] + 1}/{len(self.samples)} filtered snippets extracted')
                     progress_step = step
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: segments are drained too, so the last one is checked and hashed (Plan C Task 2) | date: 2026-10-01]
             if drain:
-            # [AGENT EDIT END]
                 while stream.read(8 * 1024 * 1024):
                     pass
                 if stream.tell() != expected_bytes:
                     raise ValueError('Compressed raw byte count disagrees with declared sample/channel dimensions.')
         if self._summary_store is not None:
             self._summary_store.verify_complete()
-        # [AGENT EDIT END]
         if progress is not None:
             progress('Filtered voltage extraction complete and byte count verified; recomputing temporal features')
 
     def __call__(self, start, stop):
-        # [AGENT EDIT START | agent: codex | user: wingertj | reason: summary-only readers never silently perform unplanned raw reads | date: 2026-09-18]
         if self._summary_store is not None:
             raise ValueError('Streaming summary mode exposes exact planned summaries, not individual snippets.')
-        # [AGENT EDIT END]
         if stop - start != self.before + self.after or start not in self.lookup:
             raise ValueError('Waveform extraction requested a snippet outside the verified plan.')
         return np.array(self.data[self.lookup[start]], dtype=float)
 
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: expose verified exact-selection summaries and release owned accumulation memory | date: 2026-09-18]
     def _open_prefetched_data(self, shape):
         return None if self._summary_store is not None else super()._open_prefetched_data(shape)
 
@@ -603,5 +545,3 @@ class FilteredSnippetReader(SnippetReader):
         super().close()
         if self._summary_store is not None:
             self._summary_store.close()
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

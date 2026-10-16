@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the public events_csv reader: trials, stimuli and baseline windows from one CSV file (multiphy project folder Task 6; fix round 1: only the last trial stop moves the recording extent) | date: 2026-09-25]
 """The ``events_csv`` reader: trials, stimuli and baseline windows from one CSV file.
 
 Columns: ``kind`` (``trial``, ``stimulus`` or ``baseline``); either ``start``/``stop`` in
@@ -175,4 +174,3 @@ class EventsCsvReader:
 
 
 READER = EventsCsvReader()
-# [AGENT EDIT END]

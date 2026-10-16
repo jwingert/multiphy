@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the dark-first theme: exact palettes, the saved choice, failures, the app style, toned cells, a live switch that keeps the selection, outlined verdict buttons, toolbar icons, plot colours from tokens, main applying the saved theme, and the signatures (launcher-gui Task 8) | date: 2026-10-07]
 """The viewer's theme. Every settings file and SVG asset a test makes lives under ``tmp_path`` (``theme_env``)."""
 import os
 import re
@@ -14,9 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from multiphy.viewer import app as viewer_app
 from multiphy.viewer import display, theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.app import App
 from multiphy.viewer.panels.plots.base import PlotPanel, PlotTools
 from multiphy.viewer.panels.tables.base import _table
@@ -28,8 +25,6 @@ from .viewer_fakes import FAKE_MODE, DictData
 VIEWER = Path(display.__file__).parent
 UNITS = ['a-01', 'b-01', 'c-01', 'd-01']
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each palette gains proposal_tint, the wash of the units the backend grouped with the picked one (native-same-day Task 9) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the graphite tokens; dark and light lose the day tokens, dark loses many, both gain plot_grid and plot_spine (graphite-palettes Task 2) | date: 2026-10-11]
 GRAPHITE = {
     'ground': '#0F1114', 'panel': '#171A1F', 'raised': '#1F232A', 'border': '#262B33',
     'text': '#ECEEF1', 'muted': '#9097A3', 'accent': '#5B9DFF', 'accent_ink': '#0F1114',
@@ -50,8 +45,6 @@ LIGHT = {
              '#8A6A4A', '#4A4A8A'],
     'plot_fill': '#CFD6DE', 'plot_line': '#222222', 'plot_second': '#3F6FA0',
     'plot_grid': '#EDF0F4', 'plot_spine': '#B8C1CC', 'proposal_tint': '#EFF8FE'}
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 @pytest.fixture(scope='module')
@@ -74,12 +67,10 @@ def _hex(colour):
 
 
 def test_palettes_exact():
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: graphite is the first theme and the default (graphite-palettes Task 2) | date: 2026-10-11]
     assert display.PALETTES == {'graphite': GRAPHITE, 'dark': DARK, 'light': LIGHT}
     assert list(display.PALETTES) == ['graphite', 'dark', 'light']
     assert display.THEMES == ('graphite', 'dark', 'light')
     assert display.theme_name() == 'graphite'
-    # [AGENT EDIT END]
     for gone in ('COL_A', 'COL_B', 'COL_MANY', 'COL_MUTED', 'VERDICT_COLOR'):
         assert not hasattr(display, gone)
     with pytest.raises(ValueError, match='unknown theme'):
@@ -87,7 +78,6 @@ def test_palettes_exact():
 
 
 def test_unit_colors_follow_theme(qt, theme_env):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: graphite and dark take the Unit colours palette, light keeps its own ramp (graphite-palettes Task 2) | date: 2026-10-11]
     assert display.unit_colors(1) == ['#E2E8F0']
     assert display.unit_colors(2) == ['#E2E8F0', '#F472B6']
     assert display.unit_colors(16)[15] == '#E2E8F0'
@@ -96,7 +86,6 @@ def test_unit_colors_follow_theme(qt, theme_env):
     assert 'many' not in display.colors()
     display.set_theme('dark')
     assert display.unit_colors(2) == ['#E2E8F0', '#F472B6']
-    # [AGENT EDIT END]
     display.set_theme('light')
     assert display.unit_colors(2) == ['#1F6F4A', '#B5451F']
     assert display.unit_colors(12)[10] == '#1F6F4A'
@@ -108,7 +97,6 @@ def test_saved_theme_round_trip(qt, theme_env):
     tmp_path = theme_env
     home_file = Path.home() / '.config' / 'multiphy' / 'multiphy.ini'
     home_before = home_file.read_bytes() if home_file.exists() else None
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a missing file, the organisation-level file or an unknown value opens graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert theme.saved_theme() == 'graphite'
     (tmp_path / 'multiphy.ini').write_text('[General]\ntheme=light\n')
     assert theme.saved_theme() == 'graphite'          # the organisation-level file is never read
@@ -117,11 +105,9 @@ def test_saved_theme_round_trip(qt, theme_env):
     assert theme.saved_theme() == 'light'
     theme.settings().setValue('theme', 'purple')
     assert theme.saved_theme() == 'graphite'
-    # [AGENT EDIT END]
     assert (home_file.read_bytes() if home_file.exists() else None) == home_before
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved unit palette: a missing file or an unknown value (case-sensitive) opens pastel, a switch saves it (graphite-palettes Task 4) | date: 2026-10-11]
 def test_saved_unit_palette_round_trip(qt, theme_env):
     tmp_path = theme_env
     assert theme.saved_unit_palette() == 'pastel'
@@ -132,7 +118,6 @@ def test_saved_unit_palette_round_trip(qt, theme_env):
     assert theme.saved_unit_palette() == 'pastel'
     theme.settings().setValue('unit_palette', 'ramp')
     assert theme.saved_unit_palette() == 'ramp'
-# [AGENT EDIT END]
 
 
 def test_theme_failures(qt, theme_env, monkeypatch):
@@ -205,10 +190,8 @@ def test_tone_delegate_paints_token(qt, theme_env):
         o = QtWidgets.QStyleOptionViewItem()
         delegate.initStyleOption(o, t.model().index(row, 0))
         return o
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert option(0).palette.color(QtGui.QPalette.Text).name() == '#3dd68c'
     assert option(1).backgroundBrush.color().name() == '#1a2740'
-    # [AGENT EDIT END]
     assert option(2).palette.color(QtGui.QPalette.Text) == t.palette().color(QtGui.QPalette.Text)
     display.set_theme('light')
     assert option(0).palette.color(QtGui.QPalette.Text).name() == '#1f6f4a'
@@ -216,7 +199,6 @@ def test_tone_delegate_paints_token(qt, theme_env):
     t.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the selection stands in for the removed candidates row (native-same-day Task 10 fix round 1) | date: 2026-10-11]
 def test_switch_keeps_selection_and_notes(qt, theme_env):
     tmp_path = theme_env
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
@@ -225,9 +207,7 @@ def test_switch_keeps_selection_and_notes(qt, theme_env):
     window.evidence.notes.setPlainText('keep me')
     panels = _plot_panels(window)
     assert panels
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert all(_hex(p.fig.get_facecolor()) == '#171a1f' for p in panels)
-    # [AGENT EDIT END]
     selection_before = list(window.state.selection)
     spy = []
 
@@ -242,7 +222,6 @@ def test_switch_keeps_selection_and_notes(qt, theme_env):
     assert all(_hex(p.fig.get_facecolor()) == '#ffffff' for p in panels)
     window.state.changed.disconnect(record)
     window.close()
-# [AGENT EDIT END]
 
 
 def test_verdict_buttons_outlined(qt, tmp_path):
@@ -275,9 +254,7 @@ def test_plot_toolbar_icons_follow_theme(qt, tmp_path, monkeypatch):
     window.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: theme_env undoes the test's switch to dark (graphite-palettes Task 2) | date: 2026-10-11]
 def test_plot_colours_from_tokens(qt, theme_env):
-    # [AGENT EDIT END]
     literal = re.compile(r'''(color|colors|facecolor|edgecolor)\s*=\s*['"](?!none['"])''')
     for path in sorted((VIEWER / 'panels' / 'plots').glob('*.py')):
         text = path.read_text()
@@ -285,10 +262,8 @@ def test_plot_colours_from_tokens(qt, theme_env):
         assert 'COL_' not in text, path.name
     hex_literal = re.compile(r'''(['"]|color:)#[0-9a-fA-F]{3,8}\b''')
     for path in sorted(VIEWER.rglob('*.py')):
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit_palettes.py holds the unit palettes' hexes, so it is exempt like display.py and theme.py (graphite-palettes Task 1) | date: 2026-10-11]
         if path.name in ('display.py', 'theme.py', 'unit_palettes.py'):
             continue
-        # [AGENT EDIT END]
         assert not hex_literal.search(path.read_text()), path
     display.set_theme('dark')
     fig = Figure()
@@ -297,14 +272,11 @@ def test_plot_colours_from_tokens(qt, theme_env):
     theme.style_figure(fig)
     assert _hex(fig.get_facecolor()) == '#18222f'
     assert all(_hex(ax.get_facecolor()) == '#18222f' for ax in axes)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the left spine takes the plot_spine token (graphite-palettes Task 3) | date: 2026-10-11]
     assert _hex(axes[0].spines['left'].get_edgecolor()) == '#3a4757'
-    # [AGENT EDIT END]
     assert _hex(axes[0].xaxis.get_major_ticks()[0].label1.get_color()) == '#8b98a9'
     assert _hex(axes[0].xaxis.label.get_color()) == '#e6edf3'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the bundled fonts, their fallback, the new shape on every theme, the plot style and the dock cards (graphite-palettes Task 3) | date: 2026-10-11]
 def test_fonts_bundled_and_registered(qt):
     assert sorted(p.name for p in theme.FONT_DIR.iterdir()) == [
         'Figtree-OFL.txt', 'Figtree.ttf', 'JetBrainsMono-OFL.txt', 'JetBrainsMono.ttf']
@@ -339,7 +311,6 @@ def test_font_failure_falls_back(qt, theme_env, monkeypatch, capsys):
     assert app.font().family() == general
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fonts() with no QGuiApplication raises and caches nothing, its names cached or not (graphite-palettes Task 3 fix round 1) | date: 2026-10-11]
 def test_fonts_need_a_qapplication(qt, monkeypatch):
     cached = theme.fonts()
     monkeypatch.setattr(QtGui.QGuiApplication, 'instance', staticmethod(lambda: None))
@@ -351,7 +322,6 @@ def test_fonts_need_a_qapplication(qt, monkeypatch):
     assert theme._fonts is None
     monkeypatch.undo()
     assert theme.fonts() == cached
-# [AGENT EDIT END]
 
 
 def test_shape_rules_every_theme(qt, theme_env):
@@ -411,10 +381,8 @@ def test_dock_bodies_are_cards(qt, tmp_path):
         m = d.widget().layout().contentsMargins()
         assert (m.left(), m.top(), m.right(), m.bottom()) == (8, 6, 8, 8), panel_id
     window.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main also sets the saved unit palette before the window opens (graphite-palettes Task 4) | date: 2026-10-11]
 def test_main_applies_saved_theme(qt, theme_env, monkeypatch):
     theme.settings().setValue('theme', 'light')
     theme.settings().setValue('unit_palette', 'okabe')
@@ -430,7 +398,6 @@ def test_main_applies_saved_theme(qt, theme_env, monkeypatch):
     assert viewer_app.main(['--run', str(theme_env)]) == 0
     assert recorded == ['light']
     assert palettes == ['okabe']
-    # [AGENT EDIT END]
     assert '#0284C7' in QtWidgets.QApplication.instance().styleSheet()
     for w in opened:
         w.close()
@@ -443,24 +410,17 @@ def test_theme_signatures():
     assert hints(display.theme_name) == {'return': str}
     assert hints(display.colors) == {'return': dict}
     assert hints(display.unit_colors) == {'n': int, 'return': list}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: uses_unit_palette's signature (graphite-palettes Task 2) | date: 2026-10-11]
     assert hints(display.uses_unit_palette) == {'return': bool}
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fonts' signature (graphite-palettes Task 3) | date: 2026-10-11]
     assert hints(theme.fonts) == {'return': dict}
-    # [AGENT EDIT END]
     assert hints(theme.saved_theme) == {'return': str}
     assert hints(theme.write_assets) == {'name': str, 'return': tuple}
     assert hints(theme.stylesheet) == {'p': dict, 'check': str, 'chevron': str, 'return': str}
     assert hints(theme.plot_rc) == {'p': dict, 'return': dict}
     assert hints(theme.apply_theme) == {'app': QtWidgets.QApplication, 'name': str, 'return': none}
     assert hints(theme.switch_theme) == {'name': str, 'return': str}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved and switched unit palette's signatures (graphite-palettes Task 4) | date: 2026-10-11]
     assert hints(theme.saved_unit_palette) == {'return': str}
     assert hints(theme.switch_unit_palette) == {'name': str, 'return': str}
-    # [AGENT EDIT END]
     assert hints(theme.tone) == {'item': QtWidgets.QTableWidgetItem, 'token': typing.Optional[str], 'return': none}
     assert hints(theme.fill) == {'item': QtWidgets.QTableWidgetItem, 'token': typing.Optional[str], 'return': none}
     assert hints(PlotPanel.restyle) == {'return': none}
     assert hints(App.restyle) == {'return': none}
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the simple plot panels read RunData and draw what the old viewers drew; the registry refuses a duplicate id (viewer-split Task 4) | date: 2026-10-06]
 """The registered plot panels over a ``PairState`` holding a mode's ``RunData``."""
 import os
 
@@ -15,21 +14,17 @@ from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.state import PairState
 
 from .viewer_fakes import DictData
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the old viewers and their comparison harness are gone; the runs are a plain project run of each mode (viewer-split Task 9) | date: 2026-10-07]
 from multiphy.project.folder import Project
 from multiphy.project.selection import Selection
 from multiphy.run.project_run import run_selection
 
 from .synthetic_day import extracted_project
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the deleted-canvas test builds a bare SafeCanvas and deletes its C++ object (day-table-keys Task 1) | date: 2026-10-14]
 import sys
 
 import shiboken6
 from matplotlib.figure import Figure
 
 from multiphy.viewer.panels.plots.base import SafeCanvas
-# [AGENT EDIT END]
 
 
 @pytest.fixture(scope='module')
@@ -38,14 +33,12 @@ def qt():
     return QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days run of D1, D2, D3 and a same-day run of D1, from extracted_project and run_selection (viewer-split Task 9) | date: 2026-10-07]
 @pytest.fixture(scope='module')
 def runs(tmp_path_factory):
     path = extracted_project(tmp_path_factory.mktemp('panels'), days=('D1', 'D2', 'D3'))
     project = Project.open(path.parent, path.name)
     return {'across_days': run_selection(Selection(project, ('D1', 'D2', 'D3')), 'functional_likelihood'),
             'same_day': run_selection(Selection(project, ('D1',)), 'functional_likelihood')}
-# [AGENT EDIT END]
 
 
 def _state(run):
@@ -79,7 +72,6 @@ def test_tuning_without_tuning_part(qt):
     panel.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the probe panel has no registered box, before and after a selection (drift-view Task 3) | date: 2026-10-08]
 def test_probe_has_no_registered_box(qt, runs):
     state = _state(runs['same_day'])
     panel = registry.PANELS['probe'](state)
@@ -88,11 +80,8 @@ def test_probe_has_no_registered_box(qt, runs):
     qt.processEvents()          # the idle redraw runs while the panel lives
     assert [b.text() for b in panel.findChildren(QtWidgets.QCheckBox)] == ['whole probe']
     panel.close()
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the merged fingerprint and mixture panels draw what the old viewers drew, with dotted rules and one short mixture tag (viewer-split Task 5) | date: 2026-10-06]
 def test_fingerprint_rules_between_conditions(qt):
     trace = {'fingerprints': {'A': np.ones(10), 'B': np.ones(10)}, 'trial_counts': {'A': 10, 'B': 10},
              'fingerprint_bin_seconds': .02}
@@ -108,7 +97,6 @@ def test_fingerprint_rules_between_conditions(qt):
 
 
 def test_mixture_tag_without_fit(qt, runs):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: select one unit of the day and one unit of each day, without a day pair, in place of the deleted harness selections (viewer-split Task 9) | date: 2026-10-07]
     for mode_id in ('same_day', 'across_days'):
         state = _state(runs[mode_id])
         panel = registry.PANELS['mixture'](state)
@@ -117,14 +105,11 @@ def test_mixture_tag_without_fit(qt, runs):
             units.groupby('siteid', sort=True).cellid.first().tolist()
         state.set_selection(chosen)
         qt.processEvents()          # the idle redraw runs while the panel lives
-    # [AGENT EDIT END]
         assert all(not ax.axison for ax in panel.fig.axes), mode_id
         assert [t.get_text() for t in panel.axes[0].texts] == ['mixture: not fitted'], mode_id
         panel.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram are two panels, one plot each (browse-same-day Task 5) | date: 2026-10-12]
 def test_isi_and_acg_panels_draw_one_plot_each(qt):
     trace = {'isi': np.full(40, 0.025), 'acg': np.arange(1.0, 6.0)}
     state = PairState()
@@ -149,10 +134,8 @@ def test_isi_and_acg_panels_draw_one_plot_each(qt):
     assert acg.axes[0].get_title() == 'autocorr'
     isi.close()
     acg.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a redraw queued before the canvas was deleted is skipped, neither raised out of processEvents nor handed to sys.excepthook (day-table-keys Task 1) | date: 2026-10-14]
 def test_deleted_canvas_skips_queued_redraw(qt, monkeypatch):
     canvas = SafeCanvas(Figure())
     canvas.draw_idle()                      # queues QTimer.singleShot(0, canvas._draw_idle)
@@ -161,4 +144,3 @@ def test_deleted_canvas_skips_queued_redraw(qt, monkeypatch):
     monkeypatch.setattr(sys, 'excepthook', lambda kind, exc, tb: hooked.append(exc))
     assert QtWidgets.QApplication.processEvents() is None
     assert hooked == []
-# [AGENT EDIT END]

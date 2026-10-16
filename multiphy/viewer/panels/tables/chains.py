@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the chains and consistency text, from gui.py:1472-1508; fix round 2: the constructor declares state: PairState (viewer-split Task 6, fix round 2) | date: 2026-10-06]
 """Chains across days, and triangles that disagree."""
 from multiphy import store as st
 from multiphy.viewer.state import PairState
@@ -38,4 +37,3 @@ class ChainPanel(QtWidgets.QWidget):
             for _, b in bad.head(6).iterrows():
                 lines.append(f'  {b.cellid_a} / {b.cellid_b} via {b.via}: {b.problem}')
         self.text.setPlainText('\n'.join(lines))
-# [AGENT EDIT END]

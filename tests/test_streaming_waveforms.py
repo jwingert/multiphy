@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: independently verify exact streaming waveform statistics, selection identity and integrity failures | date: 2026-09-18]
 import gzip
 import json
 from pathlib import Path
@@ -205,4 +204,3 @@ def test_storage_validation_precedes_any_source_or_cache_access(tmp_path):
                                                     root=tmp_path / 'cache', waveform_storage=storage):
                 pytest.fail('Invalid mode or unsupported legacy preprocessing must not open sources')
     assert not (tmp_path / 'cache').exists()
-# [AGENT EDIT END]

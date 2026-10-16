@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one project folder and one project.json per project (multiphy project folder Task 4) | date: 2026-09-25]
 """A project folder holds one project.json, validated on every read and write and replaced atomically under project.lock."""
 from __future__ import annotations
 
@@ -74,4 +73,3 @@ def test_open_by_path(tmp_path):
     assert Project.open(tmp_path, str(tmp_path / 'P')).name == 'P'
     with pytest.raises(ValueError, match='not a folder directly under'):
         Project.open(tmp_path, '/elsewhere/P')
-# [AGENT EDIT END]

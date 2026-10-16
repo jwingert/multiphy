@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher commands init, extract and status, one API behind the command line and a later GUI (multiphy project folder Task 14) | date: 2026-09-25]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names run and the probe option (Plan B Task 3) | date: 2026-09-28]
 """The launcher commands: ``init_day``, ``init_from``, ``extract``, ``status``, ``status_lines`` and ``run``.
 
 ``init_day`` adds one day to a project, creating the project when it is new. Its sort is a phy
@@ -21,53 +19,32 @@ named, else in another Python interpreter. ``init_day`` and ``init_from`` record
 type in the project identity when it has none, and refuse one that differs. No module here
 imports a lab module.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 
 import datetime
 import os
 from pathlib import Path
 import re
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run starts a backend in another interpreter when needed (Plan B Task 3) | date: 2026-09-28]
 import subprocess
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run prints its evidence warnings to stderr (event-optional Task 4) | date: 2026-10-09]
 import sys
-# [AGENT EDIT END]
 from typing import Optional
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, status records through Project.update and never waits for a held project.lock | date: 2026-09-25]
 from ..extract.pipeline import extract_day
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run consumes the selection and project-run API (Plan B Task 3) | date: 2026-09-28]
 from ..contract import registry
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run checks whether the backend reads timing (event-optional Task 4) | date: 2026-10-09]
 from ..contract.inputs import Input
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run counts proposed same-day links in the saved result (native-same-day Task 6) | date: 2026-10-11]
 from ..contract.results import Decision
-# [AGENT EDIT END]
 from ..dependency_setup import verified_interpreter
 from ..project.selection import Selection, default_days
 from ..run import options as opt
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run refuses days without single units before its warnings (event-optional Task 14) | date: 2026-10-10]
 from ..run.project_run import check_real_day_run, check_single_unit_days, project_run_path, run_selection
-# [AGENT EDIT END]
 from ..run.subprocess import build_selection_command
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run reads the saved result for its proposed-link warning (native-same-day Task 6) | date: 2026-10-11]
 from ..run.run_dir import load_result
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from ..project.days import add_day
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: RUNS_DIR moved to project/folder.py (Plan B Task 1) | date: 2026-09-28]
 from ..project.folder import NAME_PATTERN, RUNS_DIR, Project
-# [AGENT EDIT END]
 from ..project.identity import FileIdentity, SourceChanged, SourceMissing, retargeted, sha256_file
 from ..project.identity import verify as verify_identity
 from ..sources.base import file_role, get_reader
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 stop, user-approved fix: init refuses a scale the binary reader would refuse, before anything is written | date: 2026-09-25]
 from ..sources.binary import _uv_per_bit as binary_uv_per_bit
-# [AGENT EDIT END]
 from ..sources.phy import READER as PHY_READER
 
 RAW_FOUND_NOTE = 'raw file found at dat_path; pass --uv-per-bit to use it'
@@ -87,26 +64,20 @@ def _plan_day(*, day: str, sort: str, events: Optional[str], raw: Optional[str],
         readers['events'] = 'events_csv'
         options['events_path'] = os.path.abspath(events)
     notes = []
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: post-run fix (final review 2): look up dat_path without its layout; the layout is read below only for a raw file the day uses | date: 2026-09-26]
     dat_path = PHY_READER.dat_path(options)
     if raw is None and dat_path is not None and os.path.isfile(dat_path):
         if uv_per_bit is None:
             notes.append(RAW_FOUND_NOTE)
         else:
             raw = dat_path
-    # [AGENT EDIT END]
     if raw is not None:
         readers['raw'] = 'binary'
         options['raw_path'] = os.path.abspath(raw)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 stop, user-approved fix: init refuses a scale the binary reader would refuse, before anything is written | date: 2026-09-25]
         # The binary reader's own rule: a NaN, infinite or non-positive scale is refused here, in
         # init_from's pre-check, rather than when a later day's manifest cannot be written.
         options['uv_per_bit'] = binary_uv_per_bit({'uv_per_bit': uv_per_bit})
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: the raw layout comes from params.py whether or not it names a dat_path; a params.py without n_channels_dat refuses the raw file, so binary never takes the channel count from the geometry | date: 2026-09-25]
         layout = PHY_READER.raw_layout(options)
         options.update(raw_dtype=layout['dtype'], raw_offset=layout['offset'], raw_n_channels=layout['n_channels'])
-        # [AGENT EDIT END]
     return readers, options, notes
 
 
@@ -121,13 +92,9 @@ def _check_inputs(readers: dict, options: dict) -> None:
         for key, path in reader.files(options).items():
             if not os.path.isfile(path):
                 raise SourceMissing(f'{file_role(reader, key)} source missing: {os.path.realpath(path)}')
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 2, a file add_day would hash but cannot open is refused before any day is written | date: 2026-09-25]
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: add_day hashes every file but the raw-role ones, raw segments included (Plan C Task 2) | date: 2026-10-01]
             if file_role(reader, key) != 'raw':  # add_day hashes every file but the raw voltage
-            # [AGENT EDIT END]
                 with open(path, 'rb'):
                     pass
-            # [AGENT EDIT END]
 
 
 def _iso_date(text: str) -> Optional[datetime.date]:
@@ -140,7 +107,6 @@ def _iso_date(text: str) -> Optional[datetime.date]:
         return None
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init records the probe type and refuses a different one (Plan B Task 3) | date: 2026-09-28]
 def _check_probe(root: Path, project: str, probe: Optional[str]) -> None:
     """Refuse ``probe`` when ``project`` exists with a different probe recorded; writes nothing."""
     if probe is None:
@@ -152,10 +118,8 @@ def _check_probe(root: Path, project: str, probe: Optional[str]) -> None:
     if old is not None and old != probe:
         raise ValueError(f'project {project} probe is {old}; --probe says {probe}')
     return None
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init claims the probe in one locked check-and-set before it adds the day (Follow-up Task 2) | date: 2026-09-29]
 def _claim_probe(opened: Project, probe: Optional[str]) -> None:
     """Record ``probe`` in the project identity when it has none; refuse a different one under ``project.lock``.
 
@@ -176,13 +140,10 @@ def _claim_probe(opened: Project, probe: Optional[str]) -> None:
 
     opened.update(change)
     return None
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init_day takes the probe type; its docstring says when it is refused and recorded (Plan B Task 3) | date: 2026-09-28]
 def init_day(root: Path, project: str, *, day: str, sort: str, date: str, events: Optional[str] = None,
              raw: Optional[str] = None, uv_per_bit: Optional[float] = None, probe: Optional[str] = None) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says the probe is claimed before the day (Follow-up Task 2) | date: 2026-09-29]
     """Add ``day`` to ``project``, creating the project when it is new; return ``{'project', 'day', 'files', 'notes'}``.
 
     ``files`` is the sorted list of recorded file keys. Without ``raw``, the file that the sort's
@@ -197,20 +158,13 @@ def init_day(root: Path, project: str, *, day: str, sort: str, date: str, events
     probe refuses it and nothing is written; one with none records it. A day ``add_day`` then
     refuses leaves the probe recorded, so rerunning the same command completes the day.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     readers, options, notes = _plan_day(day=day, sort=sort, events=events, raw=raw, uv_per_bit=uv_per_bit)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init refuses a different probe before any write and records a new one after the day (Plan B Task 3) | date: 2026-09-28]
     opened = Project.ensure(root, project)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the probe is claimed under the lock before the day is added (Follow-up Task 2) | date: 2026-09-29]
     _claim_probe(opened, probe)
-    # [AGENT EDIT END]
     record = add_day(opened, day, readers=readers, reader_options=options, date=date, date_source='user')
-    # [AGENT EDIT END]
     return {'project': opened.name, 'day': day, 'files': sorted(record['files']), 'notes': notes}
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init_from takes the probe type; its docstring says a different one is refused (Plan B Task 3) | date: 2026-09-28]
 def init_from(root: Path, project: str, from_dir: Path, *, uv_per_bit: Optional[float] = None,
               probe: Optional[str] = None) -> dict:
     """Add every day folder under ``from_dir`` to ``project``; return ``{'project', 'days', 'notes'}``.
@@ -228,18 +182,13 @@ def init_from(root: Path, project: str, from_dir: Path, *, uv_per_bit: Optional[
     inside ``from_dir``, never resolved here. Each note is prefixed with its day. A ``probe`` that
     differs from the project's recorded probe is refused with the other checks.
     """
-    # [AGENT EDIT END]
     from_dir = Path(from_dir)
     if not from_dir.is_dir():
         raise FileNotFoundError(f'{from_dir} is not a folder.')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, every folder is a day folder and is checked; a hidden one is refused by its name | date: 2026-09-25]
     names = sorted(entry.name for entry in from_dir.iterdir() if entry.is_dir())
-    # [AGENT EDIT END]
     if not names:
         raise ValueError(f'{from_dir} holds no day folders.')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a different probe is refused before any day is written (Plan B Task 3) | date: 2026-09-28]
     _check_probe(root, project, probe)
-    # [AGENT EDIT END]
     try:
         recorded = Project.open(root, project).read()['days']
     except FileNotFoundError:  # a new project
@@ -259,10 +208,8 @@ def init_from(root: Path, project: str, from_dir: Path, *, uv_per_bit: Optional[
         parsed = _iso_date(date)
         if parsed is None:
             raise ValueError(f'{name}: date.txt is not YYYY-MM-DD')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 2, a folder named raw.* is not a raw file | date: 2026-09-25]
         # A folder (or a link to one) is not a raw file; a dangling link counts, and is refused as missing below.
         raws = sorted(path for path in folder.glob('raw.*') if not path.is_dir())
-        # [AGENT EDIT END]
         if len(raws) > 1:
             raise ValueError(f'{name}: more than one raw.* file')
         if raws and uv_per_bit is None:
@@ -283,9 +230,7 @@ def init_from(root: Path, project: str, from_dir: Path, *, uv_per_bit: Optional[
 
     notes = []
     for plan in plans:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each day passes the probe on (Plan B Task 3) | date: 2026-09-28]
         result = init_day(root, project, uv_per_bit=uv_per_bit, probe=probe, **plan)
-        # [AGENT EDIT END]
         notes.extend(f"{plan['day']}: {note}" for note in result['notes'])
     return {'project': result['project'], 'days': names, 'notes': notes}
 
@@ -385,9 +330,7 @@ def status(root: Path, project: str, *, verify: bool = False) -> dict:
     checks = {day: _check_sources(manifest['days'][day]['files'], verify) for day in sorted(manifest['days'])}
     digests = {(day, key): digest for day, state in checks.items() for key, digest in state['digests'].items()}
     if digests:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 14 fix round 1, status records through Project.update and never waits for a held project.lock | date: 2026-09-25]
         manifest = opened.update(lambda current: _record_digests(current, digests))
-        # [AGENT EDIT END]
         for (day, key), digest in digests.items():
             if manifest['days'][day]['files'][key]['sha256'] != digest:
                 checks[day]['changed'] = True
@@ -407,8 +350,6 @@ def status_lines(report: dict) -> list:
              f"features {row['features']} · runs {row['runs']}" for row in report['days']]
     lines.append(f"across days · runs {report['across_days_runs']}")
     return lines
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run runs any registered backend on project days (Plan B Task 3) | date: 2026-09-28]
 
 
 def _pythonpath(repo: Path) -> str:
@@ -417,11 +358,8 @@ def _pythonpath(repo: Path) -> str:
     return os.pathsep.join([str(repo), existing]) if existing else str(repo)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a finished run with proposed same-day links prints one warning, and the docstring says so; wraps the whole function and the earlier tags inside it (native-same-day Task 6 fix round 1) | date: 2026-10-11]
 def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, options: Optional[dict] = None,
         python: Optional[str] = None) -> dict:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the evidence warnings (event-optional Task 4) | date: 2026-10-09]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal list names a day or half without a single unit (event-optional Task 14) | date: 2026-10-10]
     """Run ``backend`` on ``days`` of ``project``; return ``{'project', 'days', 'backend', 'run', 'excluded'}``.
 
     ``days`` defaults to every extracted day, sorted by date, and needs 2 or more of them; one
@@ -435,8 +373,6 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
     units of one session prints one ``warning · <n> proposed same-day link(s) · review in the
     viewer`` line on stderr.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     opened = Project.open(root, project)
     if days:
         days = tuple(days)
@@ -449,17 +385,13 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
     backend_obj = registry.get(backend)
     check_real_day_run(selection, backend_obj.spec)
     options = opt.validate(backend_obj.spec, options or {})
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days without single units are refused before the evidence warnings (event-optional Task 14) | date: 2026-10-10]
     check_single_unit_days(selection, selection.dataset().units)
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each evidence fallback of a backend that reads timing is printed as a warning before the run (event-optional Task 4) | date: 2026-10-09]
     spec = backend_obj.spec
     if Input.TIMING in spec.requires | spec.optional:
         # validate filled in the spec's default; a spec without the option takes run_evidence's
         evidence = selection.evidence(options['min_repeats']) if 'min_repeats' in options else selection.evidence()
         for reason in evidence.reasons:
             print(f'warning · {reason}', file=sys.stderr)
-    # [AGENT EDIT END]
     output = project_run_path(selection, backend)
     availability = backend_obj.available()
     if availability.ok and python is None:
@@ -488,9 +420,6 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
             print(f'warning · {count} proposed same-day links · review in the viewer', file=sys.stderr)
     return {'project': opened.name, 'days': list(days), 'backend': backend, 'run': output,
             'excluded': len(selection.record()['excluded'])}
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch export writes one across-day run's accepted tracks (run-curation Task 3) | date: 2026-10-04]
 
 
 def export(root: Path, project: str, *, run: str, out: Optional[Path] = None) -> dict:
@@ -504,8 +433,5 @@ def export(root: Path, project: str, *, run: str, out: Optional[Path] = None) ->
 
     opened = Project.open(root, project)
     path = export_run(opened.path, run, out)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run-curation Task 3 fix round 2: the writer never compresses, so readback infers no compression from the name | date: 2026-10-04]
     table = pd.read_csv(path, dtype=str, keep_default_na=False, compression=None)
-    # [AGENT EDIT END]
     return {'path': path, 'tracks': table['track_id'].nunique(), 'units': len(table)}
-# [AGENT EDIT END]

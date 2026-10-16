@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify label-free temporal benchmark pair construction | date: 2026-09-17]
 import copy
 
 import numpy as np
@@ -125,4 +124,3 @@ def test_geometry_location_changes_only_explicit_spatial_gate():
     assert exhaustive.iloc[0].distance_um > 10
     gated = build_benchmark_pairs(units, features, geometry, max_distance_um=10)
     assert len(gated) == 2
-# [AGENT EDIT END]

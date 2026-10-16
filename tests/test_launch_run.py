@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run runs any registered matcher on project days, init --probe records the probe (Plan B Task 3) | date: 2026-09-28]
 """``launch run`` and ``init --probe``: one command runs any registered backend on extracted project days."""
 from __future__ import annotations
 
@@ -17,9 +16,7 @@ from multiphy.contract import registry
 from multiphy.launch import commands
 from multiphy.launch.__main__ import main
 from multiphy.project.folder import RUNS_DIR, Project
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal test relabels a day's units through Selection.dataset (event-optional Task 14) | date: 2026-10-10]
 from multiphy.project.selection import Selection
-# [AGENT EDIT END]
 from multiphy.run import subprocess as sp
 
 from .synthetic_day import extracted_project, write_day
@@ -76,7 +73,6 @@ def test_launch_run_defaults_to_all_extracted_days(weak):
     assert result['excluded'] == 1
     assert (result['project'], result['backend']) == ('P', FL)
     assert result['run'].parent == weak.path / RUNS_DIR
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the run matched both days: the saved selection names D1 and D2 and the weak unit D1:4, and the result holds the good clusters 0-2 of both days (Plan B Task 3) | date: 2026-09-28]
     saved = json.loads((result['run'] / 'selection.json').read_text())
     assert [d['day'] for d in saved['days']] == ['D1', 'D2']
     assert saved['mode'] == 'across_days'
@@ -85,7 +81,6 @@ def test_launch_run_defaults_to_all_extracted_days(weak):
     assert matched['provenance']['days'] == ['D1', 'D2']
     units = {u for track in matched['tracks'] for u in track} | set(matched['unmatched'])
     assert units == {f'{day}:{cluster}' for day in ('D1', 'D2') for cluster in (0, 1, 2)}
-    # [AGENT EDIT END]
 
 
 def test_launch_run_needs_two_days(tmp_path):
@@ -104,17 +99,14 @@ def test_launch_run_child_failure_keeps_selection(tmp_path):
     (output,) = _runs(project)
     assert str(caught.value).startswith('pair_logistic failed: ')
     assert str(caught.value).endswith(f' · run folder {output}')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the failed run keeps a full selection and its 9 cross-day pairs of the good clusters 0-2 (Plan B Task 3) | date: 2026-09-28]
     saved = json.loads((output / 'selection.json').read_text())
     assert [d['day'] for d in saved['days']] == ['D1', 'D2']
     assert (saved['mode'], saved['excluded']) == ('across_days', [])
     pairs = pd.read_csv(output / 'pairs.csv')
     assert sorted(zip(pairs.cellid_a, pairs.cellid_b)) == [(f'D1:{a}', f'D2:{b}') for a in range(3) for b in range(3)]
-    # [AGENT EDIT END]
     assert json.loads((output / 'run_manifest.json').read_text())['status'] == 'failed'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the recorded command names the module, project, days, backend, output and supplied option, and keeps the existing PYTHONPATH (Plan B Task 3) | date: 2026-09-28]
 def test_unavailable_backend_runs_in_lab_interpreter(clean, unavailable, monkeypatch):
     monkeypatch.setenv('PYTHONPATH', '/existing/path')
     result = commands.run(clean.root, 'P', backend=FL, options={'seed': 7})
@@ -128,7 +120,6 @@ def test_unavailable_backend_runs_in_lab_interpreter(clean, unavailable, monkeyp
     assert (kwargs['cwd'], kwargs['capture_output'], kwargs['text']) == (repo, True, True)
     assert kwargs['env']['PYTHONPATH'] == f'{repo}:/existing/path'
     assert kwargs['env']['PYTHONDONTWRITEBYTECODE'] == '1'
-# [AGENT EDIT END]
     assert not _runs(clean)
 
 
@@ -155,24 +146,18 @@ def test_init_probe_recorded_and_conflict_refused(tmp_path):
     assert str(caught.value) == 'project P probe is NP1; --probe says NP2'
     assert not project.day_dir('D2').exists()
     assert (project.path / 'project.json').read_bytes() == before
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the same probe is accepted (Plan B Task 3) | date: 2026-09-28]
     commands.init_day(root, 'P', day='D2', sort=str(d2.sort_dir), date=d2.date, probe='NP1')
     assert project.read()['identity']['probe'] == 'NP1'
     assert project.day_dir('D2').exists()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the accepted D2 is recorded in project.json (Follow-up Task 2 fix round 1) | date: 2026-09-29]
     days = project.read()['days']
     assert days['D2']['date'] == d2.date
     assert days['D2']['date_source'] == 'user'
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init claims the probe before it adds the day, so a failed day leaves the probe and a rerun completes it (Follow-up Task 2) | date: 2026-09-29]
 def test_init_probe_claimed_before_day(tmp_path, monkeypatch):
     root = tmp_path / 'lab'
     d1 = write_day(tmp_path / 'in', 'D1')
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the probe is claimed before add_day starts (Follow-up Task 2 fix round 1) | date: 2026-09-29]
     def raising(opened, day, **kwargs):
         manifest = opened.read()
         assert manifest['identity']['probe'] == 'NP1'
@@ -181,13 +166,10 @@ def test_init_probe_claimed_before_day(tmp_path, monkeypatch):
         raise OSError('disk full')
 
     entered = []
-    # [AGENT EDIT END]
     monkeypatch.setattr(commands, 'add_day', raising)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - add_day was entered once and its own error surfaced (Follow-up Task 2 fix round 1) | date: 2026-09-29]
     with pytest.raises(OSError, match='disk full'):
         commands.init_day(root, 'P', day='D1', sort=str(d1.sort_dir), date=d1.date, probe='NP1')
     assert entered == ['D1']
-    # [AGENT EDIT END]
     manifest = Project.open(root, 'P').read()
     assert manifest['identity']['probe'] == 'NP1'
     assert 'D1' not in manifest['days']
@@ -204,9 +186,7 @@ def test_init_probe_conflict_checked_under_lock(tmp_path, monkeypatch):
     Project.create(root, 'P')
     real_update = Project.update
     calls = []
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the refusals raised under the lock are collected (Follow-up Task 2 fix round 1) | date: 2026-09-29]
     refused = []
-    # [AGENT EDIT END]
 
     def racing_update(self, change):
         calls.append(change)
@@ -214,7 +194,6 @@ def test_init_probe_conflict_checked_under_lock(tmp_path, monkeypatch):
             def claim(manifest: dict) -> None:
                 manifest['identity']['probe'] = 'NP2'
             real_update(self, claim)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the caller's change raises the conflict while project.lock is held (Follow-up Task 2 fix round 1) | date: 2026-09-29]
         def checked(manifest: dict) -> None:
             assert (self.path / 'project.lock').exists()
             with pytest.raises(ValueError) as inside:
@@ -223,21 +202,17 @@ def test_init_probe_conflict_checked_under_lock(tmp_path, monkeypatch):
             raise inside.value
 
         return real_update(self, checked)
-        # [AGENT EDIT END]
 
     monkeypatch.setattr(Project, 'update', racing_update)
     with pytest.raises(ValueError) as caught:
         commands.init_day(root, 'P', day='D1', sort=str(d1.sort_dir), date=d1.date, probe='NP1')
     assert str(caught.value) == 'project P probe is NP2; --probe says NP1'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the refusal came from inside the locked update (Follow-up Task 2 fix round 1) | date: 2026-09-29]
     assert refused == ['project P probe is NP2; --probe says NP1']
-    # [AGENT EDIT END]
     project = Project.open(root, 'P')
     manifest = project.read()
     assert manifest['identity']['probe'] == 'NP2'
     assert 'D1' not in manifest['days']
     assert not project.day_dir('D1').exists()
-# [AGENT EDIT END]
 
 
 def test_cli_run_prints_run_line(weak, capsys):
@@ -261,16 +236,13 @@ def test_cli_run_unknown_backend(weak, capsys):
     assert FL in err
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run prints each evidence fallback as a warning (event-optional Task 4) | date: 2026-10-09]
 def test_launch_run_prints_evidence_warnings(tmp_path, monkeypatch, capsys):
     project = _open(extracted_project(tmp_path, conditions={'D2': ('C', 'D')}))
     monkeypatch.setattr(commands, 'run_selection', lambda *args, **kwargs: None)
     commands.run(project.root, 'P', backend=FL)
     assert 'warning · no events · shared conditions per day pair: D1+D2 0' in capsys.readouterr().err.splitlines()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run refuses a day without a single unit before it prints any evidence warning (event-optional Task 14) | date: 2026-10-10]
 def test_launch_run_refuses_before_warnings(tmp_path, monkeypatch, capsys):
     project = _open(extracted_project(tmp_path, conditions={'D2': ('C', 'D')}))
     dataset = Selection.dataset
@@ -289,10 +261,8 @@ def test_launch_run_refuses_before_warnings(tmp_path, monkeypatch, capsys):
     assert str(caught.value) == 'days without a single unit: D2; run without them'
     assert not [line for line in capsys.readouterr().err.splitlines() if line.startswith('warning · ')]
     assert calls == []
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run warns about proposed same-day links in the saved result (native-same-day Task 6) | date: 2026-10-11]
 @pytest.mark.parametrize('n', (0, 1, 2))
 def test_launch_run_counts_proposed_same_day_links(tmp_path, monkeypatch, capsys, n):
     project = _open(extracted_project(tmp_path))
@@ -317,7 +287,6 @@ def test_launch_run_counts_proposed_same_day_links(tmp_path, monkeypatch, capsys
                 1: ['warning · 1 proposed same-day link · review in the viewer'],
                 2: ['warning · 2 proposed same-day links · review in the viewer']}
     assert lines == expected[n]
-# [AGENT EDIT END]
 
 
 def test_launch_run_signatures():
@@ -330,4 +299,3 @@ def test_launch_run_signatures():
     assert hints['days'] == Optional[list]
     assert hints['options'] == Optional[dict]
     assert hints['python'] == Optional[str]
-# [AGENT EDIT END]

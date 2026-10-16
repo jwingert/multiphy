@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one selection record of extracted project days feeds every project run (Plan B Task 1) | date: 2026-09-28]
 """A selection of extracted project days: the record a project run keeps, and the dataset it matches.
 
 ``Selection(project, days)`` names one day (``same_day``: the day's two temporal halves are
@@ -23,14 +22,10 @@ import pandas as pd
 
 from ..benchmark import BenchmarkDataset, fingerprint_matrix, load_dataset
 from ..benchmark_pairs import build_benchmark_pairs
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selection_inputs names Input; days read their entry alone (launcher-gui Task 1) | date: 2026-10-07]
 from ..contract.inputs import Input, RawWaveformBundle, TrialTiming
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a selection decides its evidence through run_evidence (event-optional Task 4) | date: 2026-10-09]
 from ..contract.inputs import RunEvidence, run_evidence
-# [AGENT EDIT END]
 from ..extract.full_day import load_full_day
 from ..sources.normalize import read_source_entry
-# [AGENT EDIT END]
 from .folder import MANIFEST_FILE, RUNS_DIR, Project
 
 SCHEMA_VERSION = 1
@@ -116,11 +111,9 @@ class Selection:
     def same_day(self) -> bool:
         return len(self.days) == 1
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the selection names its mode, which the record keeps and the viewer opens (viewer-split Task 2) | date: 2026-10-06]
     @property
     def mode(self) -> str:
         return 'same_day' if self.same_day else 'across_days'
-    # [AGENT EDIT END]
 
     @property
     def dataset_id(self) -> str:
@@ -150,7 +143,6 @@ class Selection:
     def _full_days(self, records: dict) -> dict:
         return {day: load_full_day(self._features_dir(records, day)) for day in self.days}
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the record, its hash and the dataset come from one manifest read and one load of the features; same-day timing keys are the two halves ids (Plan B Task 1 fix round 1) | date: 2026-09-28]
     def _head(self, manifest: dict) -> dict:
         """The record without ``excluded``: what ``manifest`` alone says about this selection."""
         records, identity = manifest['days'], manifest['identity']
@@ -158,9 +150,7 @@ class Selection:
                  'features_id': records[day]['features'][self._level]} for day in self.days]
         return {'schema_version': SCHEMA_VERSION, 'kind': KIND, 'project': self.project.name,
                 'group': identity['group'], 'probe': identity['probe'],
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the record reads the selection's mode (viewer-split Task 2) | date: 2026-10-06]
                 'mode': self.mode, 'days': days}
-                # [AGENT EDIT END]
 
     def _load(self, records: dict):
         """The halves archive (one day) or ``{day: full-day features}`` (several), hash-verified against ``records``."""
@@ -222,23 +212,18 @@ class Selection:
         metadata = {'dataset_id': self.dataset_id, 'project': self.project.name, 'days': list(self.days),
                     'session_dates': {day: records[day]['date'] for day in self.days},
                     'features_ids': {day: records[day]['features']['full'] for day in self.days},
-                    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the upstream adapters refuse waveforms without raw_source; each day's source_id is the sha256 of its source/extraction_manifest.json, which names its raw files (e2e fix) | date: 2026-10-11]
                     'raw_source': {day: records[day]['source_id'] for day in self.days},
-                    # [AGENT EDIT END]
                     'probe_type': identity['probe'], 'pair_options': {'min_repeats': MIN_REPEATS},
                     'input_path': str(self.project.path), 'input_manifest_sha256': digest,
                     'selection': 'across_days'}
         return AcrossDaysDataset(units, pairs, features, geometry, metadata)
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day's source entry read from its manifest alone; its timing built from that entry (launcher-gui Task 1) | date: 2026-10-07]
     def _day_entry(self, day: str) -> dict:
         return read_source_entry(self.project.day_dir(day) / SOURCE_DIR)
 
     def _day_timing(self, day: str) -> TrialTiming:
         return TrialTiming.from_source_entry(self._day_entry(day))
-# [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day without trial events has no timing and is skipped; the evidence is decided from the timed days (event-optional Task 4) | date: 2026-10-09]
     def _has_trials(self, day: str) -> bool:
         """True when the day's source entry holds trial events."""
         trials = self._day_entry(day).get('trials')
@@ -257,10 +242,7 @@ class Selection:
     def evidence(self, min_repeats: int = 5) -> RunEvidence:
         """The evidence these days measured (``run_evidence``): one day's two halves, or the days."""
         return run_evidence(HALVES_SESSIONS if self.same_day else self.days, self.timing(), min_repeats=min_repeats)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each day's full-day extras (tone tuning) for the viewers, hash-checked like the features (Plan C Task 5) | date: 2026-10-01]
     def day_extras(self) -> dict:
         """``{day: extras}`` of each day, read from its ``features/full`` once its manifest is the recorded id."""
         records = self.project.read()['days']
@@ -272,13 +254,10 @@ class Selection:
                                  f'{self.project.name}')
             out[day] = load_full_day(path)['extras']
         return out
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: conditions read each day's source entry, so a day without trial events has none (event-optional Task 4) | date: 2026-10-09]
     def conditions(self) -> dict:
         """``{day: frozenset of stimulus conditions}``, read from each day's source entry."""
         return {day: frozenset(s['stimulus'] for s in self._day_entry(day)['stimuli']) for day in self.days}
-    # [AGENT EDIT END]
 
 
 def default_days(project: Project) -> tuple:
@@ -288,9 +267,7 @@ def default_days(project: Project) -> tuple:
                         key=lambda day: (records[day]['date'], day)))
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: predict a selection's inputs from its days' source manifests, without loading spikes (D5) (launcher-gui Task 1) | date: 2026-10-07]
 def selection_inputs(project: Project, days: tuple) -> frozenset:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: timing when any day has trial events; fingerprint when every day shares a condition (event-optional Task 4) | date: 2026-10-09]
     """The inputs a selection of ``days`` gives a backend, predicted from each day's source manifest alone.
 
     Predicts ``build_input(...).available()`` minus ``checkpoint``, which a backend option
@@ -309,14 +286,11 @@ def selection_inputs(project: Project, days: tuple) -> frozenset:
     if frozenset.intersection(*selection.conditions().values()):
         inputs.add(Input.FINGERPRINT)
     return frozenset(inputs)
-    # [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def selection_of_run(run_dir: Path) -> Selection:
     """The selection of the project run in ``run_dir``; refused when the project no longer gives the same record."""
     run_dir = Path(run_dir).resolve()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the missing-selection refusal comes before the project lookup, so a folder outside any project gets it too (Plan B Task 1 fix round 2) | date: 2026-09-28]
     path = run_dir / SELECTION_FILE
     if not path.is_file():
         raise FileNotFoundError(f'{run_dir} has no selection.json; it is not a project run')
@@ -324,10 +298,8 @@ def selection_of_run(run_dir: Path) -> Selection:
     if project_dir is None:
         raise FileNotFoundError(f'{run_dir} is not inside a project folder; it is not a project run')
     project = Project.open(project_dir.parent, project_dir.name)
-    # [AGENT EDIT END]
     saved = path.read_bytes()
     saved_record = json.loads(saved)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a removed day or a cleared features id gets the run-mismatch refusal, checked before Selection's own refusals can fire (Plan B Task 1 review 3) | date: 2026-09-28]
     changed = ValueError(f'{run_dir}/selection.json no longer matches project {project.name}; '
                          'the project changed after this run')
     manifest = project.read()
@@ -337,12 +309,8 @@ def selection_of_run(run_dir: Path) -> Selection:
                 or record['features'][saved_day['features']] != saved_day['features_id']):
             raise changed
     selection = Selection(project, tuple(day['day'] for day in saved_record['days']))
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: compare identity, days and feature ids before loading features, so a changed features id gets the run-mismatch refusal (Plan B Task 1 fix round 1) | date: 2026-09-28]
     if {k: v for k, v in saved_record.items() if k != 'excluded'} != selection._head(manifest):
         raise changed
     if selection._bytes(selection._record(manifest, selection._load(manifest['days']))) != saved:
         raise changed
-    # [AGENT EDIT END]
     return selection
-# [AGENT EDIT END]

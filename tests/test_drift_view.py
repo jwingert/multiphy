@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tests of the Qt-free drift frame reader (drift-view Task 1) | date: 2026-10-08]
 """The Qt-free drift frame: a run's saved registration read into each day's drawn depths."""
 import dataclasses
 import inspect
@@ -10,13 +9,9 @@ import pytest
 from multiphy.viewer.drift_frame import (Column, DriftFrame, drawn_group, drift_frame,
                                                      electrode_depths, group_label, group_sessions,
                                                      group_units, unit_depth)
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered unit positions and distances under test (browse-same-day Task 1) | date: 2026-10-12]
 import math
 
 from multiphy.viewer.drift_frame import registered_positions, unit_distance
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel tests build a PairState over DictData and open a project run (drift-view Task 4) | date: 2026-10-08]
 import os
 
 from multiphy import backends
@@ -28,15 +23,11 @@ from multiphy.run.project_run import run_selection
 from multiphy.viewer import display, registry
 from multiphy.viewer.app import open_run
 from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Qt through viewer/qt.py, the binding pin (drift-view Task 4, fix round 1) | date: 2026-10-08]
 from multiphy.viewer.qt import QtWidgets
-# [AGENT EDIT END]
 from multiphy.viewer.state import PairState
 
 from .synthetic_day import extracted_project
 from .viewer_fakes import DictData
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tests of the Qt-free drift frame reader (drift-view Task 1) | date: 2026-10-08]
 
 
 def _prov(registration, group='P'):
@@ -167,7 +158,6 @@ def test_unreadable_registration_raises(registration, sessions):
         drift_frame(_prov(registration), 'P', sessions, saves_offsets=True)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a saved null groups and a zero-match pair's shank list without a width are refused (drift-view Task 1) | date: 2026-10-08]
 @pytest.mark.parametrize('registration', [
     {'method': 'matches', 'offsets_um': {'D1': 0.0, 'D2': 1.0}, 'diagnostics': {'P': {'groups': None}}},
     {'method': 'native', 'pair_drifts': [
@@ -176,7 +166,6 @@ def test_unreadable_registration_raises(registration, sessions):
 def test_null_groups_and_zero_match_shank_list_raise(registration):
     with pytest.raises(ValueError, match='registration of P'):
         drift_frame(_prov(registration), 'P', ['D1', 'D2'], saves_offsets=True)
-# [AGENT EDIT END]
 
 
 def test_group_sessions_orders_and_matches_exactly():
@@ -208,20 +197,16 @@ def test_produced_signatures():
     assert [f.name for f in dataclasses.fields(Column)] == ['session', 'scale', 'offsets_um', 'reason']
     assert list(inspect.signature(unit_depth).parameters) == ['frame', 'column', 'cellid', 'depth',
                                                               'x_um']
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backends that save a registration declare day_offsets in their spec (drift-view Task 2); pair_logistic saves one too (drift-view post-run fix) | date: 2026-10-08]
 def test_backends_declare_day_offsets():
     from multiphy.contract import registry
     from multiphy.contract.backend import Provides
     ids = ('functional_likelihood', 'unitmatch', 'dant', 'deepunitmatch', 'pair_logistic')
     assert [registry.get(b).spec.provides.day_offsets for b in ids] == [True, True, True, True, True]
     assert Provides(frozenset(), frozenset()).day_offsets is False
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel draws each day of the drawn group in the anchor's frame, with hover text and the selection joined (drift-view Task 4) | date: 2026-10-08]
 READS_GROUPS = {'method': 'matches', 'offsets_um': {'D1': 5.0, 'D2': 17.5, 'D3': 0.0},
                 'diagnostics': {'P': {'groups': [['D1', 'D2'], ['D3']]}}}
 
@@ -240,11 +225,9 @@ def _table():
                          'x_um': [11.0, 27.0, 43.0, 59.0]})
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the panel fixture takes a units table, for the no-depth case (drift-view Task 4, fix round 2) | date: 2026-10-08]
 def _drift_panel(qt, registration=READS_GROUPS, meta=None, provenance=True, table=None):
     """The drift panel over the fixture's ``DictData``, refreshed with nothing selected."""
     table = _table() if table is None else table
-    # [AGENT EDIT END]
     pairs = pd.DataFrame({'cellid_a': ['a:1'], 'cellid_b': ['b:1'], 'match_score': [0.99]})
     kwargs = {'provenance': _prov(registration)} if provenance else {}
     result = backends.result_from_pairs('dict_data', '1', table, pairs, run_id='dict_data', **kwargs)
@@ -326,7 +309,6 @@ def test_drift_hover_range_on_varying_column(qt):
     panel.close()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: electrodes alone set the depth axis when no unit has a depth (drift-view Task 4, fix round 2) | date: 2026-10-08]
 def test_drift_panel_autoscales_electrodes_without_depths(qt):
     geometry = np.array([[11.0, 100.0], [11.0, 150.0], [11.0, 200.0]])
     panel = _drift_panel(qt, meta={'geometry': {'D1': geometry}}, table=_table().drop(columns='depth'))
@@ -334,7 +316,6 @@ def test_drift_panel_autoscales_electrodes_without_depths(qt):
     lo, hi = panel.axes[0].get_ylim()
     assert lo <= 100.0 and hi >= 200.0
     panel.close()
-# [AGENT EDIT END]
 
 
 def test_drift_panel_shows_unreadable_registration(qt):
@@ -374,10 +355,8 @@ def test_open_run_draws_drift_unselected(qt, tmp_path, monkeypatch):
     window.close()
     window.deleteLater()
     qt.processEvents()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered unit positions and the 2D registered distance between two units (browse-same-day Task 1) | date: 2026-10-12]
 def test_registered_positions_in_drift_frame():
     p = registered_positions(_table(), _prov(READS_GROUPS))
     assert p['depth'].to_dict() == {'a:1': 100.0, 'b:1': 132.5, 'c:1': 300.0, 'a:2': 200.0}
@@ -429,10 +408,8 @@ def test_registered_position_signatures():
             == '(units: pandas.core.frame.DataFrame, provenance) -> pandas.core.frame.DataFrame')
     assert (str(inspect.signature(unit_distance))
             == '(positions: pandas.core.frame.DataFrame, a: str, b: str) -> float')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a nullable Float64/Int64 coordinate with pd.NA is a missing value, not an abort (browse-same-day Task 1 fix round 1) | date: 2026-10-12]
 def test_registered_positions_nullable_missing_coordinates():
     table = _table()
     table['depth'] = pd.array([100.0, 120.0, 300.0, None], dtype='Float64')
@@ -441,11 +418,8 @@ def test_registered_positions_nullable_missing_coordinates():
     assert p.loc['a:1', 'depth'] == 100.0 and p.loc['b:1', 'depth'] == 132.5
     assert math.isnan(p.loc['a:2', 'depth'])
     assert math.isnan(p.loc['c:1', 'x_um']) and p.loc['b:1', 'x_um'] == 27.0
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a left click on a unit dot emits that unit; pan, zoom, the right button, a double-click and empty space emit nothing (browse-same-day Task 4) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the click lands only after the double-click interval; tag wraps the whole function (browse-same-day Task 6) | date: 2026-10-12]
 def test_drift_click_emits_unit(qt):
     from typing import Optional  # noqa: F401  (the signature string names it)
 
@@ -488,11 +462,8 @@ def test_drift_click_emits_unit(qt):
     assert panel.hover_text(104.0, 132.5) == 'b:1 · D2 · +12.5 µm · matches'
     assert str(inspect.signature(DriftPanel.unit_at)) == '(self, x: float, y: float) -> Optional[str]'
     panel.close()
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a dot click waits out the double-click interval, a double-click only resets, a stale click emits nothing, and a same-run same-group redraw keeps the zoom (browse-same-day Task 6) | date: 2026-10-12]
 def _wait():
     """Wait out the double-click interval, and a margin."""
     from PySide6 import QtTest
@@ -515,7 +486,6 @@ def _press(panel, x, y, **kwargs):
                                    MouseEvent('button_press_event', panel.canvas, px, py, **kwargs))
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test checks the click timer is precise; tag wraps the whole function (browse-same-day Task 6 fix round 1) | date: 2026-10-12]
 def test_drift_click_waits_out_double_click(qt):
     from PySide6 import QtTest
 
@@ -558,7 +528,6 @@ def test_drift_click_waits_out_double_click(qt):
     assert clicked == []
     assert panel.axes[0].get_title() == 'P'
     panel.close()
-# [AGENT EDIT END]
 
 
 def test_drift_zoom_kept_across_selection(qt):
@@ -604,4 +573,3 @@ def test_drift_zoom_kept_across_selection(qt):
     assert zoomed()
     other.close()
     panel.close()
-# [AGENT EDIT END]

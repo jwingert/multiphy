@@ -1,12 +1,9 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: CalibratedPairModel and its fit helper moved out of evidence.py / benchmark_local.py | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fixed-model fit helper and evidence constants are removed (Task 2) | date: 2026-09-27]
 """The calibrated pair classifier.
 
 ``CalibratedPairModel`` (moved verbatim from ``evidence.py``, originally by codex,
 2026-09-17) is a regularized feature classifier with an independent calibration
 partition.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 
 import numpy as np
@@ -176,4 +173,3 @@ class CalibratedPairModel:
             raise ValueError('Calibration must include both reference classes.')
         obj.fitted = True
         return obj
-# [AGENT EDIT END]

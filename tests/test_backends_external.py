@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: published-method adapters declare inputs, emissions and availability (Task 9) | date: 2026-09-22]
 import importlib.util
 import numpy as np
 import pandas as pd
@@ -58,10 +57,8 @@ def test_deepunitmatch_probe_mismatch_is_a_contract_violation(tmp_path, monkeypa
     with pytest.raises(ContractViolation, match='probe'):
         backend.run(inp, {**backend.spec.defaults(), 'checkpoint': str(ckpt), 'checkpoint_probe': 'np2_4shank'},
                     RunContext('r', tmp_path))
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: native group resolver keeps one unit per session and proposes the rest (native-same-day Task 1) | date: 2026-10-11]
 def _resolver_score(n, values):
     score = np.full((n, n), np.nan)
     np.fill_diagonal(score, 1.0)
@@ -132,4 +129,3 @@ def test_label_pairs_marks_kept_proposed_same_session():
                                   'unmatched_by_native_tracking', 'same_session']
     assert list(out.selected) == [True, False, False, False, False]
     assert 'decision' not in pairs.columns
-# [AGENT EDIT END]

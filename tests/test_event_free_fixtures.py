@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the synthetic fixtures make days without events and keep everything else (event-optional Task 2) | date: 2026-10-09]
 """A synthetic day or drift day without events keeps its spikes, units and waveforms."""
 import numpy as np
 import pandas as pd
@@ -27,4 +26,3 @@ def test_drift_days_without_events_keep_units():
     for cellid, features in with_events.features.items():
         np.testing.assert_array_equal(without.features[cellid]['waveform_halves'], features['waveform_halves'])
     assert without.timing == {}
-# [AGENT EDIT END]

@@ -1,24 +1,17 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one mixture panel, from gui.py:1031-1149 with the across-days refresh of multiday_viewer.py:217-226; a day pair without a fitted mixture shows one short tag instead of the method text (viewer-split Task 5) | date: 2026-10-06]
 """How each probability is formed, for the day pair on screen: the fitted mixture of every stream."""
 import numpy as np
 
 from multiphy import evidence as ev
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: colours come from the active theme's tokens; the figure is styled in the theme (launcher-gui Task 8) | date: 2026-10-07]
 import matplotlib
 
 from multiphy.viewer import theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the weights line names each saved stream by its word (event-optional Task 12) | date: 2026-10-10]
 from multiphy.viewer.display import STREAM_WORDS, colors, shows_scores
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.registry import register_panel
 
 
 @register_panel
 class MixturePanel(PlotPanel):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the event response (launcher-gui Task 10) | date: 2026-10-07]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says the columns are the streams the day pair's run saved weights for (event-optional Task 12) | date: 2026-10-10]
     """How each probability is formed, for the day pair on screen.
 
     One column per stream the day pair's run saved a ``weight_<stream>`` for, in the order event response,
@@ -40,22 +33,16 @@ class MixturePanel(PlotPanel):
     A day pair without a fitted mixture, or a selection without a candidate row,
     shows the tag ``mixture: not fitted``.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     panel_id, panel_title = 'mixture', 'Matching model provenance'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fixed column count; the waveform stream sits after physiology and the columns follow the day pair's saved weights (event-optional Task 12) | date: 2026-10-10]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream title names an event-response fingerprint; the key stays stim (launcher-gui Task 10) | date: 2026-10-07]
     ORDER = [('stim', 'event-response fingerprint', 's_stim', 'p_stim'),
              ('phys', 'physiology', 's_phys', 'p_phys'),
              ('wave', 'waveform', 's_wave', 'p_wave'),
              ('global', 'combined', 's_global', 'p_global')]
-    # [AGENT EDIT END]
 
     def columns(self) -> list:
         """The ``ORDER`` entries the day pair on screen saved a ``weight_<stream>`` for, then the combined one."""
         dp = self.state.day_pair or {}
         return [entry for entry in self.ORDER if entry[0] == 'global' or f'weight_{entry[0]}' in dp]
-    # [AGENT EDIT END]
 
     def draw(self, r):
         if r is not None and (self.state.day_pair or {}).get('streams'):
@@ -66,7 +53,6 @@ class MixturePanel(PlotPanel):
         self.axes[0].text(.5, .5, 'mixture: not fitted', ha='center', va='center', fontsize=8,
                           transform=self.axes[0].transAxes)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one axes per column the day pair saved weights for; the weights line names only those streams (event-optional Task 12) | date: 2026-10-10]
     def _draw_fitted(self, r):
         """The fitted-mixture axes of the day pair on screen, one per ``columns()`` entry."""
         if not shows_scores(r):
@@ -76,12 +62,9 @@ class MixturePanel(PlotPanel):
         dp = self.state.day_pair or {}
         streams = dp.get('streams') or {}
         columns = self.columns()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the weights line reads events (launcher-gui Task 10) | date: 2026-10-07]
         wt = 'weights  ' + '   '.join(f"{STREAM_WORDS[key]} {dp[f'weight_{key}']:.2f}"
                                       for key, *_ in columns if key != 'global')
-        # [AGENT EDIT END]
         for ax, (key, title, scol, pcol) in zip(self.axes, columns):
-            # [AGENT EDIT END]
             st_ = streams.get(key) or {}
             same = np.asarray(st_.get('same') or [], float)
             diff = np.asarray(st_.get('diff') or [], float)
@@ -101,20 +84,16 @@ class MixturePanel(PlotPanel):
             model.pi = float(pi)
             a = pi * model._same(grid)
             b = (1 - pi) * model._diff(grid)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the histogram, the two references, their sum and this pair's rule take theme tokens (launcher-gui Task 8) | date: 2026-10-07]
             pal = colors()
             if len(obs):
                 ax.hist(obs, bins=np.linspace(lo - pad, hi + pad, 22), density=True,
                         color=pal['plot_fill'], edgecolor=pal['panel'])
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-neuron and different-neuron references fill in the status colours accept and reject (graphite-palettes Task 2) | date: 2026-10-11]
             ax.fill_between(grid, 0, a, color=pal['accept'], alpha=.35)
             ax.fill_between(grid, 0, b, color=pal['reject'], alpha=.30)
-            # [AGENT EDIT END]
             ax.plot(grid, a + b, color=pal['plot_line'], lw=1.2)
             val = r.get(scol, np.nan)
             if np.isfinite(val):
                 ax.axvline(val, color=pal['plot_line'], lw=1.5, ls='--')
-            # [AGENT EDIT END]
             ax.set_xlabel('log-likelihood score', fontsize=7)
             ax.tick_params(labelsize=6)
             p = r.get(pcol, np.nan)
@@ -132,16 +111,12 @@ class MixturePanel(PlotPanel):
             # the span the references cover. No candidate pair falls outside
             # it -- 0 of 83 there, in all three streams -- so nothing that was
             # actually scored is hidden.
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the probability curve and its axis take the theme's plot_second token (launcher-gui Task 8) | date: 2026-10-07]
             ax2.plot(grid, 100 * post, color=pal['plot_second'], lw=1.3)
             ax2.axhline(80, color=pal['plot_second'], lw=0.7, ls=':')
             ax2.set_ylim(0, 105)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the twin axis's tick labels take the theme's mono font, since style_figure ran before it existed (graphite-palettes Task 3) | date: 2026-10-11]
             ax2.tick_params(labelsize=6, colors=pal['plot_second'], labelfontfamily=theme.fonts()['mpl_mono'])
-            # [AGENT EDIT END]
             if key == 'global':
                 ax2.set_ylabel('P(same), %', fontsize=7, color=pal['plot_second'])
-            # [AGENT EDIT END]
         self.axes[0].set_ylabel('density', fontsize=7)
         self.fig.suptitle(f'{dp.get("siteid_a")} vs {dp.get("siteid_b")},'
                           f' {dp.get("days_apart")}d apart    {wt}', fontsize=7.5)
@@ -149,17 +124,12 @@ class MixturePanel(PlotPanel):
     def refresh(self):
         """Rebuild the figure (the twin axes have to be dropped explicitly or they accumulate), then draw
         when a row is shown or the selection is non-empty."""
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the whole rebuild runs in the theme's matplotlib settings and the rebuilt figure is styled before the panel draws (launcher-gui Task 8) | date: 2026-10-07]
         with matplotlib.rc_context(theme.plot_rc(colors())):
             self.fig.clear()
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one axes per saved stream plus the combined one (event-optional Task 12) | date: 2026-10-10]
             self.axes = self.fig.subplots(self.nrows, len(self.columns()), squeeze=False).ravel()
-            # [AGENT EDIT END]
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the panel's own 6 pt ticks are set after style_figure, whose 8 pt would otherwise stand on a column drawn without them (graphite-palettes Task 3) | date: 2026-10-11]
             theme.style_figure(self.fig)
             for a in self.axes:
                 a.tick_params(labelsize=6)
-            # [AGENT EDIT END]
             r = self.state.row
             if r is not None or self.state.selection:
                 try:
@@ -169,5 +139,3 @@ class MixturePanel(PlotPanel):
                                       va='center', fontsize=7, wrap=True,
                                       transform=self.axes[0].transAxes)
             self.canvas.draw_idle()
-        # [AGENT EDIT END]
-# [AGENT EDIT END]

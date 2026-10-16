@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the unit colour palettes, the active palette and the Day ramp, Qt-free (graphite-palettes Task 1) | date: 2026-10-11]
 """The unit colour palettes that ``Settings`` ▸ ``Unit colours`` offers, the active palette (set by the app's
 entry points and the menu) and the Day ramp. Imports no Qt."""
 import numpy as np
@@ -80,4 +79,3 @@ def swatch(name: str) -> list:
     if name == 'ramp':
         return day_ramp(8)
     return list(FIXED[name][:8])
-# [AGENT EDIT END]

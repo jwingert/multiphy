@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: tests for contract errors and provenance | date: 2026-09-22]
 import numpy as np
 import pytest
 
@@ -58,4 +57,3 @@ def test_missing_inputs_message_names_backend_group_and_inputs():
     assert isinstance(err, ValueError)
     assert issubclass(errors.BackendUnavailable, RuntimeError)
     assert issubclass(errors.ContractViolation, ValueError)
-# [AGENT EDIT END]

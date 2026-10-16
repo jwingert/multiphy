@@ -1,7 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the dark-first Qt theme: the saved choice, the tick and chevron SVGs, the palette, the style sheet, the matplotlib settings, the live switch and the toned table cells (launcher-gui Task 8) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a missing file, a missing key or any other value opens graphite (graphite-palettes Task 2) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the settings file also holds key unit_palette, written only by switch_unit_palette (graphite-palettes Task 4) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the settings file also holds the shortcuts/<action id> keys, which every viewer window reads; test windows read no theme settings (day-table-keys Task 5) | date: 2026-10-14]
 """The viewer's Qt theme, built from the colour tokens of ``display.PALETTES``.
 
 Only the two entry points apply a theme: ``viewer.app.main`` and ``launch.window.run_window`` call
@@ -15,25 +11,16 @@ other than an id of ``unit_palettes.IDS`` opens ``unit_palettes.DEFAULT``. Table
 ``fill``) rather than a colour, and ``ToneDelegate`` paints it from the active theme, so a switch recolours them
 without a refill.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 import re
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: stderr for a font that fails to load (graphite-palettes Task 3) | date: 2026-10-11]
 import sys
-# [AGENT EDIT END]
 from pathlib import Path
 from typing import Optional
 
 import matplotlib
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: matplotlib registers the bundled fonts (graphite-palettes Task 3) | date: 2026-10-11]
 from matplotlib import font_manager
-# [AGENT EDIT END]
 
 from multiphy.viewer import display
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved and switched unit palette (graphite-palettes Task 4) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.qt import Figure, QtCore, QtGui, QtWidgets
 
 TONE_ROLE = QtCore.Qt.UserRole + 101      # a cell's text colour token
@@ -41,10 +28,8 @@ FILL_ROLE = QtCore.Qt.UserRole + 102      # a cell's background colour token
 
 _assets = None          # the QTemporaryDir holding the tick and chevron SVGs, made on first use
 _notifier = None        # the one ThemeNotifier
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the bundled fonts' folder and the family names found on first use (graphite-palettes Task 3) | date: 2026-10-11]
 FONT_DIR = Path(__file__).resolve().parent / 'fonts'
 _fonts = None           # the family names fonts() found, made on its first call with a QApplication
-# [AGENT EDIT END]
 
 CHECK_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14">'
              '<path d="M3 7.2 L5.8 10 L11 4.2" fill="none" stroke="{accent_ink}" stroke-width="2" '
@@ -53,7 +38,6 @@ CHEVRON_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" v
                '<path d="M2 3.5 L5 6.5 L8 3.5" fill="none" stroke="{muted}" stroke-width="1.5" '
                'stroke-linecap="round" stroke-linejoin="round"/></svg>')
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the font families: Figtree for the UI, JetBrains Mono for tables and plain-text boxes; radii 8 and 10 px; flat tabs, quiet headers and rounded dock cards (graphite-palettes Task 3) | date: 2026-10-11]
 # one rule per line; {token} is a colour token, {check} and {chevron} the SVG paths, {sans} and {mono} the font
 # families
 _RULES = [
@@ -93,9 +77,7 @@ _RULES = [
     *[f'QPushButton[verdict="{v}"] {{ color: {{{v}}}; border: 1px solid {{{v}}}; background: transparent; '
       f'font-weight: 600; }}' for v in ('accept', 'reject', 'unsure')],
     'QLabel[role="hint"] { color: {muted}; font-size: 11px; }',
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's active day header is toned in the accent (day-table-keys Task 3) | date: 2026-10-14]
     *[f'QLabel[tone="{t}"] {{ color: {{{t}}}; }}' for t in ('accept', 'reject', 'unsure', 'muted', 'accent')],
-    # [AGENT EDIT END]
     'QToolBar { background: {ground}; border: none; }',
     'QStatusBar { background: {ground}; color: {muted}; }',
     'QFrame#close_bar { background: {raised}; border: 1px solid {border}; border-radius: 10px; }',
@@ -112,9 +94,7 @@ _RULES = [
     'QTableWidget, QPlainTextEdit { font-family: "{mono}"; font-size: 12px; }',
     'QHeaderView::section { background: {panel}; color: {muted}; border: none; '
     'border-bottom: 1px solid {border}; padding: 6px 8px; font-size: 12px; }',
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's compact headers fit their narrow columns (day-table widths) | date: 2026-10-13]
     'QHeaderView[role="compact"]::section { padding: 6px 2px; }',
-    # [AGENT EDIT END]
     'QTableWidget { gridline-color: {panel}; }',
     'QTabBar::tab { background: transparent; color: {muted}; padding: 5px 12px; border: none; '
     'border-radius: 6px; margin: 2px 2px 2px 0; }',
@@ -125,13 +105,10 @@ _RULES = [
     'QDockWidget > QWidget { background: {panel}; border: 1px solid {border}; border-radius: 12px; }',
     'QCheckBox::indicator, QListWidget::indicator { border-radius: 4px; }',
     'QToolTip { border-radius: 6px; }',
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours menu shows 96 px swatch strips; the checked one is outlined in the accent (graphite-palettes Task 4) | date: 2026-10-11]
     'QMenu#unit_palettes { icon-size: 96px; }',
     'QMenu#unit_palettes::item { height: 22px; }',
     'QMenu#unit_palettes::icon:checked { border: 1px solid {accent}; border-radius: 3px; }',
-    # [AGENT EDIT END]
 ]
-# [AGENT EDIT END]
 _PLACEHOLDER = re.compile(r'\{(\w+)\}')
 
 
@@ -142,21 +119,17 @@ def settings() -> QtCore.QSettings:
     return s
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fallback theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
 def saved_theme() -> str:
     """The saved theme name; a missing file, a missing key or any other value opens graphite."""
     value = settings().value('theme')
     return value if value in display.THEMES else 'graphite'
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved unit palette; a missing file, a missing key or any other value opens the default (graphite-palettes Task 4) | date: 2026-10-11]
 def saved_unit_palette() -> str:
     """The saved unit palette id; a missing file, a missing key or any value not in ``unit_palettes.IDS``
     (exact case) opens ``unit_palettes.DEFAULT``."""
     value = settings().value('unit_palette')
     return value if value in unit_palettes.IDS else unit_palettes.DEFAULT
-# [AGENT EDIT END]
 
 
 def write_assets(name: str) -> tuple:
@@ -178,7 +151,6 @@ def write_assets(name: str) -> tuple:
     return check.as_posix(), chevron.as_posix()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the bundled Figtree and JetBrains Mono, registered with Qt and matplotlib on first use; a file that fails to load falls back to the system font (graphite-palettes Task 3) | date: 2026-10-11]
 def fonts() -> dict:
     """The font family names of the theme: ``qt_sans``, ``qt_mono``, ``mpl_sans`` and ``mpl_mono``.
 
@@ -189,10 +161,8 @@ def fonts() -> dict:
     ``QGuiApplication`` it raises ``RuntimeError`` and caches nothing.
     """
     global _fonts
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every call with no QGuiApplication raises, the cached one too (graphite-palettes Task 3 fix round 1) | date: 2026-10-11]
     if QtGui.QGuiApplication.instance() is None:
         raise RuntimeError('fonts need a QApplication')
-    # [AGENT EDIT END]
     if _fonts is None:
         names = {}
         for kind, file, system, fallback in (
@@ -215,15 +185,12 @@ def fonts() -> dict:
         _fonts = {'qt_sans': names['sans'][0], 'qt_mono': names['mono'][0],
                   'mpl_sans': names['sans'][1], 'mpl_mono': names['mono'][1]}
     return dict(_fonts)
-# [AGENT EDIT END]
 
 
 def stylesheet(p: dict, check: str, chevron: str) -> str:
     """The application style sheet of palette ``p``, one rule per line."""
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the style sheet names the UI and table font families (graphite-palettes Task 3) | date: 2026-10-11]
     f = fonts()
     values = {'check': check, 'chevron': chevron, 'sans': f['qt_sans'], 'mono': f['qt_mono']}
-    # [AGENT EDIT END]
 
     def fill_in(m):
         key = m.group(1)
@@ -248,7 +215,6 @@ def qpalette(p: dict) -> QtGui.QPalette:
     return pal
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the plot frame is the left and bottom spines over a grid, in Figtree (graphite-palettes Task 3) | date: 2026-10-11]
 def plot_rc(p: dict) -> dict:
     """matplotlib settings that draw a figure in palette ``p``: left and bottom spines over a grid, text in the
     theme's sans font; Save writes the figure as shown."""
@@ -259,10 +225,8 @@ def plot_rc(p: dict) -> dict:
             'axes.spines.top': False, 'axes.spines.right': False, 'axes.grid': True, 'axes.axisbelow': True,
             'grid.linewidth': 0.6, 'legend.frameon': False, 'lines.linewidth': 1.4, 'xtick.major.size': 3,
             'ytick.major.size': 3, 'font.family': [fonts()['mpl_sans'], 'DejaVu Sans']}
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the application font is the theme's sans at 10 pt (graphite-palettes Task 3) | date: 2026-10-11]
 def apply_theme(app: QtWidgets.QApplication, name: str) -> None:
     """Style ``app`` and matplotlib in theme ``name``, its font included; a failure to write the SVGs changes
     nothing."""
@@ -275,7 +239,6 @@ def apply_theme(app: QtWidgets.QApplication, name: str) -> None:
     app.setPalette(qpalette(p))
     app.setStyleSheet(stylesheet(p, check, chevron))
     matplotlib.rcParams.update(plot_rc(p))
-# [AGENT EDIT END]
 
 
 class ThemeNotifier(QtCore.QObject):
@@ -309,7 +272,6 @@ def switch_theme(name: str) -> str:
     return ''
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a Unit colours switch: set the palette, save it and tell the windows (graphite-palettes Task 4) | date: 2026-10-11]
 def switch_unit_palette(name: str) -> str:
     """Make ``name`` the active unit palette, save it and tell the windows; ``''``, or a tag naming the file when
     the save fails.
@@ -325,10 +287,8 @@ def switch_unit_palette(name: str) -> str:
     if s.status() != QtCore.QSettings.NoError:
         return f'unit colours not saved · {s.fileName()}'
     return ''
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: left and bottom spines only, in plot_spine; tick labels in the theme's mono font at 8 pt (graphite-palettes Task 3) | date: 2026-10-11]
 def style_figure(fig: Figure) -> None:
     """Recolour ``fig`` and its axes in the active theme: the left and bottom spines only, tick labels in the
     theme's mono font at 8 pt."""
@@ -345,7 +305,6 @@ def style_figure(fig: Figure) -> None:
         ax.xaxis.label.set_color(p['text'])
         ax.yaxis.label.set_color(p['text'])
         ax.title.set_color(p['text'])
-# [AGENT EDIT END]
 
 
 def tone(item: QtWidgets.QTableWidgetItem, token: Optional[str]) -> None:
@@ -380,4 +339,3 @@ class ToneDelegate(QtWidgets.QStyledItemDelegate):
         token = index.data(FILL_ROLE)
         if token:
             option.backgroundBrush = QtGui.QBrush(QtGui.QColor(p[token]))
-# [AGENT EDIT END]

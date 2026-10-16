@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: tmp_settings points every test's user-scope settings at a fresh folder under the pytest base temp (day-table-keys Task 6) | date: 2026-10-14]
 """``tmp_settings``: every viewer window reads the user-scope settings file (``theme.settings()``: the theme, the
 unit palette and, through ``keys.bindings``, the ``shortcuts/<action id>`` keys), so a test without this fixture
 read ``~/.config/multiphy/multiphy.ini`` or the last test's folder. The fixture points the user-scope INI settings
@@ -20,4 +19,3 @@ def tmp_settings(tmp_path_factory):
     QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(folder))
     yield folder
     QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(folder / 'after'))
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: per-unit threshold channel neighbourhood replaces the UnitMatch d_10 decay fit (threshold neighbourhood) | date: 2026-10-04]
 """A unit's channel neighbourhood: its peak channel and the channels its spike reaches.
 
 Each channel's amplitude is its largest absolute voltage inside ``spike_window`` (UnitMatch's
@@ -39,10 +38,8 @@ def unit_neighbourhood(waveform: np.ndarray, geometry: np.ndarray) -> dict:
     channels = (amp >= THRESHOLD_FRACTION * amp[peak]) & (dist < CANDIDATE_RADIUS_UM)
     channels[np.argsort(dist, kind='stable')[:MIN_CHANNELS]] = True
     return {'peak_um': peak_um, 'channels': channels}
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: union of two units' threshold channel masks, B's moved into A's frame (threshold neighbourhood) | date: 2026-10-04]
 def pair_channels(neighbourhood_a: dict, neighbourhood_b: dict, geometry_a: np.ndarray, geometry_b: np.ndarray,
                   offset_um: float) -> np.ndarray:
     """Boolean mask over ``geometry_a``'s channels (unit A's frame): in either unit's neighbourhood.
@@ -60,10 +57,8 @@ def pair_channels(neighbourhood_a: dict, neighbourhood_b: dict, geometry_a: np.n
                          f'{len(geometry_a)} and {len(geometry_b)} channels')
     moved = align_channels(mask_b[None, :].astype(float), geometry_b, geometry_a, offset_um)[0]
     return mask_a | (np.nan_to_num(moved, nan=0.0) >= 0.5)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: UnitMatch's spike sample window (local-neighbourhood Task 2) | date: 2026-10-02]
 def spike_window(n_samples: int) -> np.ndarray:
     """UnitMatch's ``waveidx``: samples ``n_samples // 2 - 8`` to ``n_samples // 2 + 14``, inside the snippet.
 
@@ -71,4 +66,3 @@ def spike_window(n_samples: int) -> np.ndarray:
     """
     window = np.arange(n_samples // 2 - 8, n_samples // 2 + 15)
     return window[(window >= 0) & (window < n_samples)]
-# [AGENT EDIT END]

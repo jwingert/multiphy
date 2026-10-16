@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project run records its selection before the backend starts (Plan B Task 2) | date: 2026-09-28]
 """Run one registered backend on a selection of extracted project days.
 
 By default a project run lives in its selection's ``runs/`` folder (the day's for one day,
@@ -16,22 +15,17 @@ from pathlib import Path
 from typing import Optional
 import uuid
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the single-unit check reads the units frame (event-optional Task 14) | date: 2026-10-10]
 import pandas as pd
-# [AGENT EDIT END]
 
 from ..contract import registry
 from ..contract.backend import BackendSpec
 from ..contract.inputs import CheckpointRef, Input
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the backends' own single-unit filter and the halves' session ids (event-optional Task 14) | date: 2026-10-10]
 from ..contract.results import single_units
 from ..project.selection import HALVES_SESSIONS
-# [AGENT EDIT END]
 from ..project.selection import Selection
 from . import catalog, options as opt, runner
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days without a shared condition run without events; only a benchmark baseline is refused (event-optional Task 4) | date: 2026-10-09]
 def check_real_day_run(selection: Selection, spec: BackendSpec) -> None:
     """Refuse a benchmark baseline across days."""
     if selection.same_day:
@@ -39,10 +33,8 @@ def check_real_day_run(selection: Selection, spec: BackendSpec) -> None:
     if not spec.real_days:
         raise ValueError(f'{spec.id} is a benchmark baseline (real_days False); it cannot run across days')
     return None
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day, or one day's half, without a single unit is refused before the run folder exists (event-optional Task 14) | date: 2026-10-10]
 def check_single_unit_days(selection: Selection, units: pd.DataFrame) -> None:
     """Refuse a selection with a day, or for one day a half, that holds no single unit of ``units``.
 
@@ -60,7 +52,6 @@ def check_single_unit_days(selection: Selection, units: pd.DataFrame) -> None:
     if len(missing) == len(HALVES_SESSIONS):
         raise ValueError(f'day {day} has no single unit')
     raise ValueError(f'day {day} half {missing[0]} has no single unit')
-# [AGENT EDIT END]
 
 
 def project_run_path(selection: Selection, backend_id: str) -> Path:
@@ -75,16 +66,12 @@ def run_selection(selection: Selection, backend_id: str, options: Optional[dict]
     spec = registry.get(backend_id).spec
     check_real_day_run(selection, spec)
     options = opt.validate(spec, options or {})
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a backend that reads timing gets the timed days only; none when no day has trial events (event-optional Task 4) | date: 2026-10-09]
     timing = selection.timing() if Input.TIMING in spec.requires | spec.optional else {}
     extra = {'timing': timing} if Input.TIMING in spec.requires | spec.optional and timing else {}
-    # [AGENT EDIT END]
     if options.get('checkpoint'):
         extra['checkpoint'] = CheckpointRef(options['checkpoint'], options.get('checkpoint_probe'))
     dataset = selection.dataset()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: days without single units are refused before the run folder exists (event-optional Task 14) | date: 2026-10-10]
     check_single_unit_days(selection, dataset.units)
-    # [AGENT EDIT END]
     record = selection.record_bytes()
     # dataset() and record_bytes() each read the project: a change between the two reads would
     # leave a selection.json that is not the input the manifest names.
@@ -103,4 +90,3 @@ def selection_runs(selection: Selection) -> list:
     return catalog.find_runs(None, dataset_id=selection.dataset_id,
                              identity={'input_manifest_sha256': selection.sha256()},
                              extra_dirs=[selection.runs_dir()])
-# [AGENT EDIT END]

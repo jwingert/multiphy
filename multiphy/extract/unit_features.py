@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ISI_BINS, ACG_BINS, _isi_acg and the temporal extraction functions moved verbatim from features.py, which imports them back (multiphy project folder Task 11) | date: 2026-09-25]
 """Per-unit spike statistics and waveform averages in disjoint temporal pseudo-sessions.
 
 ``_isi_acg`` gives the inter-spike-interval histogram and autocorrelogram on ``ISI_BINS`` and
@@ -46,7 +45,6 @@ def _isi_acg(st):
     return h, a / (a.sum() + 1e-12)
 
 
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: recompute disjoint temporal single-unit benchmark features from voltage and spike times | date: 2026-09-17]
 def temporal_sample_windows(start, stop, n_parts=4):
     """Disjoint half-open acquisition-sample windows, never alternate spikes.
 
@@ -115,7 +113,6 @@ def average_spike_waveforms(spike_samples, read_samples, window, n_channels,
         raise ValueError('Invalid waveform window, channel count, or spike limit.')
     selected, n_eligible = waveform_sample_selection(spikes, (start, stop), before, after, max_spikes, seed)
     shape = (before + after, n_channels)
-    # [AGENT EDIT START | agent: codex | user: wingertj | reason: consume only exact verified streaming selections without changing ordinary waveform readers | date: 2026-09-18]
     summary_provider = getattr(read_samples, 'waveform_summary', None)
     if callable(summary_provider):
         summary = summary_provider(selected, before=before, after=after, n_channels=n_channels)
@@ -130,7 +127,6 @@ def average_spike_waveforms(spike_samples, read_samples, window, n_channels,
                         waveform_standard_error=summary['waveform_standard_error'].copy(),
                         waveform_spike_samples=selected, n_waveform_spikes=len(selected),
                         n_eligible_waveform_spikes=n_eligible)
-    # [AGENT EDIT END]
     mean = np.zeros(shape, dtype=float)
     m2 = np.zeros(shape, dtype=float)
     for count, spike in enumerate(selected, 1):
@@ -187,12 +183,10 @@ def temporal_split_unit_features(spike_samples, read_samples, windows, *,
     win = win.astype(np.int64)
     if (win[:, 0] < 0).any() or (win[:, 1] <= win[:, 0]).any() or (win[1:, 0] < win[:-1, 1]).any():
         raise ValueError('Temporal windows must be ordered, disjoint, and nonempty.')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an empty stimuli list (a day without events) reads as no stimuli, as full_day.py does; pd.DataFrame([]) has no columns | date: 2026-10-08]
     if stimuli is None or len(stimuli) == 0:
         trials = pd.DataFrame(columns=['stimulus', 'start', 'stop'])
     else:
         trials = pd.DataFrame(stimuli)
-    # [AGENT EDIT END]
     if not {'stimulus', 'start', 'stop'}.issubset(trials.columns):
         raise ValueError('Stimuli require stimulus, start, and stop columns.')
     bounds = trials[['start', 'stop']].to_numpy(dtype=float)
@@ -271,5 +265,3 @@ def temporal_split_unit_features(spike_samples, read_samples, windows, *,
         row['half_waveform_spike_samples'] = [h['waveform_spike_samples'] for h in halves]
         row['eligible'] = True
     return results
-# [AGENT EDIT END]
-# [AGENT EDIT END]

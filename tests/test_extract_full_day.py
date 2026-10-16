@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the halves rule and full-day rows pooled from halves match the old reuse path (multiphy project folder Task 9) | date: 2026-09-25]
 """The halves rule, and full-day rows pooled from the halves without a second voltage read."""
 from __future__ import annotations
 
@@ -10,17 +9,13 @@ import pandas as pd
 import pytest
 
 from multiphy.benchmark import load_dataset
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 16 fix round 2: _spike_features for the baseline test moved here from test_docs_project_folder.py | date: 2026-09-25]
 from multiphy.extract.full_day import (_spike_features, full_day_rows, load_full_day,
                                                    pool_day_row, save_full_day)
-# [AGENT EDIT END]
 from multiphy.extract.split import halves
 from multiphy.extract_benchmark import extract_manifest
 from multiphy.multiday_reuse import reuse_day_summary
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: the pooled row is checked against an oracle that does not run pool_day_row | date: 2026-09-25]
 from .full_day_oracle import assert_pooled_from_halves
-# [AGENT EDIT END]
 from .synthetic_day import OPTIONS, write_day, write_legacy_inputs
 
 WINDOW = (0, 597000)
@@ -72,9 +67,7 @@ def test_pool_day_row_matches_reuse(tmp_path):
     pooled = pool_day_row(rows, sd.spikes['D1:0'], spec, analysis_window=WINDOW,
                           windows=np.asarray(spec['windows']), max_spikes=OPTIONS['max_spikes'])
     np.testing.assert_equal(pooled, summary['features']['D1-D1:0'])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: reuse_day_summary now calls pool_day_row, so the row is also checked against an oracle that does not | date: 2026-09-25]
     assert_pooled_from_halves(pooled, rows, sd.spikes['D1:0'], spec, WINDOW)
-    # [AGENT EDIT END]
 
 
 def test_weak_unit_row_ineligible(tmp_path):
@@ -92,7 +85,6 @@ def test_weak_unit_row_ineligible(tmp_path):
     np.testing.assert_array_equal(full['geometry']['D1'], sd.geometry)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - full_day_rows refuses halves rows whose windows or spike trains do not match the call, as reuse_day_summary does (multiphy project folder Task 9) | date: 2026-09-25]
 def test_full_day_rows_refuses_mismatched_halves(tmp_path):
     sd = write_day(tmp_path, 'D1')
     _, _, spec, dataset = _old_path(sd, tmp_path)
@@ -120,7 +112,6 @@ def test_full_day_rows_refuses_mismatched_halves(tmp_path):
         call(spikes=dict(sd.spikes, **{'D1:0': train[inside]}))
     # The unchanged call still passes.
     assert sorted(call()['features']) == ['D1:0', 'D1:1', 'D1:2']
-# [AGENT EDIT END]
 
 
 def test_full_day_roundtrip(tmp_path):
@@ -146,10 +137,8 @@ def test_full_day_roundtrip(tmp_path):
     units.write_text(units.read_text().replace('Too few spikes', 'Too many spikes'))
     with pytest.raises(ValueError, match='hash mismatch: units.csv'):
         load_full_day(target)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 16 fix round 2: pin project_folder.md's extraction claims here, not in test_docs_project_folder.py; baselines are clipped to the measured window (moved from there), and a full-day waveform pools up to max_spikes sampled spikes per half | date: 2026-09-25]
 def test_baseline_counts_only_inside_the_measured_window():
     """project_folder.md, section 5: a baseline window past the measured window adds only its part inside."""
     spikes = np.array([950, 1200], dtype=np.int64)
@@ -177,4 +166,3 @@ def test_full_day_waveform_pools_both_halves_samples(tmp_path):
         assert (feature['n_waveform_spikes'] == len(feature['waveform_spike_samples'])
                 == sum(reuse['half_spike_counts']) == reuse['full_mean_selected_count'])
     assert max(feature['n_waveform_spikes'] for feature in loaded.values()) > limit
-# [AGENT EDIT END]

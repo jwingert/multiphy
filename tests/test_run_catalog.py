@@ -1,25 +1,20 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: coverage for the saved-run listing behind the viewers' run selector | date: 2026-09-23]
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fixture built with result_from_pairs (Task 3 Do 10) | date: 2026-09-27]
 from multiphy.backends import result_from_pairs
-# [AGENT EDIT END]
 from multiphy.run import catalog, run_dir
 
 
-def _result(run_id, backend='unitmatch'):  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a fabricated result is built with result_from_pairs (Task 3 Do 10; review r3) | date: 2026-09-27]
+def _result(run_id, backend='unitmatch'):
     units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
     pairs = pd.DataFrame({'cellid_a': ['A-1'], 'cellid_b': ['B-1'], 'match_score': [.95]})
     return result_from_pairs(backend, '1', units, pairs, run_id=run_id, provenance={'dataset_id': 'd'})
-    # [AGENT EDIT END]
 
 
-def _run(folder, run_id, *, backend='unitmatch', result=True, **manifest):  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
+def _run(folder, run_id, *, backend='unitmatch', result=True, **manifest):
     folder.mkdir(parents=True)
     if result:
         run_dir.save_result(_result(run_id, backend), folder / 'result.json')
@@ -63,7 +58,6 @@ def test_collection_runs_beside_the_dataset_and_extra_dirs_are_listed_once(tmp_p
     assert [e.run_id for e in catalog.find_runs(None, dataset_id='d', extra_dirs=[launched.parent])] == ['launched']
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pilot id mapping gone; format 1 and unregistered ids are hidden (Task 1) | date: 2026-09-27]
 def test_an_unexpected_head_falls_back_to_a_full_load(tmp_path):
     folder = _run(tmp_path / 'sorted', 'sorted')
     document = json.loads((folder / 'result.json').read_text())
@@ -80,18 +74,16 @@ def test_catalog_hides_format_1_and_unknown_ids(tmp_path):
     assert json.loads((unknown / 'result.json').read_text())['schema_version'] == 2
     assert catalog.read_run(format_1) is None
     assert catalog.read_run(unknown) is None
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1: a deterministic archive shows exactly which runs the listing keeps (Task 1) | date: 2026-09-27]
 def test_listing_keeps_exactly_the_registered_format_2_runs(tmp_path):
     dataset = tmp_path / 'archive' / 'dataset'
     dataset.mkdir(parents=True)
     runs = tmp_path / 'archive' / 'runs'
-    _run(runs / 'dant', 'dant', backend='dant')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: a removed id is hidden like any unregistered one (Task 3) | date: 2026-09-27]
+    _run(runs / 'dant', 'dant', backend='dant')
     _run(runs / 'unitmatch', 'unitmatch', backend='unitmatch')
-    _run(runs / 'constrained', 'constrained', backend='constrained')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: a removed id is hidden like any unregistered one (Task 3) | date: 2026-09-27]
-    _run(runs / 'legacy_fresh', 'legacy_fresh', backend='legacy_fresh')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: a removed id is hidden like any unregistered one (Task 3) | date: 2026-09-27]
+    _run(runs / 'constrained', 'constrained', backend='constrained')
+    _run(runs / 'legacy_fresh', 'legacy_fresh', backend='legacy_fresh')
     _run(runs / 'unknown', 'unknown', backend='legacy')
     _run(runs / 'alias', 'alias', backend='current_local')
     for name, sort_keys in (('format_1', False), ('format_1_sorted', True)):
@@ -100,8 +92,7 @@ def test_listing_keeps_exactly_the_registered_format_2_runs(tmp_path):
         document['schema_version'] = 1
         (folder / 'result.json').write_text(json.dumps(document, indent=2, sort_keys=sort_keys))
     entries = catalog.find_runs(dataset, dataset_id='d')
-    assert sorted(e.run_id for e in entries) == ['dant', 'unitmatch']  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: a removed id is hidden like any unregistered one (Task 3) | date: 2026-09-27]
-# [AGENT EDIT END]
+    assert sorted(e.run_id for e in entries) == ['dant', 'unitmatch']
 
 
 def test_unreadable_manifest_or_result_is_skipped(tmp_path):
@@ -120,13 +111,10 @@ def test_labels_show_method_and_date_adding_time_then_folder_only_on_collision()
     day = datetime(2026, 9, 18, 14, 13)
     entries = [_entry('unitmatch', day, 'a'), _entry('unitmatch', day.replace(hour=9, minute=5), 'b'),
                _entry('dant', day, 'c'), _entry('dant', day - timedelta(days=1), 'd'),
-               # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered ids only (Task 1) | date: 2026-09-27]
-               _entry('functional_likelihood', day, 'e'), _entry('functional_likelihood', day, 'g')]  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]
+               _entry('functional_likelihood', day, 'e'), _entry('functional_likelihood', day, 'g')]
     assert catalog.run_labels(entries) == [
         'UnitMatch · 09-18 14:13', 'UnitMatch · 09-18 09:05', 'DANT · 09-18', 'DANT · 09-17',
-        'Functional likelihood · 09-18 · e', 'Functional likelihood · 09-18 · g']  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism short name (Task 3) | date: 2026-09-27]
-    # [AGENT EDIT END]
+        'Functional likelihood · 09-18 · e', 'Functional likelihood · 09-18 · g']
     assert catalog.run_labels([_entry('plugin_backend', day)]) == ['plugin_backend · 09-18']
     tip = catalog.run_tooltip(entries[0])
     assert 'UnitMatch' in tip and '2026-09-18 14:13' in tip and '/runs/a' in tip
-# [AGENT EDIT END]

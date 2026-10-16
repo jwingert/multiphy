@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: drift validation harness tests on synthetic drift days (functional-likelihood Task 9) | date: 2026-09-28]
 """Tests of the drift validation harness: its outputs, its refusal of an existing folder, recovery
 of an injected shift, the whole-row shift rule and recorded refusals."""
 from __future__ import annotations
@@ -7,14 +6,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - imports for the independent checks | date: 2026-09-28]
 import dataclasses
 import json
 
 from multiphy import drift_validation as dv
 from multiphy.contract import registry
 from multiphy.run.run_dir import load_result
-# [AGENT EDIT END]
 
 from .synthetic_drift import ground_truth, make_drift_days
 
@@ -57,7 +54,6 @@ def test_harness_writes_outputs(small_run):
     # no correction: the error is the largest true relative offset, 40 - (-60) = 100 µm at shift 0
     none0 = table[(table.registration == 'none') & (table.shift_um == 0)]
     np.testing.assert_allclose(none0.offset_error_um, 100.0)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the artifacts are checked for content, not only existence | date: 2026-09-28]
     calibration = pd.read_csv(output / 'calibration.csv')
     assert len(calibration) == 8 * 10
     # the artifacts hold content: real PNGs, legends naming the dataset and every family, the methods and manifest
@@ -75,13 +71,11 @@ def test_harness_writes_outputs(small_run):
     assert manifest['inputs'][0]['shifted_session'] == 'day2'
     assert set(OUTPUT_FILES) <= set(manifest['files'])
     assert sum(f.endswith('result.json') for f in manifest['files']) == 8
-    # [AGENT EDIT END]
 
 
 def test_harness_refuses_existing_output(tmp_path, monkeypatch):
     output = tmp_path / 'existing'
     output.mkdir()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the refusal happens before any matcher work | date: 2026-09-28]
     (output / 'keep.txt').write_text('mine')
 
     def no_work(*args, **kwargs):
@@ -89,13 +83,11 @@ def test_harness_refuses_existing_output(tmp_path, monkeypatch):
     monkeypatch.setattr(registry, 'get', no_work)
     monkeypatch.setattr(dv, 'inject_shift', no_work)
     with pytest.raises(FileExistsError):
-    # [AGENT EDIT END]
         dv.validate_datasets([_dataset(n_neurons=16, seed=0)], output, shifts_um=(0,))
     assert sorted(p.name for p in output.iterdir()) == ['keep.txt']
     assert (output / 'keep.txt').read_text() == 'mine'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - recovery is checked against the saved offsets and the geometry the matcher saw | date: 2026-09-28]
 def _capturing(monkeypatch, fail=lambda call: None):
     """Wrap every backend so its inputs are recorded; ``fail(call)`` may raise to refuse call ``call``."""
     real_get, calls = registry.get, []
@@ -135,7 +127,6 @@ def test_harness_recovers_injected_shift(tmp_path, monkeypatch):
               for a, b in (('day0', 'day1'), ('day0', 'day2'), ('day1', 'day2'))]
     assert max(errors) <= 10
     np.testing.assert_allclose(row.offset_error_um, max(errors))
-# [AGENT EDIT END]
 
 
 def test_inject_shift_needs_whole_rows():
@@ -147,7 +138,6 @@ def test_inject_shift_needs_whole_rows():
     np.testing.assert_allclose(shifted.geometry['day2'][:, 0], dataset.geometry['day2'][:, 0])
     assert shifted.truth_offsets['day2'] == dataset.truth_offsets['day2'] - 40
     assert shifted.truth_offsets['day0'] == dataset.truth_offsets['day0']
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - infinite shifts and a second row pitch | date: 2026-09-28]
     # the input is left unchanged
     assert dataset.geometry['day2'][:, 1].min() == 0
     with pytest.raises(ValueError, match='20'):
@@ -158,11 +148,9 @@ def test_inject_shift_needs_whole_rows():
         dv.inject_shift(fine, 'day2', 20.0)
     np.testing.assert_allclose(dv.inject_shift(fine, 'day2', 45.0).geometry['day2'][:, 1],
                                fine.geometry['day2'][:, 1] + 45)
-    # [AGENT EDIT END]
 
 
 def test_refusal_recorded(tmp_path):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 2 (a4 r2) - both registrations refuse at radius 1 µm | date: 2026-09-28]
     summary = dv.validate_datasets([_dataset(n_neurons=16, seed=0)], tmp_path / 'out', shifts_um=(0,),
                                    backends=('functional_likelihood', 'pair_logistic'),
                                    registrations=('matches', 'none'), radius_um=1.0)
@@ -171,11 +159,9 @@ def test_refusal_recorded(tmp_path):
         (b, r) for b in ('functional_likelihood', 'pair_logistic') for r in ('matches', 'none'))
     assert (summary.status == 'refused').all()
     assert summary.reason.str.contains('Rerun with a wider radius').all()
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - refused runs keep empty calibration bins; a refusal does not stop later runs; matcher session order | date: 2026-09-28]
     assert (tmp_path / 'out' / 'summary.csv').is_file()
     calibration = pd.read_csv(tmp_path / 'out' / 'calibration.csv')
-    assert len(calibration) == 4 * 10 and (calibration.n == 0).all()  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 2 (a4 r2) - four refused runs | date: 2026-09-28]
+    assert len(calibration) == 4 * 10 and (calibration.n == 0).all()
 
 
 def test_refusal_does_not_stop_later_runs(tmp_path, monkeypatch):
@@ -221,10 +207,8 @@ def test_sessions_follow_matcher_day_order():
     features = {c: dict(f, start_sample=starts[session_of[c]]) for c, f in dataset.features.items()}
     undated = dataclasses.replace(dataset, units=units.drop(columns='session_date'), features=features)
     assert dv._sessions(undated) == ['z_early', 'm_mid', 'a_late']
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - timing is bound to the dataset's own source provenance; a refused non-finite shift still completes the manifest | date: 2026-09-28]
 def test_non_finite_shift_refused_and_manifest_written(tmp_path, monkeypatch):
     calls = _capturing(monkeypatch)
     output = tmp_path / 'out'
@@ -238,10 +222,8 @@ def test_non_finite_shift_refused_and_manifest_written(tmp_path, monkeypatch):
         assert (output / name).is_file(), name
     manifest = json.loads((output / 'manifest.json').read_text())
     assert manifest['options']['shifts_um'] == [0.0, 'inf', 'nan']
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 review 3 critical - each recording_group is registered in its own mean-centred frame, so offset error compares only sessions of one group | date: 2026-09-28]
 def _two_groups() -> dv.DriftDataset:
     """Four days: day0/day1 in group g1, day2/day3 in group g2 (truth offsets -10, -50 | -10, 70 µm)."""
     dataset = _dataset(n_days=4, n_neurons=4, offsets_um=(0.0, 40.0, 0.0, -80.0), seed=0)
@@ -277,15 +259,10 @@ def test_drift_legend_counts_session_pairs_within_groups(tmp_path):
     dv.validate_datasets([_two_groups()], output, shifts_um=(0,), backends=('functional_likelihood',),
                          registrations=('matches',), radius_um=1.0)
     legend = (output / 'drift_recovery_legend.md').read_text()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair counts are per point; a refused run has none (final review fix round 1) | date: 2026-09-28]
     assert 'Session pairs compared per offset-error point:' in legend and 'share a `recording_group`' in legend
     assert 'synthetic · functional_likelihood: matches shift 0: refused' in legend
-    # [AGENT EDIT END]
     assert 'share a `recording_group`' in (output / 'METHODS.md').read_text()
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 1 (a4) - a shifted session alone in its recording_group is never scored as recovered | date: 2026-09-28]
 def _last_day_alone() -> dv.DriftDataset:
     """Three days: day0/day1 in group g1, the shifted last day day2 alone in g2."""
     dataset = _dataset(n_days=3, n_neurons=30, offsets_um=(0.0, 40.0, -60.0), seed=0)
@@ -312,9 +289,7 @@ def test_harness_does_not_report_recovery_of_an_unscored_shift(tmp_path):
     assert (summary.status == 'ok').all()  # day0/day1 match; the only gap is day2's unmeasured shift
     assert summary.offset_error_um.isna().all()
     assert summary.reason.str.contains('shifted session day2').all()
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 9 fix round 2 (a4 r2) - offsets are compared only within a registration component | date: 2026-09-28]
 def _fake_result(offsets: dict, groups: list):
     from types import SimpleNamespace
     return SimpleNamespace(provenance=dict(registration=dict(
@@ -374,9 +349,6 @@ def test_harness_scores_offsets_within_registration_components(tmp_path, monkeyp
     assert row.status == 'ok'
     assert row.offset_error_um == pytest.approx(0.0)
     assert 'unmeasured' in row.reason and "('day1', 'day3')" in row.reason
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the point compares 2 of its 6 session pairs, and its legend says so (final review fix round 1) | date: 2026-09-28]
     assert row.n_offset_pairs == 2
     legend = (tmp_path / 'out' / 'drift_recovery_legend.md').read_text()
     assert 'synthetic · functional_likelihood: matches shift 40: 2\n' in legend.split('Known same-unit')[0]
-    # [AGENT EDIT END]
-# [AGENT EDIT END]

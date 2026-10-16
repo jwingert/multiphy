@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: leakage-aware held-out evaluation of multiday matching backends | date: 2026-09-17]
 """Evaluate synthetic temporal-split benchmarks without giving labels to matchers.
 
 Ground-truth rows identify the source cluster that generated each pseudo-unit.
@@ -51,7 +50,6 @@ def validate_partitions(records, *, group_columns=('well',), partition_column='p
 
 
 def _labels(result, ground_truth, expected_partition, group_columns):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: ground truth without a partition column is accepted when no partition is expected (multiphy project folder Task 2) | date: 2026-09-25]
     partitioned = 'partition' in ground_truth.columns
     required = LABEL_COLUMNS if partitioned else tuple(c for c in LABEL_COLUMNS if c != 'partition')
     missing = set(required) - set(ground_truth.columns)
@@ -70,7 +68,6 @@ def _labels(result, ground_truth, expected_partition, group_columns):
     else:
         partition_info = {'group_columns': list(group_columns), 'partition_counts': {},
                           'n_source_recordings': len(labels[['well', 'source_session']].drop_duplicates())}
-    # [AGENT EDIT END]
     ids = set(result.units.cellid)
     if not ids <= set(labels.cellid):
         raise ValueError('Every evaluated single unit needs source-cluster ground truth')
@@ -97,9 +94,7 @@ def _ratio(numerator, denominator):
     return float(numerator / denominator) if denominator else None
 
 
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind is now result-level (result.score.kind), not a per-row column (Task 7 ruling) | date: 2026-09-22]
 def score_reliability(pairs, truth, *, n_bins=10, score_kind=None):
-# [AGENT EDIT END]
     """Report observed identity fractions without relabeling scores as calibrated.
 
     Only cross-pseudo-session pairs with known source-recording identity enter
@@ -115,9 +110,7 @@ def score_reliability(pairs, truth, *, n_bins=10, score_kind=None):
     for r in pairs.itertuples():
         key = tuple(sorted((r.cellid_a, r.cellid_b)))
         if key in truth and pd.notna(r.match_score):
-            # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind is now result-level (result.score.kind), not a per-row column (Task 7 ruling) | date: 2026-09-22]
             samples.append((float(r.match_score), int(truth[key]), score_kind))
-            # [AGENT EDIT END]
     rows = []
     for i in range(n_bins):
         lo, hi = i / n_bins, (i + 1) / n_bins
@@ -180,12 +173,10 @@ def evaluate_result(result, ground_truth, *, expected_partition='test',
                             for edge in itertools.combinations(track, 2)) for track in result.tracks)
     evidence_columns = ['match_score']
     measured_mask = np.isfinite(pd.to_numeric(result.pairs.match_score, errors='coerce'))
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a declared similarity column (DANT's native similarity) counts as measured evidence; no backend-id check (Task 12) | date: 2026-09-22]
     similarity = result.score.similarity_column
     if similarity and similarity in result.pairs:
         evidence_columns.append(similarity)
         measured_mask |= np.isfinite(pd.to_numeric(result.pairs[similarity], errors='coerce'))
-    # [AGENT EDIT END]
     measured = {tuple(sorted((r.cellid_a, r.cellid_b)))
                 for r in result.pairs.loc[measured_mask].itertuples()}
     return {'backend_id': result.backend_id, 'run_id': result.run_id,
@@ -207,10 +198,8 @@ def evaluate_result(result, ground_truth, *, expected_partition='test',
             'unmatched_recall': _ratio(true_unmatched_reported, len(true_unmatched)),
             'merged_tracks': int(merged_tracks), 'split_source_identities': split_identities,
             'evaluable_source_identities': evaluable_identities,
-            # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: score kind is now result-level (result.score.kind), not a per-row column (Task 7 ruling) | date: 2026-09-22]
             'score_reliability': score_reliability(result.pairs, truth, n_bins=n_bins,
                                                    score_kind=result.score.kind.value),
-            # [AGENT EDIT END]
             'partitions': partitions,
             'ground_truth_scope': 'Identity conditional on original sorted source clusters; cross-recording identities unknown'}
 
@@ -236,4 +225,3 @@ def compare_results(results, ground_truth, **kwargs):
                           'only_a_pairs': len(left - right), 'only_b_pairs': len(right - left),
                           'assignment_jaccard': _ratio(len(left & right), len(left | right))})
     return pd.DataFrame(rows), pd.DataFrame(agreement)
-# [AGENT EDIT END]

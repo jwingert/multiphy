@@ -1,22 +1,15 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: labeled same/different examples pooled over every project day (functional-likelihood Task 5) | date: 2026-09-27]
 """Labeled examples from every project day: channel alignment, pair properties and the pile's minimum."""
 from __future__ import annotations
 
 import itertools
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the jitter tests read signatures, compare frames and patch the examples module (event-optional Task 7) | date: 2026-10-10]
 import inspect
-# [AGENT EDIT END]
 
 import numpy as np
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the jitter tests read signatures, compare frames and patch the examples module (event-optional Task 7) | date: 2026-10-10]
 import pandas as pd
-# [AGENT EDIT END]
 import pytest
 
 from multiphy.backends.local import evidence as ev
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the jitter tests read signatures, compare frames and patch the examples module (event-optional Task 7) | date: 2026-10-10]
 from multiphy.backends.local import examples
-# [AGENT EDIT END]
 from multiphy.backends.local.examples import (
     MIN_NEIGHBOUR_PAIRS, PROPERTIES, RADIUS_UM, align_channels, fit_ensemble, labeled_examples)
 
@@ -55,13 +48,11 @@ def test_refuses_below_minimum_pairs():
         labeled_examples(observations, session_of, KEYS)
     assert '29' in str(error.value)
     assert 'Rerun with a wider radius' in str(error.value)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal names the radius it counted with, following the argument (final review fix round 1) | date: 2026-09-28]
     assert 'within 80 µm' in str(error.value)
     with pytest.raises(ValueError) as narrower:
         labeled_examples(observations, session_of, KEYS, radius_um=60.0)
     assert '28 distinct' in str(narrower.value)
     assert 'within 60 µm' in str(narrower.value)
-    # [AGENT EDIT END]
 
 
 def test_example_counts(drift_observations, drift_examples):
@@ -168,17 +159,13 @@ def test_same_examples_compare_own_halves(drift_observations, drift_examples):
 
 
 def test_fit_ensemble_splits_by_label(drift_examples):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fit_ensemble takes the streams; these tests fit the fixed two (event-optional Task 6) | date: 2026-10-10]
     ensemble, same_ref, diff_ref = fit_ensemble(drift_examples, ev.STREAMS)
-    # [AGENT EDIT END]
     assert isinstance(ensemble, ev.Ensemble)
     assert set(same_ref) == set(diff_ref) == set(ev.ALL_PROPERTIES)
     assert same_ref['fingerprint_r'] == list(drift_examples.fingerprint_r[drift_examples.same_unit])
     assert diff_ref['fingerprint_r'] == list(drift_examples.fingerprint_r[~drift_examples.same_unit])
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the peak-to-peak correlations are named footprint, in PROPERTIES and in each waveform_channels subset (event-optional Task 1) | date: 2026-10-09]
 def test_properties_name_the_footprint():
     from multiphy.backends.local.pair_logistic import WAVEFORM_CHANNELS, model_properties
     assert PROPERTIES == ('fingerprint_r', 'd_log_spont', 'd_log_rate_session', 'd_log_rate_shared', 'isi_cosine',
@@ -191,11 +178,9 @@ def test_properties_name_the_footprint():
     for choice in WAVEFORM_CHANNELS:
         assert len(model_properties(choice)) == 9
         assert not [p for p in model_properties(choice) if p.startswith('template')]
-# [AGENT EDIT END]
 
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: same-unit rows read half 1 shifted by one seeded jitter draw each; different-unit rows stay unshifted (event-optional Task 7) | date: 2026-10-10]
 WAVE_COLUMNS = ('waveform_r', 'footprint_r', 'waveform_r_local', 'footprint_r_local')
 
 
@@ -254,4 +239,3 @@ def test_examples_signatures():
     assert parameters['jitter_um'].default == 20.0
     assert parameters['seed'].kind is inspect.Parameter.KEYWORD_ONLY
     assert parameters['seed'].default == 0
-# [AGENT EDIT END]

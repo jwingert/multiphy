@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: shared tracker moved out of backends.py behind the result contract | date: 2026-09-22]
 """Track formation shared by every backend that emits pair scores.
 
 ``assign`` is the deterministic best-first tracker with mutual candidate margins, one
@@ -19,10 +18,8 @@ from ...contract.provenance import Provenance, json_safe, payload_digest
 
 
 def score_column_for(pairs, feature_stream):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the waveform stream's posterior is a feature_stream choice (event-optional Task 9) | date: 2026-10-10]
     choices = {'combined': ('p_global', 'posterior'), 'stimulus': ('p_stim',),
                'physiology': ('p_phys',), 'waveform': ('p_wave',)}
-    # [AGENT EDIT END]
     if feature_stream not in choices:
         raise ValueError(f'feature_stream must be one of {tuple(choices)}')
     for col in choices[feature_stream]:
@@ -58,9 +55,7 @@ def prepare_pairs(units, pairs, score_column):
     return pairs
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: connected components dropped: assign always enforces margins, session uniqueness and contradictions (Task 1) | date: 2026-09-27]
 def assign(units, pairs, threshold, contradiction_threshold, ambiguity_margin) -> tuple:
-# [AGENT EDIT END]
     sessions = units.set_index('cellid').session_id.to_dict()
     groups = {u: {u} for u in units.cellid}
     owner = {u: u for u in units.cellid}
@@ -84,13 +79,11 @@ def assign(units, pairs, threshold, contradiction_threshold, ambiguity_margin) -
             competitors.setdefault((a, sessions[b]), []).append((b, r.match_score))
             competitors.setdefault((b, sessions[a]), []).append((a, r.match_score))
     for i, a, b, score in sorted(candidates, key=lambda x: (-x[3], min(x[1:3]), max(x[1:3]))):
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: connected components dropped; competition always applies (Task 1) | date: 2026-09-27]
         if any(
             score - other_score < ambiguity_margin or other_score > score
             for u, v in ((a, b), (b, a))
             for other, other_score in competitors[(u, sessions[v])] if other != v
         ):
-        # [AGENT EDIT END]
             pairs.at[i, 'decision'] = Decision.AMBIGUOUS_COMPETITION.value
             continue
         ga, gb = groups[owner[a]], groups[owner[b]]
@@ -98,7 +91,6 @@ def assign(units, pairs, threshold, contradiction_threshold, ambiguity_margin) -
             pairs.at[i, 'decision'] = Decision.SUPPORTING_TRACK.value
             pairs.at[i, 'selected'] = True
             continue
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: connected components dropped; session uniqueness and contradictions always apply (Task 1) | date: 2026-09-27]
         if {sessions[u] for u in ga} & {sessions[u] for u in gb}:
             pairs.at[i, 'decision'] = Decision.SESSION_COLLISION.value
             continue
@@ -106,7 +98,6 @@ def assign(units, pairs, threshold, contradiction_threshold, ambiguity_margin) -
                for u in ga for v in gb):
             pairs.at[i, 'decision'] = Decision.MEASURED_CONTRADICTION.value
             continue
-        # [AGENT EDIT END]
         keep, remove = owner[a], owner[b]
         ga.update(gb)
         for u in gb:
@@ -125,12 +116,10 @@ def assign(units, pairs, threshold, contradiction_threshold, ambiguity_margin) -
     return tracks, unmatched, coverage
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: connected-components keyword dropped: every result uses the common tracker (Task 1) | date: 2026-09-27]
 def result_from_pairs(backend_id, version, units, pairs, *, score_column='match_score',
                       score_kind=ScoreKind.UNCALIBRATED, threshold=.90,
                       contradiction_threshold=.10, ambiguity_margin=.02,
                       provenance=None, run_id=None, calibration_reference=None) -> MatchResult:
-# [AGENT EDIT END]
     """Wrap genuine pair outputs with a common, conservative track assignment.
 
     Values must be on a [0, 1] scale, which alone does not make them probabilities.
@@ -152,7 +141,6 @@ def result_from_pairs(backend_id, version, units, pairs, *, score_column='match_
         raise ValueError('Scores must be finite in [0, 1] or missing')
     if (out.cellid_a == out.cellid_b).any():
         raise ValueError('A cross-session pair cannot compare a unit to itself')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: always the common tracker (Task 1) | date: 2026-09-27]
     tracks, unmatched, coverage = assign(eligible, out, threshold, contradiction_threshold,
                                          ambiguity_margin)
     metadata = dict(provenance or {})
@@ -160,7 +148,6 @@ def result_from_pairs(backend_id, version, units, pairs, *, score_column='match_
                     contradiction_threshold=contradiction_threshold,
                     ambiguity_margin=ambiguity_margin, enforce_session_unique=True,
                     assignment='mutual_margin_best_first',
-    # [AGENT EDIT END]
                     internal_evidence_coverage=coverage, n_excluded_non_su=len(excluded),
                     quality_policy='Explicit su_type=SU only; cache labels are not independently verified')
     if run_id is None:
@@ -175,8 +162,5 @@ def result_from_pairs(backend_id, version, units, pairs, *, score_column='match_
          'input_pair_digest': metadata['input_pair_digest']}, sort_keys=True).encode()).hexdigest()
     return MatchResult(backend_id, version, run_id, eligible, out, tracks, unmatched, excluded,
                        ScoreBlock(score_kind, score_column, calibration_reference=calibration_reference),
-                       # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: always the common tracker (Task 1) | date: 2026-09-27]
                        TrackKind.COMMON, 'mutual_margin_best_first',
-                       # [AGENT EDIT END]
                        Provenance.from_json(metadata)).validate()
-# [AGENT EDIT END]

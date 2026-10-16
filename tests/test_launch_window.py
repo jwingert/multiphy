@@ -1,12 +1,9 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window lists projects, days and runs, opens a run, refuses a root whose plugins fail, and gui writes no log line (launcher-gui Task 5) | date: 2026-10-07]
 """The launcher window's lists, its open button and ``set_root``; every file lives under ``tmp_path``."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launcher-gui Task 5 fix round 1: sys.modules for the viewer import failure | date: 2026-10-07]
 import sys
-# [AGENT EDIT END]
 import typing
 from typing import Optional
 
@@ -115,12 +112,10 @@ def test_open_run_by_kind(qt, runs, monkeypatch):
         assert window.viewers[-1].mode.id == 'same_day'
         assert window.viewers[-1].curation is None
         assert len(window.viewers) == 2
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launcher-gui Task 5 fix round 1: a viewer that cannot be imported is logged, not raised | date: 2026-10-07]
         monkeypatch.setitem(sys.modules, 'multiphy.viewer.app', None)
         window.open_run()
         assert _last_log(window).startswith('error:')
         assert len(window.viewers) == 2
-        # [AGENT EDIT END]
     finally:
         for viewer in window.viewers:
             _close(viewer)
@@ -244,10 +239,8 @@ def test_window_signatures():
     assert hints(LauncherWindow.append_log) == {'line': str, 'return': type(None)}
     assert hints(run_window) == {'root': Path, 'project': Optional[str], 'plugins': PluginApi, 'return': int}
     assert hints(wait_until) == {'timeout_s': float, 'return': bool}
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher opens at OPEN_SIZE within the screen, with an edge, gaps between panes and spaced form rows (launcher spacing) | date: 2026-10-13]
 def test_opens_at_open_size_within_the_screen(qt, monkeypatch, tmp_path):
     Project.ensure(tmp_path / 'lab', 'P')
     area = QtWidgets.QApplication.primaryScreen().availableGeometry()
@@ -279,4 +272,3 @@ def test_panes_have_an_edge_gaps_and_spaced_rows(qt, tmp_path):
         assert f.verticalSpacing() == launch_window.FORM_ROWS
         assert f.horizontalSpacing() == launch_window.FORM_ROWS + 4
     _close(window)
-# [AGENT EDIT END]

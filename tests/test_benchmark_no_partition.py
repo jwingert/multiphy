@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: halves archives build, save, load and evaluate without a partition column (multiphy project folder Task 2) | date: 2026-09-25]
 """Halves archives without a partition: new archives omit it, old ones keep it."""
 from __future__ import annotations
 
@@ -46,4 +45,3 @@ def test_labels_expected_partition_refused():
     ds = _build([source(partition=None)])
     with pytest.raises(ValueError, match='no partition column'):
         _labels(SimpleNamespace(units=ds.units), ds.labels, 'test', ('well',))
-# [AGENT EDIT END]

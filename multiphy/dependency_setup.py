@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: durable isolated inference dependencies without base-environment or checkpoint changes | date: 2026-09-18]
 """Stage pinned source and already installed wheels into a dedicated environment.
 
 No network, dependency resolution, model downloads, matching or training. The
@@ -232,4 +231,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
-# [AGENT EDIT END]

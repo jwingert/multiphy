@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: TDD tests for option schema -> argparse/argv/validation | date: 2026-09-22]
 import argparse
 import json
 import pytest
@@ -72,4 +71,3 @@ def test_cli_wrong_type_fails_at_parse():
     opt.add_arguments(parser, SPEC)
     with pytest.raises(SystemExit):
         parser.parse_args(['--name', 'x', '--threshold', 'abc'])
-# [AGENT EDIT END]

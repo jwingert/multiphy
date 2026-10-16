@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: gui --run opens any project run (Plan C Task 6) | date: 2026-10-02]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_run returns an App in the run's mode (viewer-split Task 8) | date: 2026-10-07]
 """``viewer.app.open_run`` opens a project run in the mode its selection records."""
 import os
 
@@ -29,5 +27,3 @@ def test_gui_run_opens_viewer_by_kind(tmp_path):
     for window in (days_window, halves_window):
         window.close()
     app.processEvents()
-# [AGENT EDIT END]
-# [AGENT EDIT END]

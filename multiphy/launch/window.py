@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window lists a root's projects, days and runs and opens a run in its viewer (launcher-gui Task 5) | date: 2026-10-07]
 """The launcher window: one window over a lab root's projects, days and completed runs.
 
 ``list_projects``, ``day_rows`` and ``run_groups`` read what the window lists. ``LauncherWindow``
@@ -9,78 +8,54 @@ application. Qt comes only from ``..viewer.qt``; no lab module is imported.
 """
 from __future__ import annotations
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs decode child output, signal a child and quote its argv (launcher-gui Task 6) | date: 2026-10-07]
 import codecs
 import os
 import shlex
 import signal
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: log lines are toned by pattern (launcher-gui Task 9) | date: 2026-10-07]
 import re
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence tags read Selection.evidence's default min_repeats for a backend without the option (event-optional Task 11) | date: 2026-10-10]
 import inspect
-# [AGENT EDIT END]
 from pathlib import Path
 import sys
 from typing import Optional
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs read the backend registry, the verified interpreter and backend_refusal (launcher-gui Task 6) | date: 2026-10-07]
 from .. import dependency_setup
 from ..contract import registry
 from ..contract.names import backend_label
-# [AGENT EDIT END]
 from ..project.folder import MANIFEST_FILE, RUNS_DIR, Project
 from ..run import catalog
 from ..run.config import cache_root
 from ..viewer.qt import QtCore, QtGui, QtWidgets
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the shared Settings and Help menus and the theme (launcher-gui Task 9) | date: 2026-10-07]
 from ..viewer import display, menus, theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run_window sets the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
 from ..viewer import unit_palettes
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run_window sets the logo icon (logo) | date: 2026-10-13]
 from ..viewer import logo
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from .__main__ import build_parser
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs build argv from the forms and start children with the CLI's PYTHONPATH (launcher-gui Task 6) | date: 2026-10-07]
 from . import forms as form_module  # backend_refusal is read through the module, so tests can replace it
 from .commands import _pythonpath
 from .forms import BOUND, command_argv, commands_of, form_fields, has_value
-# [AGENT EDIT END]
 from .plugins import PluginApi, load_plugins
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run form shows the checked days' evidence as tags and greys the choices only events measure (event-optional Task 11) | date: 2026-10-10]
 from ..contract.inputs import evidence_tags
 from ..project.selection import Selection
 from .forms import EVENT_CHOICES
 
 # launch run's min_repeats for a backend that reads timing without declaring the option
 _EVIDENCE_MIN_REPEATS = inspect.signature(Selection.evidence).parameters['min_repeats'].default
-# [AGENT EDIT END]
 
 ACROSS_DAYS = 'across days'
 TITLE = 'Cross-day unit match launcher'
 _ENTRY_ROLE = QtCore.Qt.UserRole
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs' labels, the repo children run from, and the commands that need a readable project (launcher-gui Task 6) | date: 2026-10-07]
 TAB_LABELS = {'init': 'Initialization', 'extract': 'Extract features', 'run': 'Run matching',
               'export': 'Export tracks', 'status': 'Status'}
 REPO = Path(__file__).resolve().parents[2]
 _BUILTIN_TABS = ('init', 'extract', 'run', 'export', 'status')
 _NEEDS_PROJECT = ('extract', 'run', 'status', 'export')  # disabled while project_ok is False (D38)
 _UNSET = object()
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a cancelled command is killed when it still runs after this grace (launcher-gui Task 7) | date: 2026-10-07]
 KILL_AFTER_MS = 10000  # read each time the kill timer starts
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher opens at 1280 x 860, at most 90% of the screen, with 18 px edges and room between panes (launcher spacing) | date: 2026-10-13]
 OPEN_SIZE = (1280, 860)  # the size every open starts at, before the screen cap; nothing is remembered
 SCREEN_SHARE = 0.9       # at most this share of the screen's available width and height
 EDGE = 18                # px between the window's edge and its panes
 GAP = 16                 # px between panes: the splitter handles
 SPACING = 8              # px between the widgets of a pane, and around a tab's form
 FORM_ROWS = 12           # px between form rows; a row's label sits FORM_ROWS + 4 px from its field
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the log tone of a line: an INFO log line is muted, an error, a kill or a nonzero exit is reject (launcher-gui Task 9) | date: 2026-10-07]
 INFO_LINE = re.compile(r'^\[[^\]]* INFO\]')
 _EXIT_LINE = re.compile(r'exit (-?\d+)')
 
@@ -96,7 +71,6 @@ def log_tone(line: str) -> str:
     if m and int(m.group(1)) != 0:
         return 'reject'
     return 'text'
-# [AGENT EDIT END]
 
 
 def child_command(root: Path, argv: list) -> tuple:
@@ -199,7 +173,6 @@ class CommandProcess(QtCore.QObject):
     def running(self) -> bool:
         """True from ``start`` until ``ended``."""
         return self._running
-# [AGENT EDIT END]
 
 
 def list_projects(root: Path) -> list:
@@ -270,12 +243,10 @@ class _ElidedLabel(QtWidgets.QLabel):
         self._elide()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between form rows (launcher spacing) | date: 2026-10-13]
 def _space_form(form: QtWidgets.QFormLayout) -> None:
     """``FORM_ROWS`` px between ``form``'s rows; ``FORM_ROWS + 4`` px between a label and its field."""
     form.setVerticalSpacing(FORM_ROWS)
     form.setHorizontalSpacing(FORM_ROWS + 4)
-# [AGENT EDIT END]
 
 
 class LauncherWindow(QtWidgets.QMainWindow):
@@ -298,10 +269,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.project_ok = False
         self.new_project = None
         self._filled = None  # (root, project) of the last successful fill
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every line the log pane shows, re-coloured on a theme switch (launcher-gui Task 9) | date: 2026-10-07]
         self.log_lines = []
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs' state: the running job, the queue, the forms' widgets and the cached interpreter (launcher-gui Task 6) | date: 2026-10-07]
         self.queue = []
         self.submitted = None
         self.process = None
@@ -315,8 +283,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._backend_fields = []
         self._specs = {}
         self._building = True
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cancel state of the running job and the close-after-end mark (launcher-gui Task 7) | date: 2026-10-07]
         self._started = False  # the running job's process emitted started
         self._cancel_requested = False  # the Cancel path ran for the running job
         self._cancel_pending = False  # cancel asked before started; sent on started (D70)
@@ -325,12 +291,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._kill_timer = QtCore.QTimer(self)
         self._kill_timer.setSingleShot(True)
         self._kill_timer.timeout.connect(self._kill_due)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the checked days' evidence, or the error that stopped it, as of the last refresh (event-optional Task 11) | date: 2026-10-10]
         self._evidence = None  # the RunEvidence of the checked days, None without one
         self._evidence_error = None  # the message of a bad min_repeats or an evidence error (D55)
         self._evidence_labels = []
-        # [AGENT EDIT END]
         name = project
         if project is not None:
             try:
@@ -339,22 +302,15 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 name = project
         self._wanted = (name,)  # the next reload selects this name, or the first project for None
         self._build()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every open starts at OPEN_SIZE within the screen (launcher spacing) | date: 2026-10-13]
         self._open_size()
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Settings holds the theme and Lab root…; the log pane follows a theme switch (launcher-gui Task 9) | date: 2026-10-07]
         menus.install_menus(self, (self.root_action,))
         theme.notifier().changed.connect(self._theme_changed)
-        # [AGENT EDIT END]
         self.reload()
         if name is not None and self.project_combo.currentIndex() < 0:  # a name not under the root
             self.new_project = name
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the init and plugin forms show the new project; the Run buttons and backends start current (launcher-gui Task 6) | date: 2026-10-07]
         self._prefill_projects()
         self._refresh_commands()
-        # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every open starts at OPEN_SIZE within the screen (launcher spacing) | date: 2026-10-13]
     def _open_size(self) -> None:
         """Size the window to ``OPEN_SIZE``, at most ``SCREEN_SHARE`` of the screen's available width and height;
         with no screen, ``OPEN_SIZE``."""
@@ -365,7 +321,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             width = min(width, int(area.width() * SCREEN_SHARE))
             height = min(height, int(area.height() * SCREEN_SHARE))
         self.resize(width, height)
-    # [AGENT EDIT END]
 
     def _build(self) -> None:
         self.root_label = _ElidedLabel()
@@ -376,9 +331,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.project_combo = QtWidgets.QComboBox()
         self.project_combo.currentIndexChanged.connect(lambda _index: self.reload())
         self.days_list = QtWidgets.QListWidget()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a check change regreys the backends and recomputes the Run buttons (launcher-gui Task 6) | date: 2026-10-07]
         self.days_list.itemChanged.connect(lambda _item: self._refresh_commands())
-        # [AGENT EDIT END]
         self.run_tree = QtWidgets.QTreeWidget()
         self.run_tree.setHeaderHidden(True)
         self.run_tree.itemSelectionChanged.connect(self._update_open_button)
@@ -389,9 +342,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         left = QtWidgets.QWidget()
         column = QtWidgets.QVBoxLayout(left)
         column.setContentsMargins(0, 0, 0, 0)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between the left column's widgets (launcher spacing) | date: 2026-10-13]
         column.setSpacing(SPACING)
-        # [AGENT EDIT END]
         column.addWidget(self.root_label)
         column.addWidget(self.project_combo)
         column.addWidget(QtWidgets.QLabel('Days'))
@@ -400,33 +351,22 @@ class LauncherWindow(QtWidgets.QMainWindow):
         column.addWidget(self.run_tree, 2)
         column.addWidget(self.open_button)
         self.tabs = QtWidgets.QTabWidget()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one tab per command (launcher-gui Task 6) | date: 2026-10-07]
         self._build_tabs()
-        # [AGENT EDIT END]
         top = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         top.addWidget(left)
         top.addWidget(self.tabs)
         top.setStretchFactor(1, 1)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a gap between the left column and the tabs (launcher spacing) | date: 2026-10-13]
         top.setHandleWidth(GAP)
-        # [AGENT EDIT END]
         self.log_pane = QtWidgets.QPlainTextEdit()
         self.log_pane.setReadOnly(True)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the log pane uses the system fixed-width font (launcher-gui Task 9) | date: 2026-10-07]
         self.log_pane.setFont(QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont))
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the close bar above the log pane, Cancel beside it, the queue list under it (launcher-gui Task 7) | date: 2026-10-07]
         bottom = QtWidgets.QWidget()
         stack = QtWidgets.QVBoxLayout(bottom)
         stack.setContentsMargins(0, 0, 0, 0)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between the log pane's rows and beside Cancel (launcher spacing) | date: 2026-10-13]
         stack.setSpacing(SPACING)
-        # [AGENT EDIT END]
         stack.addWidget(self._build_close_bar())
         pane = QtWidgets.QHBoxLayout()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between the log pane's rows and beside Cancel (launcher spacing) | date: 2026-10-13]
         pane.setSpacing(SPACING)
-        # [AGENT EDIT END]
         pane.addWidget(self.log_pane, 1)
         self.cancel_button = QtWidgets.QPushButton('Cancel')
         self.cancel_button.setEnabled(False)
@@ -437,21 +377,15 @@ class LauncherWindow(QtWidgets.QMainWindow):
         body = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         body.addWidget(top)
         body.addWidget(bottom)
-        # [AGENT EDIT END]
         body.setStretchFactor(0, 3)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an edge around the panes and a gap above the log pane (launcher spacing) | date: 2026-10-13]
         body.setContentsMargins(EDGE, EDGE, EDGE, EDGE)
         body.setHandleWidth(GAP)
-        # [AGENT EDIT END]
         self.setCentralWidget(body)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the close bar and the queue box (launcher-gui Task 7) | date: 2026-10-07]
     def _build_close_bar(self) -> QtWidgets.QFrame:
         """``close_bar``: the close confirmation, hidden until a close arrives while a command runs (D18)."""
         self.close_bar = QtWidgets.QFrame()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the style sheet finds the close bar by name (launcher-gui Task 9) | date: 2026-10-07]
         self.close_bar.setObjectName('close_bar')
-        # [AGENT EDIT END]
         line = QtWidgets.QHBoxLayout(self.close_bar)
         line.setContentsMargins(0, 0, 0, 0)
         self.close_label = QtWidgets.QLabel()
@@ -480,9 +414,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         column.addWidget(self.clear_button, 0, QtCore.Qt.AlignLeft)
         self.queue_box.hide()
         return self.queue_box
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each log line is kept and drawn in the colour of its tone; a theme switch redraws them (launcher-gui Task 9) | date: 2026-10-07]
     def append_log(self, line: str) -> None:
         """Append one line to ``log_lines`` and to the log pane in the colour of ``log_tone(line)``."""
         self.log_lines.append(line)
@@ -509,7 +441,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         for index, line in enumerate(self.log_lines):
             self._insert_log_line(line, first=index == 0)
         self._scroll_log_to_end()
-    # [AGENT EDIT END]
 
     def _fill_combo(self) -> None:
         """Refill the project combo; keep the current name when listed (signals blocked)."""
@@ -529,7 +460,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         finally:
             self.project_combo.blockSignals(blocked)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: reload refills the lists without a refresh per check, then prefills the project fields and recomputes the commands (launcher-gui Task 6) | date: 2026-10-07]
     def reload(self) -> None:
         """Refill the project combo, then the days and runs of its project (D38); an error is logged
         and leaves both lists empty. Then the init and plugin forms follow the combo, and the Run
@@ -546,7 +476,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         """Refill the project combo, then the days and runs of its project; an error is logged and
         leaves both lists empty."""
         self._project = None
-    # [AGENT EDIT END]
         checked = {self.days_list.item(i).data(_ENTRY_ROLE) for i in range(self.days_list.count())
                    if self.days_list.item(i).checkState() == QtCore.Qt.Checked}
         self.days_list.clear()
@@ -584,9 +513,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
             top.setExpanded(True)
         self._filled = (self.root, project.name)
         self.project_ok = True
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the opened project is kept for backend_refusal (launcher-gui Task 6) | date: 2026-10-07]
         self._project = project
-        # [AGENT EDIT END]
         self._update_open_button()
 
     def _selected_child(self):
@@ -613,11 +540,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
         if child is None:
             return
         entry = child.data(0, _ENTRY_ROLE)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launcher-gui Task 5 fix round 1: a viewer import failure reaches the log pane | date: 2026-10-07]
         try:
             from ..viewer.app import open_run
             viewer = open_run(entry.folder)
-        # [AGENT EDIT END]
         except Exception as exc:
             self.append_log(f'error: {exc}')
             return
@@ -646,14 +571,11 @@ class LauncherWindow(QtWidgets.QMainWindow):
             return False
         self.root, self.plugins, self.forms = new_root, api, forms
         self.root_label.set_full_text(str(self.root))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tabs are rebuilt from the new root's forms (launcher-gui Task 6) | date: 2026-10-07]
         self._build_tabs()
-        # [AGENT EDIT END]
         self._wanted = (None,)
         self.reload()
         return True
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: command tabs build forms off the CLI's parser and run each command as a CLI child, one at a time (launcher-gui Task 6) | date: 2026-10-07]
     # --- tabs -----------------------------------------------------------------------------------
     def _build_tabs(self) -> None:
         """One tab per command: the built-ins, then each plugin command in its order (D10, D45, D46)."""
@@ -674,9 +596,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def _build_tab(self, name: str) -> QtWidgets.QWidget:
         page = QtWidgets.QWidget()
         column = QtWidgets.QVBoxLayout(page)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room around a tab's form, wider on the scrollbar side (launcher spacing) | date: 2026-10-13]
         column.setContentsMargins(SPACING, SPACING, SPACING + 4, SPACING)
-        # [AGENT EDIT END]
         self.form_widgets[name] = {}
         if name == 'run':
             self._specs = {spec.id: spec for spec in registry.list_specs()}
@@ -685,21 +605,15 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 self.backend_combo.addItem(backend_label(backend_id), backend_id)
             self.backend_combo.currentIndexChanged.connect(lambda _index: self._backend_changed())
             column.addWidget(self.backend_combo)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence tags sit under the backend (event-optional Task 11) | date: 2026-10-10]
             column.addWidget(self._build_evidence_bar())
-            # [AGENT EDIT END]
         form = QtWidgets.QFormLayout()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between form rows (launcher spacing) | date: 2026-10-13]
         _space_form(form)
-        # [AGENT EDIT END]
         column.addLayout(form)
         for field in self.forms[name]:
             self._add_row(form, name, field)
         if name == 'run':  # the backend's option rows sit below the run fields, rebuilt per backend (D73)
             self._option_form = QtWidgets.QFormLayout()
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room between form rows (launcher spacing) | date: 2026-10-13]
             _space_form(self._option_form)
-            # [AGENT EDIT END]
             column.addLayout(self._option_form)
             self._fill_backend_rows()
         column.addStretch(1)
@@ -707,22 +621,17 @@ class LauncherWindow(QtWidgets.QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setWidget(page)
         button = QtWidgets.QPushButton('Run')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Run button takes the accent fill (launcher-gui Task 9) | date: 2026-10-07]
         button.setProperty('primary', True)
-        # [AGENT EDIT END]
         button.clicked.connect(lambda _checked=False, command=name: self.run_command(command))
         self.run_buttons[name] = button
         tab = QtWidgets.QWidget()
         outer = QtWidgets.QVBoxLayout(tab)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: room inside the tab's frame and above Run (launcher spacing) | date: 2026-10-13]
         outer.setContentsMargins(SPACING + 4, SPACING + 4, SPACING + 4, SPACING + 4)
         outer.setSpacing(SPACING + 4)
-        # [AGENT EDIT END]
         outer.addWidget(scroll, 1)
         outer.addWidget(button)
         return tab
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence bar holds one tag per evidence fallback of the checked days (event-optional Task 11) | date: 2026-10-10]
     def _build_evidence_bar(self) -> QtWidgets.QWidget:
         """``evidence_bar``: the run's evidence tags in a row, hidden while there is none (D20, D25, D55)."""
         self.evidence_bar = QtWidgets.QWidget()
@@ -732,7 +641,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._evidence_labels = []
         self.evidence_bar.hide()
         return self.evidence_bar
-    # [AGENT EDIT END]
 
     def _add_row(self, form: QtWidgets.QFormLayout, name: str, field) -> None:
         """One row: ``field.label`` (`` *`` when required, D37) with ``field.help`` as hover (D19)."""
@@ -809,10 +717,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def _field_changed(self, name: str, dest: str) -> None:
         if name == 'run' and dest == 'python':
             self._grey_backends()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a min_repeats change redecides the evidence tags (event-optional Task 11) | date: 2026-10-10]
         if name == 'run' and dest == 'min_repeats':
             self._refresh_evidence()
-        # [AGENT EDIT END]
         self._update_run_buttons()
 
     # --- values ---------------------------------------------------------------------------------
@@ -847,14 +753,11 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 rows.append((item.data(_ENTRY_ROLE), item.text().rsplit(' · ', 1)[-1]))
         return rows
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every listed day with its tag, for an extract with no day checked (D80) (launcher-gui Task 11) | date: 2026-10-07]
     def _all_rows(self) -> list:
         """``[(day, tag)]`` of every listed day, in ``day_rows`` order."""
         return [(self.days_list.item(i).data(_ENTRY_ROLE), self.days_list.item(i).text().rsplit(' · ', 1)[-1])
                 for i in range(self.days_list.count())]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an extract with no day checked takes every listed day not yet extracted, fixed when Run is pressed (D80) (launcher-gui Task 11) | date: 2026-10-07]
     def _command_days(self, name: str) -> tuple:
         """``extract``: the checked days tagged ``none``, and with no day checked every listed day
         tagged ``none``, in ``day_rows`` order, so a waiting extract keeps the days not yet extracted
@@ -865,7 +768,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         if name == 'run':
             return tuple(day for day, _tag in self._checked_rows())
         return ()
-    # [AGENT EDIT END]
 
     def _prefill_projects(self) -> None:
         """The ``project`` field of the init and plugin forms shows the combo's project, else
@@ -882,9 +784,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
     # --- Run buttons and greyed backends ----------------------------------------------------------
     def _refresh_commands(self) -> None:
         self._grey_backends()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every refresh redecides the evidence tags and the greyed event choices (event-optional Task 11) | date: 2026-10-10]
         self._refresh_evidence()
-        # [AGENT EDIT END]
         self._update_run_buttons()
 
     def _run_interpreter(self) -> Optional[str]:
@@ -892,7 +792,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
         widget = self.form_widgets.get('run', {}).get('python')
         if isinstance(widget, QtWidgets.QLineEdit) and widget.text().strip():
             return widget.text().strip()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a raising lookup is kept and re-raised, so the lookup runs at most once per window (launcher-gui Task 6 fix round 1) | date: 2026-10-07]
         if self._interpreter is _UNSET:
             try:
                 self._interpreter = (self.interpreter_lookup or dependency_setup.verified_interpreter)()
@@ -900,7 +799,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 self._interpreter = exc
         if isinstance(self._interpreter, Exception):
             raise self._interpreter
-        # [AGENT EDIT END]
         return self._interpreter
 
     def _grey_backends(self) -> None:
@@ -921,10 +819,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
             item.setEnabled(reason == '')
             item.setToolTip(reason)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run form's evidence: decided as launch run decides it, shown as tags, and greying the choices only events measure (event-optional Task 11) | date: 2026-10-10]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the field's min_repeats is checked against >= 1 here, so a bad value shows its error tag with or without checked days (event-optional Task 11, fix round 1) | date: 2026-10-10]
     def _min_repeats(self) -> int:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the field's min_repeats must be an int >= 2, as run_evidence refuses (event-optional Task 14) | date: 2026-10-10]
         """The run form's ``min_repeats`` as ``launch run`` reads it: the field's integer, else the backend's
         default, else ``Selection.evidence``'s; ``ValueError`` for field text that is not an integer >= 2."""
         widget = self.form_widgets.get('run', {}).get('min_repeats')
@@ -937,23 +832,18 @@ class LauncherWindow(QtWidgets.QMainWindow):
             if value < 2:
                 raise ValueError(f'min_repeats must be an int >= 2, not {value!r}')
             return value
-        # [AGENT EDIT END]
         spec = self._specs.get(self.backend_combo.currentData())
         option = None if spec is None else next((o for o in spec.options if o.name == 'min_repeats'), None)
         return _EVIDENCE_MIN_REPEATS if option is None else option.default
-    # [AGENT EDIT END]
 
     def _no_events(self) -> bool:
         """True when the checked days' evidence is decided and has no events."""
         return self._evidence is not None and not self._evidence.events
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: min_repeats is validated before the selection guard; only deciding the evidence needs checked days (event-optional Task 11, fix round 1) | date: 2026-10-10]
     def _refresh_evidence(self) -> None:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says >= 2 (event-optional Task 14) | date: 2026-10-10]
         """Redecide the checked days' evidence for the current backend and rebuild its tags, then the enabled
         state and hover of every ``EVENT_CHOICES`` item (D18, D20, D25). A ``min_repeats`` that is not an
         integer >= 2, checked or not, or any error deciding the evidence, shows one ``error`` tag instead (D55)."""
-        # [AGENT EDIT END]
         if self._building or not hasattr(self, 'evidence_bar'):
             return
         self._evidence, self._evidence_error, tags = None, None, []
@@ -974,7 +864,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
             tags = [('error', self._evidence_error)]
         self._show_evidence_tags(tags)
         self._grey_event_choices()
-    # [AGENT EDIT END]
 
     def _show_evidence_tags(self, tags: list) -> None:
         """Replace the evidence bar's tags with one amber ``QLabel`` per ``(text, tooltip)``."""
@@ -1010,7 +899,6 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def evidence_tags_shown(self) -> list:
         """``[(text, tooltip)]`` of the run form's evidence tags, in order."""
         return [(label.text(), label.toolTip()) for label in self._evidence_labels]
-    # [AGENT EDIT END]
 
     def _ready(self, name: str) -> bool:
         """Whether ``name``'s Run is enabled; a running or waiting command changes nothing (D8, D77)."""
@@ -1022,17 +910,13 @@ class LauncherWindow(QtWidgets.QMainWindow):
         if name in _NEEDS_PROJECT and not self.project_ok:
             return False
         checked = self._checked_rows()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: extract is ready when it has days to send (D80) (launcher-gui Task 11) | date: 2026-10-07]
         if name == 'extract':
             return bool(self._command_days('extract'))
-        # [AGENT EDIT END]
         if name == 'run':
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an error tag, or a choice only events measure on days without events, keeps Run disabled (event-optional Task 11, D55) | date: 2026-10-10]
             if self._evidence_error is not None:
                 return False
             if self._no_events() and any(values.get(dest) in choices for dest, choices in EVENT_CHOICES.items()):
                 return False
-            # [AGENT EDIT END]
             index = self.backend_combo.currentIndex()
             greyed = index < 0 or not self.backend_combo.model().item(index).isEnabled()
             return bool(checked) and all(tag == 'raw' for _day, tag in checked) and not greyed
@@ -1042,9 +926,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         if self._building:
             return
         for name, button in self.run_buttons.items():
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: after the close bar's Yes every Run button stays disabled (D79) (launcher-gui Task 7) | date: 2026-10-07]
             button.setEnabled(not self._close_after and self._ready(name))
-            # [AGENT EDIT END]
 
     # --- running --------------------------------------------------------------------------------
     def running(self) -> bool:
@@ -1056,14 +938,10 @@ class LauncherWindow(QtWidgets.QMainWindow):
         return None if child is None else child.data(0, _ENTRY_ROLE).folder
 
     def run_command(self, command: str) -> None:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names D79 (launcher-gui Task 7 fix round 1) | date: 2026-10-07]
         """Run ``command`` from its form as a CLI child; while one runs, it waits in ``queue`` (D8, D40).
         After the close bar's ``Yes`` nothing is queued or started (D79)."""
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a window closing on the running job's end takes no new job (launcher-gui Task 7) | date: 2026-10-07]
         if self._close_after:
             return
-        # [AGENT EDIT END]
         values = self._values(command)
         shown = self._shown()
         try:
@@ -1084,9 +962,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
                'project': project, 'shown': shown, 'selected': self._selected_folder()}
         if self._busy:
             self.queue.append(job)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the queue list follows the queue (launcher-gui Task 7) | date: 2026-10-07]
             self._queue_changed()
-            # [AGENT EDIT END]
         else:
             self._start(job)
 
@@ -1099,11 +975,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
         process.stdout_line.connect(self._on_stdout)
         process.stderr_line.connect(self.append_log)
         process.ended.connect(lambda code, ended_by=process: self._on_ended(ended_by, code))
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Cancel waits for the process's started (launcher-gui Task 7) | date: 2026-10-07]
         process.started.connect(lambda started_by=process: self._on_started(started_by))
         self._started = self._cancel_requested = self._cancel_pending = self._killed = False
         self.cancel_button.setEnabled(False)
-        # [AGENT EDIT END]
         self._busy = True
         self.root_action.setEnabled(False)  # D32: only the root is locked
         process.start(job['program'], job['arguments'], _child_env(), str(REPO))
@@ -1129,37 +1003,29 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self.run_tree.setCurrentItem(item)
 
     def _on_ended(self, process, code: int) -> None:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the killed line and the close after Yes (launcher-gui Task 7 fix round 1) | date: 2026-10-07]
         """Log the end (``killed`` or ``exit <code>``), reload, follow the job when the shown project has
         not moved, then start the next waiting job whatever ``code`` was, or close the window after the
         close bar's ``Yes`` (D8, D11, D30, D71)."""
-        # [AGENT EDIT END]
         if process is not self.process:
             return
         job = self.submitted
         self._busy = False
         shown_now = self._shown()
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the end line names a kill; the cancel marks reset and the close bar hides (launcher-gui Task 7) | date: 2026-10-07]
         self._kill_timer.stop()
         self.append_log('killed' if self._killed else f'exit {code}')
         self._started = self._cancel_requested = self._cancel_pending = self._killed = False
         self.cancel_button.setEnabled(False)
         self.close_bar.hide()
-        # [AGENT EDIT END]
         self.reload()
         if shown_now == job['shown']:
             self._follow(job, code)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Yes on the close bar closes the window instead of starting a next job (launcher-gui Task 7) | date: 2026-10-07]
         if self._close_after:
             self.root_action.setEnabled(True)
             self.close()
             return
-        # [AGENT EDIT END]
         if self.queue:
             self._start(self.queue.pop(0))
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the queue list follows the queue (launcher-gui Task 7) | date: 2026-10-07]
             self._queue_changed()
-            # [AGENT EDIT END]
         else:
             self.root_action.setEnabled(True)
 
@@ -1181,9 +1047,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 self.run_tree.setCurrentItem(item)
         else:
             self._reselect(job['selected'])
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Cancel interrupts the running job, then kills it after KILL_AFTER_MS; the queue list; the close confirmation (launcher-gui Task 7) | date: 2026-10-07]
     # --- cancel ---------------------------------------------------------------------------------
     def _on_started(self, process) -> None:
         """Enable Cancel, or send a cancel asked before ``started`` (D70)."""
@@ -1235,10 +1099,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
             line.addWidget(remove)
             self.queue_list.setItemWidget(item, row)
         self.queue_box.setHidden(not self.queue)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the visible close bar's waiting count follows the queue (launcher-gui Task 7 fix round 1) | date: 2026-10-07]
         if self._busy and not self.close_bar.isHidden():
             self.close_label.setText(self._close_text())
-        # [AGENT EDIT END]
 
     def remove_queued(self, index: int) -> None:
         """Drop the waiting job at ``index``; the running job and the log are untouched."""
@@ -1260,17 +1122,13 @@ class LauncherWindow(QtWidgets.QMainWindow):
         event.ignore()
         if self._close_after:  # already closing on the running job's end
             return
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the close bar's text comes from one helper the queue list also refreshes (launcher-gui Task 7 fix round 1) | date: 2026-10-07]
         self.close_label.setText(self._close_text())
-        # [AGENT EDIT END]
         self.close_bar.show()
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the close bar's text comes from one helper the queue list also refreshes (launcher-gui Task 7 fix round 1) | date: 2026-10-07]
     def _close_text(self) -> str:
         """``<command> running · cancel and close?``, with ``· N waiting`` while ``N`` jobs wait (D78)."""
         waiting = f' · {len(self.queue)} waiting' if self.queue else ''
         return f"{self.submitted['command']} running{waiting} · cancel and close?"
-    # [AGENT EDIT END]
 
     def _close_confirmed(self) -> None:
         """``Yes``: drop the queue, cancel the running job and close when it ends (D70, D78, D79)."""
@@ -1279,22 +1137,14 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._cancel()
         self._close_after = True
         self._update_run_buttons()
-    # [AGENT EDIT END]
 
 
 def run_window(root: Path, project: Optional[str], plugins: PluginApi) -> int:
     """Show the launcher window over ``root`` and run the Qt event loop; return its exit code."""
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv[:1])
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved theme is applied before the window is built (D66) (launcher-gui Task 9) | date: 2026-10-07]
     theme.apply_theme(app, theme.saved_theme())
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher opens in the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
     unit_palettes.set_palette(theme.saved_unit_palette())
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every window of the launcher carries the logo icon (logo) | date: 2026-10-13]
     app.setWindowIcon(logo.icon())
-    # [AGENT EDIT END]
     window = LauncherWindow(root, project, plugins=plugins)
     window.show()
     return app.exec()
-# [AGENT EDIT END]

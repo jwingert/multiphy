@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: executable optional matching and training runners with cache-only output | date: 2026-09-17]
 """Execute persisted benchmark inputs without writing data into the code tree.
 
 Examples (all output defaults to /auto/data/nems_db/unit_match):
@@ -25,13 +24,11 @@ def _load_dataset(path):
     return load_dataset(path)
 
 
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: run-backend is a thin wrapper over run.runner; helpers moved to run/ and kept here as aliases | date: 2026-09-22]
 from .run.run_dir import read_json_object as _json_object, write_json as _write_json  # noqa: E402
 from .run.runner import _select_partition, cache_runtime as _cache_runtime  # noqa: E402
 
 
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: pass every option on so a typo fails validation; drop only None and consumed input names (whole-branch review fix 6) | date: 2026-09-23]
-INPUT_OPTIONS = frozenset({'checkpoint', 'checkpoint_probe'})  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no model input option (Task 2) | date: 2026-09-27]
+INPUT_OPTIONS = frozenset({'checkpoint', 'checkpoint_probe'})
 
 
 def backend_options(backend, options):
@@ -49,7 +46,6 @@ def cli_shared_flags(backend, values, defaults):
     from .contract import registry
     declared = {o.name for o in registry.get(backend).spec.options}
     return {k: v for k, v in values.items() if k in declared or v != defaults.get(k)}
-# [AGENT EDIT END]
 
 
 def run_backend_dataset(input_path, backend, *, partition='test', output_dir=None, root=None, **options):
@@ -66,16 +62,12 @@ def run_backend_dataset(input_path, backend, *, partition='test', output_dir=Non
     dataset = _load_dataset(input_path)
     dataset.metadata['input_path'] = str(Path(input_path).expanduser().resolve())
     dataset.metadata['input_manifest_sha256'] = hashlib.sha256((Path(input_path) / 'manifest.json').read_bytes()).hexdigest()
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: undeclared options are refused, not dropped (whole-branch review fix 6) | date: 2026-09-23]
     extra = {}
     if options.get('checkpoint'):
         extra['checkpoint'] = CheckpointRef(str(options['checkpoint']), options.get('checkpoint_probe'))
-    # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: no fitted-model forwarding (Task 2) | date: 2026-09-27]
     kept = backend_options(backend, options)
-    # [AGENT EDIT END]
     return runner.run(dataset, backend, kept, group_column='recording_group', partition=partition,
                       output_dir=output_dir, root=root, extra_inputs=extra)
-# [AGENT EDIT END]
 
 
 def prepare_deep_dataset(input_path, *, source_checkout, output_dir=None,
@@ -205,7 +197,6 @@ def main(argv=None):
                 _module({'unitmatch': 'UnitMatchPy.overlord', 'dant': 'pyDANT.Runner',
                          'deepunitmatch': 'UnitMatchPy.overlord'}[args.backend])
                 wait_for_extraction(args.wait_for_pid, args.input)
-            # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: shared flags reach only backends that take them, unless set explicitly (whole-branch review fix 6) | date: 2026-09-23]
             shared = ('settings', 'params', 'checkpoint', 'checkpoint_probe', 'device', 'tracking', 'native_threshold',
                       'threshold', 'contradiction_threshold', 'ambiguity_margin')
             defaults = vars(parser.parse_args(['run-backend', '--input', str(args.input), '--backend', args.backend]))
@@ -215,7 +206,6 @@ def main(argv=None):
                     options[key] = _json_object(options[key])
             output = run_backend_dataset(args.input, args.backend, partition=args.partition,
                 output_dir=args.output, **options)
-            # [AGENT EDIT END]
             print(f'Matching result: {output / "result.json"}')
         elif args.command == 'prepare-deep':
             output = prepare_deep_dataset(args.input, source_checkout=args.source_checkout,
@@ -233,4 +223,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     raise SystemExit(main())
-# [AGENT EDIT END]

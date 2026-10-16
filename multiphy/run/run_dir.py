@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: result file format 2 with a format 1 reader | date: 2026-09-22]
 """The files a run leaves behind, and how a result is read back.
 
 Reading and writing use format 2 only: ``score``, ``track_kind`` and ``tracking_rule``
@@ -87,9 +86,7 @@ def load_result(path):
     path = Path(path).expanduser()
     with path.open(encoding='utf-8') as stream:
         document = json.load(stream, parse_constant=reject_nonfinite)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: format 1 is refused, not mapped (Task 1) | date: 2026-09-27]
     if not isinstance(document, dict) or document.get('format') != FORMAT or document.get('schema_version') != 2:
-    # [AGENT EDIT END]
         raise ValueError(f'{path}: unsupported matching result format or schema version')
     payload = document.get('result')
     if not isinstance(payload, dict) or document.get('sha256') != payload_digest(payload):
@@ -102,4 +99,3 @@ def load_result(path):
                        payload['tracks'], payload['unmatched'], payload['excluded_units'],
                        ScoreBlock.from_json(payload['score']), TrackKind(payload['track_kind']),
                        payload['tracking_rule'], Provenance.from_json(payload['provenance'])).validate()
-# [AGENT EDIT END]

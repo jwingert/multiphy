@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: declared backend spec and protocol | date: 2026-09-22]
 """What a backend is.
 
 A backend is an object with a ``spec`` (data: id, version, what it requires, what it
@@ -41,10 +40,8 @@ class Provides:
     score_kinds: frozenset
     track_kinds: frozenset
     similarity: bool = False
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a spec declares that its runs save day offsets (drift-view Task 2) | date: 2026-10-08]
     # A backend that sets day_offsets saves a `registration` in each group's provenance.
     day_offsets: bool = False
-    # [AGENT EDIT END]
 
 
 @dataclass(frozen=True)
@@ -63,9 +60,7 @@ class BackendSpec:
     provides: Provides
     options: tuple
     builtin: bool = False
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a spec declares whether it may run on real-day archives; benchmark baselines opt out (whole-branch review fix 4) | date: 2026-09-23]
     real_days: bool = True
-    # [AGENT EDIT END]
 
     def __post_init__(self):
         if not self.id or not self.version:
@@ -114,4 +109,3 @@ NATIVE_TRACKING_OPTIONS = (
            choices=('native_intermediate', 'native_conservative', 'native_liberal', 'common_constrained')),
     Option('native_threshold', 'float', None, 'Published-rule match threshold; upstream default when omitted'),
 )
-# [AGENT EDIT END]

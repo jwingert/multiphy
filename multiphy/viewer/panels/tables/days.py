@@ -1,12 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table: one column per day listing every unit, re-sorted to a picked unit, with the backend's grouping washed in and Accept, Reject, Merge and Unmatch unit (native-same-day Task 9) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the step rule names the active column; tag wraps the whole docstring (native-same-day Task 9 fix round 2) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a proposed link's partner may be on the same day or another day; tag wraps the whole docstring (native-same-day Task 9, final review fix round 1) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: held day order, header sorts, the registered-distance pick key and the own-day walk; tag wraps the whole docstring (browse-same-day Task 2) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the pinned same-day column and its step; tag wraps the whole docstring (browse-same-day Task 3) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: short headers, one-letter status and the narrowest column widths; tag wraps the whole docstring (day-table widths) | date: 2026-10-13]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the µm column, shared spare width, two-line day names, the reference unit and the track-distance-score key; tag wraps the whole docstring (day-table-keys Task 2) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one strung unit per other day, the walked reference, the active day and its accent; tag wraps the whole docstring (day-table-keys Task 3) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the reference is what µm, sc and the headers measure against; the own day keeps its held order; tag wraps the whole docstring (day-table-keys Task 3 fix round 2) | date: 2026-10-14]
 """The day table: one column per day, every unit of that day, beside its links.
 
 Rules:
@@ -73,14 +64,6 @@ Rules:
 - Accept and Reject act on the picked unit's track; Merge joins the whole tracks of the selected units;
   Unmatch unit takes the active unit (``cursor``) out of its track. A refused action shows its message only.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from typing import Optional
 
 import numpy as np
@@ -88,46 +71,36 @@ import pandas as pd
 
 from multiphy import clusters as cl
 from multiphy.viewer import theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the 2D registered distance the pick key sorts by (browse-same-day Task 2) | date: 2026-10-12]
 from multiphy.viewer.drift_frame import registered_positions, unit_distance
-# [AGENT EDIT END]
 from multiphy.viewer.panels.tables.base import _table
 from multiphy.viewer.qt import QtCore, QtWidgets
 from multiphy.viewer.state import Actions, PairState
 
 STATUS_ORDER = {'unmatched': 0, 'track': 1, 'accepted': 2}
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one-letter status, short headers, the narrowest column widths and the five-day fit (day-table widths) | date: 2026-10-13]
 # a status shows as one letter; its hover names it
 STATUS_LETTERS = {'unmatched': 'u', 'track': 'm', 'accepted': 'a'}
 STATUS_WORDS = {'unmatched': 'unmatched', 'track': 'matched', 'accepted': 'accepted'}
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the µm column between unit and sc (day-table-keys Task 2) | date: 2026-10-14]
 HEADERS = ('unit', 'µm', 'sc', 's')
 HEADER_TIPS = ('', 'distance to the picked unit · µm', 'score to the picked unit',
                'status · u unmatched · m matched · a accepted')
 # the narrowest widths that show `318-1 ⇄`, `9999`, `0.97` and a status letter, and each header beside its sort
 # arrow, under the theme's compact header padding (theme.py `QHeaderView[role="compact"]`); sum 172
 WIDTHS = (64, 40, 40, 28)
-# [AGENT EDIT END]
 # Browse opens wide enough for this many day columns; more days scroll
 FIT_DAYS = 5
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: copy so the run's column is never changed, and read pd.NA as NaN (native-same-day Task 9 fix round 1) | date: 2026-10-11]
 def _numbers(values) -> np.ndarray:
     """``values`` as floats; a non-numeric or non-finite cell is NaN."""
     out = pd.to_numeric(pd.Series(values), errors='coerce').to_numpy(dtype=float, copy=True, na_value=np.nan)
     out[~np.isfinite(out)] = np.nan
     return out
-# [AGENT EDIT END]
 
 
 def _text(rank: float) -> str:
     return '--' if not np.isfinite(rank) else f'{rank:.2f}'
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one builder for the day and same-day tables: short headers, compact header padding, the narrowest width (day-table widths) | date: 2026-10-13]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: four columns share a wider table's spare width through spread and _Spread; the last no longer stretches alone; tag wraps the whole block (day-table-keys Task 2) | date: 2026-10-14]
 def spread(width: int) -> list:
     """``WIDTHS`` widened to share ``width``'s spare pixels: every column but the last gains
     ``extra * w // sum(WIDTHS)``, the last takes the remainder, so the list sums to ``max(width, sum(WIDTHS))``."""
@@ -175,11 +148,8 @@ def _day_table():
         table.horizontalHeaderItem(i).setToolTip(tip)
     table.setMinimumWidth(_narrowest(table))
     return table
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: header hovers name the reference; a day name on two lines (day-table-keys Task 2) | date: 2026-10-14]
 def _set_tips(table, ref: Optional[str]) -> None:
     """``table``'s header hovers: ``µm`` and ``sc`` name ``ref``; with no reference, ``HEADER_TIPS``."""
     tips = HEADER_TIPS if ref is None else ('', f'distance to {ref} · µm', f'score to {ref}', HEADER_TIPS[3])
@@ -190,24 +160,14 @@ def _set_tips(table, ref: Optional[str]) -> None:
 def _two_lines(day_name: str) -> str:
     """``day_name`` with its first `` · `` a line break: the date over the site."""
     return day_name.replace(' · ', '\n', 1)
-# [AGENT EDIT END]
 
 
 class DayTablePanel(QtWidgets.QWidget):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the class docstring names the held own day and the pinned same-day column (browse-same-day Task 6) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every other day sorts to its reference unit (day-table-keys Task 3) | date: 2026-10-14]
     """One column per day of every unit: the picked unit's own day in its held order, every other day sorted to its reference unit, and the picked unit's other own-day units in the pinned same-day column."""
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     panel_id, panel_title = 'days', 'Day table'
     picked = QtCore.Signal(str)
     curated = QtCore.Signal(str)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day column pinned left of the scrolled days; tag wraps the whole constructor (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day column is fixed to its three columns plus frame and scrollbar; tag wraps the whole constructor (browse-same-day Task 6) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: held day orders, header sorts and registered positions replace the status-sorted set and the depths; tag wraps the whole constructor (browse-same-day Task 2 fix round 1) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day table comes from _day_table, fixed at a day column's narrowest; tag wraps the whole constructor (day-table widths) | date: 2026-10-13]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the string (one unit per other day) and its extras; Unmatch unit takes the active unit out; tag wraps the whole constructor (day-table-keys Task 3) | date: 2026-10-14]
     def __init__(self, state: PairState, actions: Actions, curates: bool, parent=None):
         super().__init__(parent)
         self.state, self.actions, self.curates = state, actions, curates
@@ -274,18 +234,8 @@ class DayTablePanel(QtWidgets.QWidget):
         self.status.setWordWrap(True)
         self.status.setProperty('role', 'hint')
         lay.addWidget(self.status)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------- columns
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: show_run empties the same-day column (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: show_run clears the held orders and header sorts, then holds each day in status order (browse-same-day Task 2) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each day column is a _day_table, never narrower than its three columns; tag wraps the whole function (day-table widths) | date: 2026-10-13]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day name shows its date over its site; the same-day header hovers start with no reference; tag wraps the whole function (day-table-keys Task 2) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: show_run empties the string and its extras; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
     def show_run(self) -> None:
         """One column per site of the run, headed by its day name on two lines (date over site); clears the
         pick, the cursor, the selection, the string and its extras, the held orders and the header sorts, then
@@ -322,13 +272,7 @@ class DayTablePanel(QtWidgets.QWidget):
             for site, units in self._site_units().items():
                 self.held[site] = sorted(units, key=self._status_key)
         self.refresh()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the scroll width that shows up to FIT_DAYS day columns at their narrowest (day-table widths) | date: 2026-10-13]
     def fit_width(self) -> int:
         """The day scroll's viewport width that shows the first ``min(days, FIT_DAYS)`` day columns at their
         narrowest; 0 with no day columns."""
@@ -339,9 +283,7 @@ class DayTablePanel(QtWidgets.QWidget):
         margins = lay.contentsMargins()
         return (sum(c.minimumSizeHint().width() for c in columns) + max(lay.spacing(), 0) * (len(columns) - 1)
                 + margins.left() + margins.right())
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _read_run also reads the units' registered positions (browse-same-day Task 2) | date: 2026-10-12]
     def _read_run(self) -> None:
         """The run's ranks by unit pair, proposed links, the backend's grouping and the units' registered
         positions; empty without a run."""
@@ -368,13 +310,11 @@ class DayTablePanel(QtWidgets.QWidget):
             members = [str(m) for m in track]
             for m in members:
                 self._grouped.setdefault(m, set()).update(members)
-    # [AGENT EDIT END]
 
     def rank(self, a: str, b: str) -> float:
         """The rank of ``a`` against ``b``: their pair row's score, else its similarity, else NaN."""
         return self._ranks.get(frozenset((a, b)), np.nan)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the registered distance, each day's units, the held order and the one pick key every sort to the pick uses (browse-same-day Task 2) | date: 2026-10-12]
     def distance(self, a: str, b: str) -> float:
         """The 2D registered distance of ``a`` and ``b`` (``unit_distance``); NaN when it has none."""
         return unit_distance(self._positions, a, b)
@@ -404,9 +344,6 @@ class DayTablePanel(QtWidgets.QWidget):
         p = self.picked_unit
         return p is None or self.state.sites.get(p) == site or site in self.held_shown
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the reference a day sorts to; the pick key puts distance before rank; the score header's key (day-table-keys Task 2) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the reference walks the string toward the own day (day-table-keys Task 3) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the own day measures against its reference but keeps its held order; tag wraps the whole function (day-table-keys Task 3 fix round 2) | date: 2026-10-14]
     def reference(self, site: str) -> Optional[str]:
         """The unit ``site``'s column measures ``µm`` and ``sc`` and its header sorts against, and sorts to
         when it does not show its held order (the own day always does): ``None`` with no pick; the picked unit
@@ -425,8 +362,6 @@ class DayTablePanel(QtWidgets.QWidget):
             if order[i] in self.strung:
                 return self.strung[order[i]]
         return p
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     def _pick_key(self, c: str, ref: str, mates: set) -> tuple:
         """The pick key to ``ref``: ``mates`` first, then registered distance (ascending), then rank
@@ -476,8 +411,6 @@ class DayTablePanel(QtWidgets.QWidget):
             header.setSortIndicator(section, QtCore.Qt.AscendingOrder if ascending else QtCore.Qt.DescendingOrder)
         else:
             header.setSortIndicator(-1, QtCore.Qt.AscendingOrder)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     def column_ids(self, site: str) -> list:
         """The cellids of ``site``'s column, top to bottom."""
@@ -503,10 +436,6 @@ class DayTablePanel(QtWidgets.QWidget):
             return 'accepted'
         return 'track' if len(track['members']) >= 2 else 'unmatched'
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each column shows its held order or the pick key, then its sort arrow (browse-same-day Task 2) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one row-fill helper draws the day columns and the same-day column; the same-day arrow is set last (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each column fills against its reference and names it in its header hovers; the same-day column's reference is the picked unit; tag wraps the whole function (day-table-keys Task 2) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the active day's header, or the same-day header while it is active, is toned accent; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
     def refresh(self) -> None:
         """Redraw every column and the same-day column from the current pick, selection, track state and
         held orders; each table's header hovers name its reference. The active day's header is toned
@@ -544,11 +473,7 @@ class DayTablePanel(QtWidgets.QWidget):
         for site in self.tables:
             self._set_indicator(site)
         self._set_same_indicator()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the status shows as one letter, its word on hover; tag wraps the whole function (day-table widths) | date: 2026-10-13]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the µm cell and the score against the column's reference; the unit hover lists only the link lines; tag wraps the whole function (day-table-keys Task 2) | date: 2026-10-14]
     def _fill_row(self, table, i: int, c: str, site, ref: Optional[str], marks: tuple) -> None:
         """Row ``i`` of ``table`` for unit ``c``: the ``unit`` label with ``⇄`` and its proposed-link lines on
         hover, the distance (whole µm) and score to ``ref`` (``--`` with no reference, for ``ref`` itself, or with
@@ -577,10 +502,7 @@ class DayTablePanel(QtWidgets.QWidget):
             theme.tone(unit, 'reject')
         for j, cell in enumerate(cells):
             table.setItem(i, j, cell)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the arrow points down for sc only, now section 2 (day-table-keys Task 2) | date: 2026-10-14]
     def _set_same_indicator(self) -> None:
         """The same-day sort arrow, set last: Qt flips it on a header click before ``sectionClicked`` runs. It
         points down for ``sc`` only."""
@@ -594,14 +516,12 @@ class DayTablePanel(QtWidgets.QWidget):
         if reverse:
             ascending = not ascending
         header.setSortIndicator(section, QtCore.Qt.AscendingOrder if ascending else QtCore.Qt.DescendingOrder)
-    # [AGENT EDIT END]
 
     def same_column_ids(self) -> list:
         """The cellids of the same-day column, top to bottom."""
         t = self.same_table
         return [t.item(i, 0).data(QtCore.Qt.UserRole) for i in range(t.rowCount())]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day header shows the day's date over its site (day-table-keys Task 2) | date: 2026-10-14]
     def _fill_same(self) -> None:
         """Fill ``same_ids`` with the picked unit's other own-day units by the pick key to it; clear its header
         sort; head it ``same day · `` and the day name on two lines."""
@@ -614,7 +534,6 @@ class DayTablePanel(QtWidgets.QWidget):
         self.same_sorted_by = None
         data = self.state.data
         self.same_header.setText('same day · ' + _two_lines(data.day_name(own)) if data is not None else 'same day')
-    # [AGENT EDIT END]
 
     def _same_clicked(self, row, column) -> None:
         item = self.same_table.item(row, 0)
@@ -622,8 +541,6 @@ class DayTablePanel(QtWidgets.QWidget):
             return
         self.toggle(item.data(QtCore.Qt.UserRole), same_day=True)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same header again reverses the held list itself, never a fresh sort; tag wraps the whole function (browse-same-day Task 3 fix round 1) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the four headers sort as a day column's do, to the picked unit; tag wraps the whole function (day-table-keys Task 2) | date: 2026-10-14]
     def _same_header_clicked(self, section) -> None:
         """Re-sort ``same_ids`` once by header ``section`` against the picked unit (``_header_order``); the same
         header again reverses it. No pick: no change."""
@@ -636,10 +553,6 @@ class DayTablePanel(QtWidgets.QWidget):
             self.same_ids = self._header_order(self.same_ids, section, p)
             self.same_sorted_by = (section, False)
         self.refresh()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------- picking
     def _clicked(self, table, row) -> None:
@@ -651,9 +564,6 @@ class DayTablePanel(QtWidgets.QWidget):
         else:
             self.pick(item.data(QtCore.Qt.UserRole))
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a header click sorts its column into a held order; a pick scrolls the own day to the picked row (browse-same-day Task 2) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the score header sorts by the one pick key; an empty track keeps its first element constant (browse-same-day Task 2 fix round 1) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the four headers sort against the column's reference (day-table-keys Task 2) | date: 2026-10-14]
     def _header_clicked(self, site, section) -> None:
         """Sort ``site``'s column by header ``section`` against its reference (``_header_order``) into its held
         order; the same header again reverses it."""
@@ -666,11 +576,7 @@ class DayTablePanel(QtWidgets.QWidget):
         self.sorted_by[site] = (section, reverse)
         self.held_shown.add(site)
         self.refresh()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a pick refills the same-day column and leaves it inactive (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a pick empties the string and its extras; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
     def _set_pick(self, cellid: str) -> None:
         self.picked_unit = self.cursor = cellid
         self.active_site = self.state.sites.get(cellid)
@@ -686,22 +592,14 @@ class DayTablePanel(QtWidgets.QWidget):
             else:
                 table.scrollToTop()
         self.same_table.scrollToTop()
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a pick keeps its own day's held order (browse-same-day Task 2) | date: 2026-10-12]
     def pick(self, cellid: str) -> None:
         """Pick ``cellid``: every other day re-sorts to it, its own day keeps its held order, it alone is
         selected and shown, then ``picked`` emits."""
         self._set_pick(cellid)
         self.state.set_selection([cellid])
         self.picked.emit(cellid)
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: toggle scrolls the unit's row and its day column into view; tag wraps the whole function (browse-same-day Task 4) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: toggle records whether the click was in the same-day column (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a Ctrl-click or a drift-dot click sets or drops that day's strung unit, or adds or removes an own-day extra; same_day only picks the scroll; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
     def toggle(self, cellid: str, *, same_day: bool = False) -> None:
         """A Ctrl-click or a drift-dot click on ``cellid``; with no pick it picks ``cellid`` instead.
 
@@ -744,9 +642,6 @@ class DayTablePanel(QtWidgets.QWidget):
         if table is not None and cellid in self.column_ids(site):
             table.scrollToItem(table.item(self.column_ids(site).index(cellid), 0))
             self.scroll.ensureWidgetVisible(table.parentWidget())
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     def follow_track(self, members: list) -> None:
         """Follow a track shown elsewhere: keep a pick inside it, else pick its earliest member quietly."""
@@ -760,10 +655,6 @@ class DayTablePanel(QtWidgets.QWidget):
         first = min(members, key=lambda c: (order.get(sites.get(c), len(order)), c))
         self._set_pick(first)
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: after a same-day click, Up / Down step the same-day column; tag wraps the whole function (browse-same-day Task 3) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Up / Down walk the picked unit's own day; another day's column steps its cursor (browse-same-day Task 2) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: step moves the active extra, walks the own day, or moves another day's strung unit; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a step in the own day scrolls its column into view; tag wraps the whole function (day-table-keys Task 3 fix round 1) | date: 2026-10-14]
     def step(self, d: int) -> None:
         """Move the active unit ``d`` rows (clamped). With the same-day column active, the active extra moves to
         the unit ``d`` rows away there (none when that is itself or another extra). In the picked unit's own
@@ -806,12 +697,7 @@ class DayTablePanel(QtWidgets.QWidget):
             self._string(self.active_site, target)
             self.cursor = target
         self._apply(scroll=True)
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one strung unit per other day: move between days, drop a day, clear, string a track, and the one emit (day-table-keys Task 3) | date: 2026-10-14]
     def _string(self, site: str, cellid: str) -> None:
         """String ``cellid`` on ``site``, taking it out of ``extras``."""
         self.strung[site] = cellid
@@ -935,7 +821,6 @@ class DayTablePanel(QtWidgets.QWidget):
         else nothing, so the track Tracked units shows stays selected."""
         if self.picked_unit is not None and (self.strung or self.extras):
             self._emit()
-    # [AGENT EDIT END]
 
     # ------------------------------------------------------------- curation
     def _do(self, operation, **fields) -> bool:
@@ -992,4 +877,3 @@ class DayTablePanel(QtWidgets.QWidget):
             self.status.setText('pick a unit')
             return
         self._do('remove_member', cluster_id=self.track_of(self.cursor), members=[self.cursor])
-# [AGENT EDIT END]

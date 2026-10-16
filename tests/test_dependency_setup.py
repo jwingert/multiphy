@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: reject altered dependencies and unverifiable durable interpreter defaults | date: 2026-09-18]
 import base64
 import hashlib
 import json
@@ -50,4 +49,3 @@ def test_only_complete_hash_verified_environment_can_become_gui_default(tmp_path
     pth.write_text('/tmp/unverified-overlay')
     assert verified_interpreter(root=tmp_path) is None
     assert verified_interpreter(root=tmp_path / 'unconfigured') is None
-# [AGENT EDIT END]

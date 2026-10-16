@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one native group resolver for UnitMatch, DeepUnitMatch and DANT (native-same-day Task 1) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the order of the label_pairs rules (native-same-day Task 12) | date: 2026-10-12]
 """Native group resolver: one unit per session in each native track.
 
 A native backend labels units with a group id; a ``None`` label puts a unit in no group. Groups
@@ -16,7 +14,6 @@ is a proposed link.
 ``selected`` true with the kept decision; a proposed pair → ``proposed_link``; one session →
 ``same_session``; else the backend's unmatched decision.
 """
-# [AGENT EDIT END]
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -100,4 +97,3 @@ def label_pairs(pairs: pd.DataFrame, sessions: dict, groups: NativeGroups, kept:
     out['selected'] = pd.Series(selected, index=out.index, dtype=object)
     out['decision'] = pd.Series(decision, index=out.index, dtype=object)
     return out
-# [AGENT EDIT END]

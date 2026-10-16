@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: accepted-track export tests (run-curation Task 3) | date: 2026-10-04]
 """Accepted tracks leave a run as one CSV row per member; an export never overwrites and never leaves a partial file."""
 from __future__ import annotations
 
@@ -64,7 +63,6 @@ def test_export_failure_leaves_no_file(tmp_path, monkeypatch):
     assert not out.exists()
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed cleanup is not swallowed (run-curation Task 3 fix round 1) | date: 2026-10-04]
 def test_export_cleanup_failure_is_raised(tmp_path, monkeypatch):
     out = tmp_path / 'exports' / 'out.csv'
 
@@ -80,7 +78,6 @@ def test_export_cleanup_failure_is_raised(tmp_path, monkeypatch):
         curation.write_export(_state(('accept', T3)), SITES, tmp_path, out)
     assert raised.value.filename == str(out)
     assert str(raised.value.__context__) == 'disk full'
-# [AGENT EDIT END]
 
 
 def test_export_missing_site_creates_nothing(tmp_path):
@@ -103,9 +100,7 @@ def test_export_run_default_path(project):
     out = curation.export_run(project.path, name)
     assert out.parent == project.path / 'curation' / 'runs' / name / 'exports'
     assert re.fullmatch(r'accepted_tracks_.{15}\.csv', out.name), out.name
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header is the literal seven-column line, not the writer's own constant (run-curation Task 3 fix round 1) | date: 2026-10-04]
     assert out.read_text().splitlines() == ['track_id,cellid,siteid,n_units,n_days,accepted_at,curator']
-    # [AGENT EDIT END]
 
 
 def test_export_run_refuses_one_day_run(project):
@@ -114,7 +109,6 @@ def test_export_run_refuses_one_day_run(project):
         curation.export_run(project.path, name)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a one-day run saved into the project's runs/ by output_dir is refused by its saved selection mode (run-curation Task 3, D41) | date: 2026-10-04]
 def test_export_run_refuses_one_day_run_in_project_runs(project):
     from multiphy.project.folder import RUNS_DIR
 
@@ -122,7 +116,6 @@ def test_export_run_refuses_one_day_run_in_project_runs(project):
     with pytest.raises(ValueError, match='not an across-day run'):
         curation.export_run(project.path, 'one_day')
     assert not (project.path / 'curation' / 'runs' / 'one_day' / 'exports').exists()
-# [AGENT EDIT END]
 
 
 def test_export_run_refuses_unknown_name(project):
@@ -133,4 +126,3 @@ def test_export_run_refuses_unknown_name(project):
 def test_export_run_refuses_path_like_name(project):
     with pytest.raises(ValueError, match='run folder name'):
         curation.export_run(project.path, '../x')
-# [AGENT EDIT END]

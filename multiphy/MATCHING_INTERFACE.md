@@ -1,10 +1,6 @@
 # Matching methods and run settings
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: distinguish real-day inference from temporal benchmark matching and preserve acquisition identities | date: 2026-09-18] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewers open project runs; runs start from launch run (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer opens both kinds of run (viewer-split final review fix round 1) | date: 2026-10-07] -->
 The viewer opens two kinds of **project runs** (see
-<!-- [AGENT EDIT END] -->
 [`docs/project_folder.md`](docs/project_folder.md)). A **same-day run** matches the
 two temporal halves of one extracted day, which are scored against the day's
 source labels. An **across-days run** matches two or more extracted days of one
@@ -22,7 +18,6 @@ python -m multiphy.launch run PROJECT --backend ID            # every extracted 
 python -m multiphy.launch run PROJECT --backend ID --day D1   # one day's two halves
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run (viewer-split Task 10) | date: 2026-10-07] -->
 Open a completed run of either kind with one command; it opens in the mode its
 `selection.json` records (see [`docs/viewer.md`](docs/viewer.md)):
 
@@ -30,19 +25,11 @@ Open a completed run of either kind with one command; it opens in the mode its
 python -m multiphy.viewer --run /path/to/PROJECT/runs/<run>
 python -m multiphy.viewer --run /path/to/PROJECT/days/<day>/runs/<run>
 ```
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer lists the runs (viewer-split final review fix round 1) | date: 2026-10-07] -->
 The viewer lists the completed runs of the same selection and starts none. A
-<!-- [AGENT EDIT END] -->
 run opens only when its `selection.json` still matches its project, and a result
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the paragraph ends at the import rule; the old curation sentences follow below (run-curation Task 10 fix round 1) | date: 2026-10-05] -->
 is imported only from a completed run folder of the shown selection.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one history per across-days run, its lock and launch export; same-day runs are inspect-only; archives have no GUI view (run-curation Task 10) | date: 2026-10-05] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the across_days mode curates (viewer-split final review fix round 1) | date: 2026-10-07] -->
 In across_days mode the viewer curates its run in `curation/runs/<run>/history.csv`: one
-<!-- [AGENT EDIT END] -->
 line per curator action, undo and redo included, the file replaced whole on each
 write. A merge may put two observations from the same calendar day into one
 track; the track row flags it. `history.lock` lets one viewer write: a second
@@ -53,34 +40,24 @@ runs are inspect-only.
 
 Benchmark archives and collections have no GUI view; their CLI scoring is
 unchanged.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: clarify neuron tracks and checkpoint probe identity | date: 2026-09-18] -->
 ## Method inputs
 
 - **UnitMatch** uses measured multichannel spike waveform and spatial features.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: DANT presets are launch run options, not dialog choices (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 - **DANT** uses spike waveforms and spike timing (the autocorrelogram). With
   `--preset waveform_acg_stimulus` it includes aligned stimulus responses in
   both motion estimation and final clustering. The `upstream_example` preset uses
   the fingerprint for motion estimation only. **Motion estimation**
-  <!-- [AGENT EDIT END] -->
   estimates electrode drift across temporal parts or actual recording sessions,
-  <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: runs, not archives (Plan B Task 10) | date: 2026-09-28] -->
   according to the run type. DANT returns native
-  <!-- [AGENT EDIT END] -->
   groups that become neuron tracks: observations assigned to the same neuron.
   Its similarity value is not a calibrated probability for every pair.
 - **DeepUnitMatch** uses a saved, trained waveform network, followed by the
-  <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: DeepUnitMatch inputs are launch run options, not dialog fields (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
   published matching procedure. Running matching does not train a new model.
   Pass the saved checkpoint as `--checkpoint FILE` (it may have a `.pth` extension
   or a name such as `ckpt_epoch_49`) and the exact, case-sensitive **probe model
   identifier** as `--checkpoint-probe ID`, for
   example `NP1010`. Copy the string in `probe_type` from `training_manifest.json`
-  <!-- [AGENT EDIT END] -->
   in the checkpoint's training-run directory. For an externally obtained model,
   find the equivalent identifier in its training documentation; do not guess it.
   This identifies the electrode geometry the network was trained on. It must
@@ -88,9 +65,6 @@ unchanged.
   waveform preprocessing must also match. This field does not convert a model
   between probe designs. Channel count alone cannot establish compatibility.
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: document real-day inference commands | date: 2026-09-18] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: across-days runs go through launch run; multiday archives and their runner are retired (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: version 3 reads trial timing when a day has events and runs days without events on physiology and waveform (event-optional Task 14) | date: 2026-10-10] -->
 The local `functional_likelihood` method (version 3) runs across days: it fits
 its references from every day of the selection, registers each day's depth
 before the proximity gate, and reads each day's trial timing (`TrialTiming`,
@@ -99,7 +73,6 @@ or without a condition on every day, run on physiology and waveform, with 5 s
 chunks in place of trials. In a run with events, every day must share one
 fingerprint bin width and one duration per shared condition, or the run
 refuses. Any registered backend runs across days the same way:
-<!-- [AGENT EDIT END] -->
 
 ```bash
 python -m multiphy.launch run PROJECT --backend unitmatch --days D1 D2
@@ -109,8 +82,6 @@ Across-days runs have no `--partition` option. Each run is a new folder in the
 project's `runs/` (a same-day run: `days/<day>/runs/`); existing runs are never
 overwritten. DANT and DeepUnitMatch accept their corresponding settings,
 checkpoint, probe and device options described below, after `--backend ID`.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 See the [UnitMatch repository](https://github.com/EnnyvanBeest/UnitMatch),
 [DANT repository](https://github.com/jiumao2/pyDANT), and
@@ -118,36 +89,28 @@ See the [UnitMatch repository](https://github.com/EnnyvanBeest/UnitMatch),
 published implementations. These runs share this project's extracted waveform
 representation, which may differ from an author's original extraction recipe.
 
-<!-- [AGENT EDIT END] -->
 
 ## Python environment and model device
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interpreter and device are launch run options, not dialog choices (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an explicit --python always chooses the interpreter, as launch/commands.py does (Plan B Task 10 final review fix round 1) | date: 2026-09-29] -->
 With `--python EXE`, `launch run` runs the backend in that interpreter, even when
 the backend is also available in the launcher's own. Without `--python`, an
 available backend runs in the launcher's own interpreter, and an unavailable one
 runs in the verified durable interpreter below; with neither, it refuses and
 names what is missing.
-<!-- [AGENT EDIT END] -->
 The interpreter needs the chosen method's dependencies: `UnitMatchPy` for UnitMatch,
 `pyDANT` for DANT, or `UnitMatchPy` plus PyTorch for DeepUnitMatch. The launcher
 installs nothing. `--device` sets DeepUnitMatch's torch device (default `cpu`);
 a GPU device such as `cuda:0` requires a CUDA-enabled PyTorch installation and an
 available GPU.
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: concrete optional settings schema and executable examples | date: 2026-09-18] -->
 ## Optional JSON settings
 
 JSON files contain a single object with double-quoted keys, no comments, and no
 trailing commas. For UnitMatch/DeepUnitMatch, blank means the published defaults
 plus this adapter's measured-geometry settings. An empty override object `{}`
 also leaves those defaults unchanged. Nonempty keys must be valid parameters
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the published-rule cutoff is a launch run option (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 for the installed official implementation. `--native-threshold`, when given, overrides
 a `match_threshold` supplied in parameter JSON.
-<!-- [AGENT EDIT END] -->
 
 For DANT, blank means the selected named preset. A custom JSON file is a
 **complete DANT settings object**, not a partial override, and replaces that preset.
@@ -180,9 +143,7 @@ in the installed `UnitMatchPy/default_params.py:get_default_param()`. This is an
 implementation-specific schema, not an unrestricted user metadata object.
 Do not change DeepUnitMatch's waveform dimensions or channel layout to fit a
 checkpoint: those must agree with measured geometry and training preprocessing.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cutoffs are launch run options (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 `--native-threshold` and `--threshold` remain the controls for link assignment.
-<!-- [AGENT EDIT END] -->
 
 ### DANT complete settings schema and example
 
@@ -228,15 +189,12 @@ micrometers. The launcher replaces `path_to_data` and `output_folder` with its
 own cache paths; leave them blank in the file. Leave `path_to_motion` blank to
 estimate motion in this run. Other native options require the pinned upstream
 settings documentation linked above.
-<!-- [AGENT EDIT END] -->
 
 ## Grouping rule and cutoff
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: explain the actual published endpoint grouping rules | date: 2026-09-18] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a session is a half or a day of a project run (Plan B Task 10) | date: 2026-09-28] -->
 Here a **session** means one temporal part in a benchmark or same-day run, or one
 day in an across-days run.
-<!-- [AGENT EDIT END] --> Published conservative, intermediate, and liberal grouping are the official
+Published conservative, intermediate, and liberal grouping are the official
 UnitMatch/DeepUnitMatch track-assignment choices. Both directional scores must
 exceed the cutoff before a pair is considered, and pairs are processed from
 higher to lower mean score. For each proposed pair linking two existing tracks:
@@ -252,15 +210,9 @@ higher to lower mean score. For each proposed pair linking two existing tracks:
 
 These are endpoint checks during sequential grouping, not a claim that every
 possible pair within the final track was tested and passed.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: multiday archives are retired (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a native same-session group keeps one unit per session and proposes the rest; validation still refuses (native-same-day Task 11) | date: 2026-10-11] -->
 When a native group holds two or more observations from one session, the adapter keeps the one with the highest mean native score to the group's observations from other sessions (missing scores are skipped; a tie goes to more spikes, then the smaller cell ID); the others stay unmatched, and every pair inside the group that is not two members of one track is saved with decision proposed_link.
 Result validation still refuses a track holding two observations of one session.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: explain common tracker competition thresholds and their controls | date: 2026-09-18] -->
 Our constrained rule instead uses the published pair scores while enforcing one
 observation per session. A proposed pair must beat every other measured
 candidate in the partner's session by at least **0.02 score units**, for
@@ -269,53 +221,39 @@ pair is rejected as ambiguous. Joining two tracks is also rejected if any
 measured pair between their members scores **below 0.10**. Missing evidence is
 not treated as such a conflict.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: grouping options are launch run options, not dialog controls (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 For UnitMatch and DeepUnitMatch, `launch run` takes the grouping rule as
 `--tracking` (`native_intermediate` by default, `native_conservative`,
 `native_liberal` or `common_constrained`). The competition margin and conflict
 threshold are `--ambiguity-margin` and `--contradiction-threshold`. They are not
 fields in the optional published parameter JSON. These grouping choices are
 different scientific methods.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 Scores range from 0 to 1; higher means stronger model support for a link.
 Published rules consider pairs strictly above the cutoff. Our constrained rule
 considers pairs at or above it. Other grouping constraints still apply, so
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cutoffs are launch run options, not a dialog field (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 passing the cutoff does not guarantee a final link. The published rules' cutoff
 is `--native-threshold` (default 0.5, or a `match_threshold` in parameter JSON);
 our rule's cutoff is `--threshold` (default 0.9).
-<!-- [AGENT EDIT END] -->
 
 ## Progress and results
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run reports progress and results; no viewer runs or cancels a matcher (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 `launch run` runs in the foreground and prints one line when the run completes:
 the run folder, backend, days and the number of excluded units. The run folder's
 `run_manifest.json` records `running`, then `completed` or `failed` with the
 error; a failed run keeps its folder and the command exits with an error. Open a
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the curation history is kept per across-days run (run-curation Task 10 fix round 1) | date: 2026-10-05] -->
 completed run in its viewer with `--run DIR`; each across-days run keeps its own
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the curation history is named per run (run-curation Task 10) | date: 2026-10-05] -->
 history, `curation/runs/<run>/history.csv`. Training, calibration, and test splits must remain separated when
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 estimating performance; temporal reference identity does not establish accuracy
 after a probe is reinserted on a different day.
 
-<!-- [AGENT EDIT START | agent: codex | user: wingertj | reason: document durable inference environment and explicit interpreter selection | date: 2026-09-18] -->
 ## Durable inference environment
 
 This workstation's durable interpreter is
 `/auto/data/nems_db/unit_match/dependencies/inference-v2/venv/bin/python`.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run chooses the interpreter; no dialog (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 `launch run` uses it for a backend unavailable in its own interpreter only when
 its completed environment manifest and copied-file hashes verify. `--python EXE`
 chooses another existing interpreter instead. If verification fails and no
 `--python` is given, the run refuses.
-<!-- [AGENT EDIT END] -->
 
 The environment contains pinned Python sources for the three methods and the
 already tested `hdbscan`/`mat73` dependencies. It inherits the existing scientific
@@ -340,10 +278,7 @@ python -m multiphy.dependency_setup \
 
 The source revisions must match the adapter's audited revisions; the overlay
 must contain `hdbscan` 0.8.42 and `mat73` 0.65 with intact distribution metadata.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interpreter is a launch run option (Plan B Task 10 fix round 2) | date: 2026-09-29] -->
 Existing output directories are never overwritten. Pass the new folder's
 `venv/bin/python` explicitly as `--python`; custom output names do not change
-<!-- [AGENT EDIT END] -->
 the automatic default. The staged source snapshot supports inference, not the
 separate clean Git checkout required when preparing future training runs.
-<!-- [AGENT EDIT END] -->

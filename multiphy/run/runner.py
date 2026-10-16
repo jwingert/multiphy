@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: one runner loop for every backend and dataset kind | date: 2026-09-22]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: docstring names run_selection as the real-day caller; multiday_runner is retired (Plan B Task 8) | date: 2026-09-28]
 """Run one backend on one dataset, group by group, and leave a run directory.
 
 Replaces ``runners.run_backend_dataset`` and the in-process path in ``gui.py``. The
@@ -7,7 +5,6 @@ dataset is duck-typed: it has ``units``, ``pairs``, ``metadata``, ``subset(ids)`
 ``waveform_bundle()`` and optionally ``features`` and ``labels``. ``group_column`` is
 ``recording_group``, for benchmarks and for the real days ``project_run.run_selection`` passes.
 """
-# [AGENT EDIT END]
 from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import fields as dataclass_fields, replace
@@ -17,9 +14,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: named files a caller writes into the run folder (Plan B Task 2) | date: 2026-09-28]
 from typing import Optional
-# [AGENT EDIT END]
 
 import pandas as pd
 
@@ -27,26 +22,18 @@ from ..contract import registry
 from ..contract.backend import RunContext
 from ..contract.errors import BackendUnavailable, ContractViolation, MissingInputs
 from ..contract.inputs import MatchingInput
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: inputs that only a waveform bundle supplies (whole-branch review fix 5) | date: 2026-09-23]
 from ..contract.inputs import Input
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: backend_label delegates to contract.names (whole-branch review fix 3) | date: 2026-09-23]
 from ..contract import names
-# [AGENT EDIT END]
 from ..contract.provenance import Provenance, json_safe
 from ..contract.results import MatchResult, single_units
 from . import config, options as opt
 from .run_dir import save_result, write_json
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no fitted model is shared across groups (Task 2) | date: 2026-09-27]
 SHARED_PROVENANCE_KEYS = ('assignment', 'threshold', 'score_kind', 'calibration_status', 'calibration_reference',
                           'enforce_session_unique', 'official_source', 'verified_api_revision', 'pair_reduction',
                           'feature_stream', 'score_meaning', 'evidence_display_name', 'evidence_columns')
-# [AGENT EDIT END]
 _TYPED_PROVENANCE = frozenset(f.name for f in dataclass_fields(Provenance)) - {'extra'}
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: inputs that only a waveform bundle supplies (whole-branch review fix 5) | date: 2026-09-23]
 WAVEFORM_DERIVED = frozenset({Input.WAVEFORM_HALVES, Input.GEOMETRY, Input.SPIKE_TIMES, Input.FINGERPRINT})
-# [AGENT EDIT END]
 
 
 @contextmanager
@@ -86,12 +73,9 @@ def _select_partition(dataset, partition):
     return dataset.subset(ids)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the extra inputs a caller may supply, named once (Task 2 fix round 1) | date: 2026-09-27]
 EXTRA_INPUTS = ('timing', 'checkpoint', 'fingerprint', 'fingerprint_bin_keys')
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backend input units carry n_spikes from features, NaN when absent (native-same-day Task 2) | date: 2026-10-11]
 def build_input(subset, group, *, extra_inputs=None, provenance=None) -> MatchingInput:
     """One MatchingInput for one group; waveforms only when the subset can provide them.
 
@@ -101,29 +85,23 @@ def build_input(subset, group, *, extra_inputs=None, provenance=None) -> Matchin
     extra = dict(extra_inputs or {})
     features = getattr(subset, 'features', None)
     bundle = None
-    # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: keep why the waveform bundle could not be built, in provenance, for every backend (whole-branch review fix 5) | date: 2026-09-23]
     if hasattr(subset, 'waveform_bundle'):
         try:
             bundle = subset.waveform_bundle()
         except (ValueError, KeyError) as exc:
             bundle = None
             provenance = (provenance or Provenance()).merged(extra={'waveform_bundle_error': str(exc)})
-    # [AGENT EDIT END]
     units = subset.units.copy()
     units['n_spikes'] = [float(v) if v is not None else float('nan')
                          for v in ((features or {}).get(str(c), {}).get('n_spikes') for c in units.cellid)]
     common = dict(group=str(group), pairs=subset.pairs, features=features, provenance=provenance)
     fields = {k: v for k, v in extra.items() if not k.startswith('_')}
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an undeclared extra input (e.g. a removed fitted_model) is refused, never dropped (Task 2 fix round 1) | date: 2026-09-27]
     unknown = sorted(set(fields) - set(EXTRA_INPUTS))
     if unknown:
         raise ValueError(f'Unknown extra inputs {unknown}; accepted: {list(EXTRA_INPUTS)}')
-    # [AGENT EDIT END]
     if bundle is not None:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only timing and checkpoint are forwarded; fingerprint is replaced below (Task 2) | date: 2026-09-27]
         inp = MatchingInput.from_bundle(units, bundle, **common, **{k: v for k, v in fields.items()
                                                                    if k in ('timing', 'checkpoint')})
-        # [AGENT EDIT END]
         if 'fingerprint' in fields:
             inp = replace(inp, fingerprint=fields['fingerprint'],
                           fingerprint_bin_keys=tuple(fields.get('fingerprint_bin_keys', ())))
@@ -137,7 +115,6 @@ def build_input(subset, group, *, extra_inputs=None, provenance=None) -> Matchin
         inp = MatchingInput(units, str(group), candidate_pairs=subset.pairs, features=features,
                             provenance=provenance or Provenance(), **fields)
     return inp.validate()
-# [AGENT EDIT END]
 
 
 def merge_results(results, backend_id, output_name, provenance) -> MatchResult:
@@ -156,11 +133,9 @@ def merge_results(results, backend_id, output_name, provenance) -> MatchResult:
     # Typed fields (calibration_status, verified_api_revision) are set as fields, never shadowed in extra.
     combined = combined.merged(**{k: v for k, v in shared.items() if k in _TYPED_PROVENANCE},
                                extra={k: v for k, v in shared.items() if k not in _TYPED_PROVENANCE})
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the merged score names every group's calibration reference, not only the first group's (Task 8 fix round 1) | date: 2026-09-27]
     references = list(dict.fromkeys(r.score.calibration_reference for r in results
                                     if r.score.calibration_reference))
     score = replace(first.score, calibration_reference='; '.join(references)) if references else first.score
-    # [AGENT EDIT END]
     return MatchResult(backend_id, first.version, output_name,
                        pd.concat([r.units for r in results], ignore_index=True),
                        pd.concat([r.pairs for r in results], ignore_index=True),
@@ -169,11 +144,9 @@ def merge_results(results, backend_id, output_name, provenance) -> MatchResult:
                        first.tracking_rule, combined).validate()
 
 
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: one fallback implementation, in contract.names (whole-branch review fix 3) | date: 2026-09-23]
 def backend_label(backend_id) -> str:
     """Registered display name; a third-party or test backend without one shows its id."""
     return names.backend_label(backend_id)
-# [AGENT EDIT END]
 
 
 def _methods_md(output, backend_id, group_column, partition, status):
@@ -189,16 +162,13 @@ def _methods_md(output, backend_id, group_column, partition, status):
             '## Panels\n\nNo figures.\n')
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project run writes its selection and pairs before the manifest (Plan B Task 2) | date: 2026-09-28]
 # Files the runner itself writes into a run folder; a caller's ``files`` cannot take these names.
 RUNNER_FILES = ('run_manifest.json', 'METHODS.md', 'result.json', 'evaluation.json', 'availability.json')
 
 
 def _check_file_names(files) -> None:
     for name in files:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a NUL byte is refused before the folder exists (Plan B Task 2 fix round 1) | date: 2026-09-28]
         if name in RUNNER_FILES or '/' in name or '\0' in name or name in ('', '.', '..'):
-        # [AGENT EDIT END]
             raise ValueError(f'run file name {name!r} is reserved or not a plain file name')
 
 
@@ -211,7 +181,6 @@ def run(dataset, backend_id, options=None, *, group_column, partition=None, outp
     """
     files = dict(files or {})
     _check_file_names(files)
-    # [AGENT EDIT END]
     backend = registry.get(backend_id)
     spec = backend.spec
     availability = backend.available()
@@ -234,21 +203,17 @@ def run(dataset, backend_id, options=None, *, group_column, partition=None, outp
         inp = build_input(subset, group, extra_inputs=extra_inputs, provenance=base.merged(group=str(group)))
         missing = spec.requires - inp.available()
         if missing:
-            # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a missing waveform-derived input names the bundle error behind it (whole-branch review fix 5) | date: 2026-09-23]
             bundle_error = inp.provenance.get('waveform_bundle_error')
             detail = (f'waveform bundle could not be built: {bundle_error}'
                       if bundle_error and missing & WAVEFORM_DERIVED else None)
             raise MissingInputs(backend_id, str(group), missing, detail)
-            # [AGENT EDIT END]
         groups.append((str(group), rows, subset, inp))
     output = (config.new_run_path(dataset_id, root=root) if output_dir is None
               else config.resolve_cache_path(output_dir, root=root))
     output.mkdir(parents=True, exist_ok=False)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the caller's files are written once, before the first manifest write (Plan B Task 2) | date: 2026-09-28]
     for name, content in files.items():
         with (output / name).open('xb') as stream:
             stream.write(content)
-    # [AGENT EDIT END]
     manifest = dict(status='running', backend=backend_id, group_column=group_column, partition=partition,
                     dataset_id=dataset_id, input_path=input_path, input_manifest_sha256=manifest_sha,
                     options=json_safe(resolved), output_dir=str(output),
@@ -302,4 +267,3 @@ def run(dataset, backend_id, options=None, *, group_column, partition=None, outp
     finally:
         write_json(output / 'run_manifest.json', manifest)
     return output
-# [AGENT EDIT END]

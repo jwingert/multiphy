@@ -1,7 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Settings menu (theme switch, extra settings) and the Help menu with its read-only guide windows, shared by the viewer and the launcher (launcher-gui Task 9) | date: 2026-10-07]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the Unit colours submenu and the unit_palette setting (graphite-palettes Task 4) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names About multiphy (logo) | date: 2026-10-13]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names Keyboard shortcuts in Help and the shortcuts/<action id> settings it writes (day-table-keys Task 5) | date: 2026-10-14]
 """The ``Settings`` and ``Help`` menus that the viewer and the launcher share.
 
 ``install_menus`` adds ``Settings`` (a ``Theme`` submenu, then a ``Unit colours`` submenu, then any
@@ -12,58 +8,35 @@ window-specific settings) and ``Help`` (one guide per ``GUIDES`` entry, then ``K
 are read-only. Every window's ``Theme`` and ``Unit colours`` menus follow a switch made in any window. Qt comes
 only from ``.qt``.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 from pathlib import Path
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the shortcuts window's commit takes an optional key, '' from the clear button (D23) (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
 from typing import Optional
-# [AGENT EDIT END]
 
 from multiphy.viewer import display, theme
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours submenu offers the unit palettes (graphite-palettes Task 4) | date: 2026-10-11]
 from multiphy.viewer import unit_palettes
-# [AGENT EDIT END]
 from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About shows the logo, the name and the version (logo) | date: 2026-10-13]
 from multiphy import __version__
 from multiphy.viewer import logo
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ Keyboard shortcuts reads and saves the keys (day-table-keys Task 5) | date: 2026-10-14]
 from multiphy.viewer import keys
-# [AGENT EDIT END]
 
 DOCS = Path(__file__).resolve().parents[1] / 'docs'
 GUIDES = (('Launcher guide', 'project_folder.md'), ('Viewer guide', 'viewer.md'))
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About's label and lines (logo) | date: 2026-10-13]
 ABOUT = 'About multiphy'
 ABOUT_LINES = ('multiphy', __version__, 'cross-day unit matching')
 ABOUT_CREDIT = 'logo · PRN067a-338-1 · peak channel'
 ABOUT_CREDIT_HOVER = ("The logo draws unit PRN067a-338-1's mean waveform on its peak channel, "
                       'tracked across three days.')
 ABOUT_PX = 128  # the logo's size in the About window
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ Keyboard shortcuts's label (day-table-keys Task 5) | date: 2026-10-14]
 SHORTCUTS = 'Keyboard shortcuts'
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Theme menu offers Graphite first (graphite-palettes Task 2) | date: 2026-10-11]
 _THEME_LABELS = (('graphite', 'Graphite'), ('dark', 'Dark'), ('light', 'Light'))
-# [AGENT EDIT END]
 
 _guides = {}  # path.resolve() -> its GuideWindow
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one About window, shown again on a later call (logo) | date: 2026-10-13]
 _about = []  # the one AboutWindow, once opened
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one Keyboard shortcuts window, shown again on a later call (day-table-keys Task 5) | date: 2026-10-14]
 _shortcuts = []  # the one ShortcutsWindow, once opened
-# [AGENT EDIT END]
 
 
 class _ThemeFollower(QtCore.QObject):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the follower also checks the active unit palette and sets the Unit colours title (graphite-palettes Task 4) | date: 2026-10-11]
     """Checks the window's theme action of the active theme and its unit palette action of the active palette,
     and sets the Unit colours title; parented to the window, so the connection ends with it."""
-    # [AGENT EDIT END]
 
     def __init__(self, window: QtWidgets.QMainWindow):
         super().__init__(window)
@@ -73,10 +46,8 @@ class _ThemeFollower(QtCore.QObject):
         action = self._window.theme_actions.get(name)
         if action is not None:
             action.setChecked(True)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours menu checks the active palette and names the dark themes on Light (graphite-palettes Task 4) | date: 2026-10-11]
         self._window.unit_palette_actions[unit_palettes.palette_name()].setChecked(True)
         self._window.unit_palette_menu.setTitle(_unit_palette_title())
-        # [AGENT EDIT END]
 
 
 def _switch(window: QtWidgets.QMainWindow, name: str) -> None:
@@ -91,7 +62,6 @@ def _switch(window: QtWidgets.QMainWindow, name: str) -> None:
         window.statusBar().showMessage(text)
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours submenu: its title, its swatch icons and its switch (graphite-palettes Task 4) | date: 2026-10-11]
 def _unit_palette_title() -> str:
     """The Unit colours submenu's title: it names the dark themes while the theme keeps its own unit ramp."""
     return '&Unit colours' if display.uses_unit_palette() else '&Unit colours · dark themes'
@@ -117,21 +87,13 @@ def _switch_palette(window: QtWidgets.QMainWindow, name: str) -> None:
     text = theme.switch_unit_palette(name)
     if text:
         window.statusBar().showMessage(text)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help lists Keyboard shortcuts after the guides, before the separator, in the viewer and the launcher; the docstring names it and the shortcuts settings; tag wraps the whole function (day-table-keys Task 5) | date: 2026-10-14]
 def install_menus(window: QtWidgets.QMainWindow, extra_settings: tuple = ()) -> None:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring lists Graphite, Dark, Light (graphite-palettes Task 2) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring lists the Unit colours submenu and the two settings the menus write (graphite-palettes Task 4) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring lists About multiphy (logo) | date: 2026-10-13]
     """Add ``&Settings`` (``&Theme``: ``Graphite``, ``Dark``, ``Light``; then ``&Unit colours``: one swatch per
     ``unit_palettes.IDS`` entry; then ``extra_settings`` after a separator) and ``&Help`` (the ``GUIDES``, then
     ``SHORTCUTS`` (``Keyboard shortcuts``), then ``ABOUT`` after a separator) to ``window``'s menu bar. The menus
     write only the ``theme``, ``unit_palette`` and ``shortcuts/<action id>`` settings."""
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     bar = window.menuBar()
     window.settings_menu = bar.addMenu('&Settings')
     theme_menu = window.settings_menu.addMenu('&Theme')
@@ -146,7 +108,6 @@ def install_menus(window: QtWidgets.QMainWindow, extra_settings: tuple = ()) -> 
         group.addAction(action)
         theme_menu.addAction(action)
         window.theme_actions[name] = action
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours submenu follows Theme: one checkable swatch per palette, one checked (graphite-palettes Task 4) | date: 2026-10-11]
     menu = window.settings_menu.addMenu('&Unit colours')
     window.unit_palette_menu = menu
     menu.setObjectName('unit_palettes')
@@ -162,7 +123,6 @@ def install_menus(window: QtWidgets.QMainWindow, extra_settings: tuple = ()) -> 
         palette_group.addAction(action)
         menu.addAction(action)
         window.unit_palette_actions[pid] = action
-    # [AGENT EDIT END]
     if extra_settings:
         window.settings_menu.addSeparator()
         for action in extra_settings:
@@ -175,15 +135,12 @@ def install_menus(window: QtWidgets.QMainWindow, extra_settings: tuple = ()) -> 
     shortcuts = QtGui.QAction(SHORTCUTS, window.help_menu)
     shortcuts.triggered.connect(lambda _checked=False: open_shortcuts())
     window.help_menu.addAction(shortcuts)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ends with About multiphy, after a separator (logo) | date: 2026-10-13]
     window.help_menu.addSeparator()
     about = QtGui.QAction(ABOUT, window.help_menu)
     about.triggered.connect(lambda _checked=False: open_about())
     window.help_menu.addAction(about)
-    # [AGENT EDIT END]
     window._theme_follower = _ThemeFollower(window)
     theme.notifier().changed.connect(window._theme_follower.follow)
-# [AGENT EDIT END]
 
 
 class GuideWindow(QtWidgets.QMainWindow):
@@ -204,12 +161,10 @@ class GuideWindow(QtWidgets.QMainWindow):
             self.guide_view.setPlainText(f'not found · {path}')
         self.restyle_code()
         theme.notifier().changed.connect(self._theme_changed)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a followed link or Back loads a new document, restyled like the first (launcher-gui final review low finding) | date: 2026-10-07]
         self.guide_view.sourceChanged.connect(self._source_changed)
 
     def _source_changed(self, _url) -> None:
         self.restyle_code()
-        # [AGENT EDIT END]
 
     def _theme_changed(self, _name: str) -> None:
         self.restyle_code()
@@ -240,7 +195,6 @@ def open_guide(title: str, path: Path) -> GuideWindow:
     return guide
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the About window: the logo, multiphy, the version, one line, and the logo's credit in hint text (logo) | date: 2026-10-13]
 class AboutWindow(QtWidgets.QDialog):
     """The logo at ``ABOUT_PX``, then ``ABOUT_LINES`` (the name larger) and ``ABOUT_CREDIT`` as hint text, its
     prose on hover; centred."""
@@ -275,8 +229,6 @@ def open_about() -> AboutWindow:
     about.raise_()
     about.activateWindow()
     return about
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Keyboard shortcuts window: one row per action, its key recorded in place and saved, a refused key or a failed save named in the status line, Reset defaults; one window, shown again on a later call (day-table-keys Task 5) | date: 2026-10-14]
 class _NoPlaceholder(QtCore.QObject):
     """Clears a line edit's placeholder before each paint. ``QKeySequenceEdit`` sets ``Press shortcut`` again on
     every reset (a key set, a recording, a clear, a focus change), so an editor stays blank only this way."""
@@ -288,7 +240,6 @@ class _NoPlaceholder(QtCore.QObject):
 
 
 class ShortcutsWindow(QtWidgets.QDialog):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring says a key is saved when its recording ends, an empty ending puts the saved key back and only the clear button unbinds (D23); tag wraps the whole docstring (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
     """One row per ``keys.ACTIONS`` entry: its label (its hover as tooltip) and an editor that records one key.
 
     A recorded key is saved through ``keys.save_binding`` when its recording ends (``editingFinished``); a
@@ -298,9 +249,7 @@ class ShortcutsWindow(QtWidgets.QDialog):
     ``keys.reset_bindings`` under the same status rule. The editors follow every save and reset
     (``keys.notifier().changed``).
     """
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each editor saves when its recording ends (editingFinished) and its clear button's textEdited('') unbinds; nothing listens to keySequenceChanged and no timer is used (D23); tag wraps the whole function (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(SHORTCUTS)
@@ -346,7 +295,6 @@ class ShortcutsWindow(QtWidgets.QDialog):
         self.show_bindings()
         self.table.resizeRowsToContents()
         keys.notifier().changed.connect(self.show_bindings)
-    # [AGENT EDIT END]
 
     def show_bindings(self) -> None:
         """Set each editor to its saved key (``keys.bindings()``) with its signals blocked, so nothing is saved;
@@ -356,7 +304,6 @@ class ShortcutsWindow(QtWidgets.QDialog):
             with QtCore.QSignalBlocker(edit):
                 edit.setKeySequence(QtGui.QKeySequence(bound[aid]))
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a read '' (a recording that ended empty) puts the saved key back and saves nothing; an explicit '' (the clear button) is saved (D23); tag wraps the whole function (day-table-keys Task 5 fix round 2) | date: 2026-10-14]
     def _commit(self, action_id: str, key: Optional[str] = None) -> None:
         """Save ``key`` for ``action_id`` (``None``: the key its editor holds now), unless it is the saved key. A
         read ``''`` (a recording that ended empty) saves nothing and the editors show the saved keys again; a
@@ -376,7 +323,6 @@ class ShortcutsWindow(QtWidgets.QDialog):
         self._show_status(text)
         if text:
             self.show_bindings()
-    # [AGENT EDIT END]
 
     def _reset(self) -> None:
         """Every action back to its default key; a failed save is named in ``status``."""
@@ -401,5 +347,3 @@ def open_shortcuts() -> ShortcutsWindow:
     window.raise_()
     window.activateWindow()
     return window
-# [AGENT EDIT END]
-# [AGENT EDIT END]

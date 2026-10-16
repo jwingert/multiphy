@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the logo package: the window icon and the About picture, rendered from the committed SVGs (logo) | date: 2026-10-13]
 """The multiphy logo: the window icon and the About picture, rendered from the SVGs that ``make_logo`` writes
 next to this file. Qt comes only from ``..qt``."""
 from pathlib import Path
@@ -36,4 +35,3 @@ def icon() -> QtGui.QIcon:
     for px in ICON_SIZES:
         result.addPixmap(pixmap(px))
     return result
-# [AGENT EDIT END]

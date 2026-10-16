@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one saved key per viewer action: the actions with their defaults, the saved keys, a save, a reset and the key notifier (day-table-keys Task 4) | date: 2026-10-14]
 """The viewer's keyboard shortcuts: one key per action, saved per user.
 
 ``ACTIONS`` holds one ``(id, label, default, hover)`` per action. A key the user sets for action ``id`` is saved
@@ -135,4 +134,3 @@ def notifier() -> KeyNotifier:
     if _notifier is None:
         _notifier = KeyNotifier()
     return _notifier
-# [AGENT EDIT END]

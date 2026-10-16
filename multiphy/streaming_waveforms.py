@@ -1,10 +1,7 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: exact-selection streaming waveform summaries without temporary snippet files | date: 2026-09-18]
 """Bounded chronological Welford summaries for explicitly planned selections."""
 import numpy as np
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: waveform_sample_selection lives in extract/unit_features.py (multiphy project folder Task 11) | date: 2026-09-25]
 from .extract.unit_features import waveform_sample_selection
-# [AGENT EDIT END]
 
 
 class WaveformSummaryPlan:
@@ -128,4 +125,3 @@ class StreamingWaveformSummaries:
         self.means.clear()
         self.m2.clear()
         self.completed.clear()
-# [AGENT EDIT END]

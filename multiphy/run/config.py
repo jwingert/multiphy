@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: cache locations moved under run/, with MULTIPHY_CACHE_ROOT override | date: 2026-09-22]
 """Cache locations without importing recording loaders or the database."""
 from __future__ import annotations
 from datetime import datetime, timezone
@@ -60,4 +59,3 @@ def new_run_path(dataset_id, *, kind='runs', root=None):
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     return resolve_cache_path(Path('benchmarks') / dataset_id / kind /
                               f'{stamp}_{uuid.uuid4().hex}', root=root)
-# [AGENT EDIT END]

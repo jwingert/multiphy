@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: an oracle for full-day rows that does not run pool_day_row, which reuse_day_summary now calls too | date: 2026-09-25]
 """Check a full-day row against its two halves rows without running ``pool_day_row``.
 
 ``reuse_day_summary`` calls ``pool_day_row``, so comparing the two tests the pooling against
@@ -67,4 +66,3 @@ def assert_pooled_from_halves(feature: dict, rows: list, spikes: np.ndarray, spe
                        for k, row in zip(trials, rows) if k) / sum(trials)
         assert np.abs(expected).max() > 0
         np.testing.assert_allclose(feature['fingerprints'][condition], expected, rtol=1e-5, atol=1e-4)
-# [AGENT EDIT END]

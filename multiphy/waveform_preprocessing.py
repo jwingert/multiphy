@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: shared filtered referenced unwhitened waveform standard | date: 2026-09-17]
 """Common voltage preprocessing, applied before cropping spike snippets."""
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
@@ -48,4 +47,3 @@ class SharedWaveformPreprocessor:
                     reference='samplewise median after filtering', whitening=False,
                     baseline_subtraction=False, amplitude_normalization=False,
                     alignment='native exported spike timestamps; no per-spike realignment')
-# [AGENT EDIT END]

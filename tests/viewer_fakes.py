@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a RunData built from the old hand-made viewer dicts, for panel tests (viewer-split Task 4) | date: 2026-10-06]
 """``DictData``: a ``RunData`` from the hand-made dicts the old viewer tests set on ``PairState``."""
 from typing import Optional
 
@@ -6,13 +5,9 @@ import numpy as np
 import pandas as pd
 
 from multiphy import backends
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the contract types day_table_data builds its result from (native-same-day Task 8) | date: 2026-10-11]
 from multiphy.contract.provenance import Provenance
 from multiphy.contract.results import MatchResult, ScoreBlock, ScoreKind, TrackKind
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FAKE_MODE builds on the viewer's Mode (viewer-split Task 7) | date: 2026-10-06]
 from multiphy.viewer.data import Mode, PARTS, RunData, UnitData, complete_day_pairs, display_pairs
-# [AGENT EDIT END]
 from multiphy.viewer.modes import same_day
 
 # the old per-unit array keys and the UnitData fields they become
@@ -34,7 +29,6 @@ def _unit_table(units, sites: dict) -> pd.DataFrame:
     return table
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day pairs carry no list label, as a mode load gives none (native-same-day Task 10 fix round 1) | date: 2026-10-11]
 def DictData(units, arrays: dict, meta: dict, sites: dict, pairs: Optional[pd.DataFrame] = None,
              result=None, evidence: Optional[pd.DataFrame] = None) -> RunData:
     """A same-day ``RunData`` from the old dicts: ``units`` (cellids or a frame), ``arrays`` (``{cellid: {wf, ptp,
@@ -72,17 +66,12 @@ def DictData(units, arrays: dict, meta: dict, sites: dict, pairs: Optional[pd.Da
     return RunData(
         mode='same_day', result=result, words=same_day.WORDS, title='', info='', info_tip='',
         unit_table=table, unit_map=unit_map, pair_table=pair_table,
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day pairs, unlabelled (viewer-split Task 7; native-same-day Task 10) | date: 2026-10-11]
         day_pair_list=tuple(day_pairs),
-        # [AGENT EDIT END]
         geometries=dict(meta.get('geometry') or {}), geometry_sources=dict(meta.get('geometry_source') or {}),
         day_names={s: f'{d} · {s}' for s, d in dates.items()}, freq_axes=freq_axes,
         min_fingerprint_repeats=meta.get('min_fingerprint_repeats', 4), parts=frozenset(parts))
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a curating fake mode with the same-day words and rules, for App tests (viewer-split Task 7) | date: 2026-10-06]
 def _no_load(selection, dataset, result, extras):
     raise NotImplementedError('the fake mode loads no run')
 
@@ -90,11 +79,8 @@ def _no_load(selection, dataset, result, extras):
 FAKE_MODE = Mode(id='fake', layout_name='viewer/fake_layout.json', curates=True, exports=False,
                  words=same_day.WORDS, plots=same_day.SAME_DAY.plots, load=_no_load,
                  header=same_day.header, merge_refusal=same_day.merge_refusal)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a two-day native run with proposed same-day links, for the Tracked units and day table tests (native-same-day Task 8) | date: 2026-10-11]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day_table_data takes depths, x positions and a saved registration for the distance sort (browse-same-day Task 2) | date: 2026-10-12]
 def day_table_data(depth: Optional[list] = None, x_um: Optional[list] = None,
                    offsets: Optional[dict] = None) -> RunData:
     """Day A (``A-1``…``A-5``) and day B (``B-1``, ``B-2``): track ``A-1 B-1``, proposed links ``A-1 A-2`` and
@@ -138,11 +124,8 @@ def day_table_data(depth: Optional[list] = None, x_um: Optional[list] = None,
                          ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE,
                          'native_intermediate', provenance).validate()
     return DictData(units, {}, meta, {c: c[0] for c in units.cellid}, result=result)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a three-day native run for the distance sort and the string tests (day-table-keys Task 2) | date: 2026-10-14]
 def string_days_data() -> RunData:
     """Days A, B and C (``2023-01-01``, ``2023-01-02``, ``2023-01-03``): units ``A-1``, ``A-2``, ``B-1``, ``B-2``,
     ``B-3``, ``C-1``, ``C-2``, ``C-3`` at ``x_um`` 0 and depths 100, 300, 60, 120, 290, 135, 100, 310; track
@@ -172,10 +155,8 @@ def string_days_data() -> RunData:
                          ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE,
                          'native_intermediate', Provenance()).validate()
     return DictData(units, {}, meta, {c: c[0] for c in units.cellid}, result=result)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a native run of any number of days, for the day-table fit and scroll tests (day-table widths) | date: 2026-10-13]
 def many_days_data(n_days: int, n_units: int = 4) -> RunData:
     """``n_days`` days ``D00a``, ``D01a``, … of ``n_units`` units each (``D00a-300-1``, ``D00a-301-1``, …): one
     track per unit number across every day, its days linked in day order."""
@@ -194,4 +175,3 @@ def many_days_data(n_days: int, n_units: int = 4) -> RunData:
                          ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE,
                          'native_intermediate', Provenance()).validate()
     return DictData(units, {}, {'session_dates': dates}, dict(zip(cellids, siteids)), result=result)
-# [AGENT EDIT END]

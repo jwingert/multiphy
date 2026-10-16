@@ -1,4 +1,3 @@
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: user guide to writing and registering a source reader, with one worked example that the tests execute (multiphy project folder Task 16; fix round 1: binary checks only a declared channel count, and events_csv checks only the last trial against the length; fix round 2: the example's code carries the AGENT EDIT tags; final review fix round 1: init always passes the declared channel count) | date: 2026-09-25] -->
 # Adding a source
 
 A **source reader** turns one day's original files into a `DaySource`, the one form that
@@ -43,7 +42,6 @@ A reader is any object with:
 
 ### `files`
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the raw-role key rule: key raw or raw_<k> is a raw-role file, never hashed; raw segments (Plan C Task 2) | date: 2026-10-01] -->
 `add_day` calls `files(options)` before any data is read. It records each file's identity:
 the path as given, the file it resolves to, its size, its `mtime_ns` and its sha256. Every
 file except the raw-role ones (below) is hashed. At extraction, every file is verified against
@@ -52,13 +50,9 @@ does not name is not recorded or checked, so name every file `read` opens.
 
 - File keys must be unique across a day's readers. The built-ins use `events`, `raw` and the
   phy file names (`params`, `spike_times`, ...).
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: raw-role files are not checked by a separate hash before extraction; the voltage pass hashes them (Plan C Task 2 fix round 1) | date: 2026-10-01] -->
 - Key `raw`, and any key starting `raw_` (such as `raw_1`, `raw_2`), is always recorded under
   the `raw` role and is never hashed when the day is added, nor checked by a separate hash
   before extraction. Any other key is recorded under the reader's first role.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: say where raw-role files are hashed: the raw-tier voltage pass and status --verify (Plan C Task 2 fix round 1) | date: 2026-10-01] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only one .gz file hashes at no extra read; segment hashing can reread after seeks (Plan C Task 2 fix round 2) | date: 2026-10-01] -->
 - The raw tier's voltage pass hashes the stored bytes as it reads them. One `.gz` raw file:
   gzip reads it in order, so the digest costs no extra read; it must match a recorded
   `sha256`, and is recorded with `sha256_from` `"extract"`. Segments: the pass computes one
@@ -67,16 +61,13 @@ does not name is not recorded or checked, so name every file `read` opens.
   back, finishing the segment rereads its stored bytes from that cursor, so a pass that seeks
   can read a segment's bytes more than once. A flat single raw file is not hashed by
   extraction.
-<!-- [AGENT EDIT END] -->
 - An explicit `status --verify` hashes every raw-role file, and records the digest of one
   that has none, with `sha256_from` `"verify"`.
-<!-- [AGENT EDIT END] -->
 - A day whose voltage is several recordings on one clock names one `raw_<k>` key per
   recording, and its `DaySource.raw` holds `segments`, a list of
   `{'path': str, 'n_samples': int}` in clock order, in place of `path`. Extraction reads the
   segments as one file, and stops when a segment holds another number of samples than
   declared.
-<!-- [AGENT EDIT END] -->
 
 `options` is the day's `reader_options`: one dict, shared by all of the day's readers and
 stored in `project.json`. It must be plain JSON, and its names must not collide with the
@@ -151,7 +142,6 @@ example_npz = "my_package.readers:make_npz_sort_reader"
 Within one process, `register_reader(reader)` registers a reader directly. It refuses an id
 that is already taken. The example below uses it, since there is no package to install here.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher's plugin hook: multiphy.json, register(api), add_reader, add_command and the multiphy.plugins entry points (Plan C Task 1) | date: 2026-10-01] -->
 ## Plugins
 
 A plugin adds readers and launcher commands without changing this package. It is a module
@@ -180,7 +170,6 @@ launcher with `error: plugin <name>: <error>`.
 
 `register(api)` calls:
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refused names include export and gui; the launcher window shows plugin commands as tabs (launcher-gui Task 11) | date: 2026-10-07] -->
 - `api.add_reader(reader)` registers a reader, as `register_reader` does. Loading the plugins
   again in one process keeps the same reader object; a different object under a taken id is
   refused.
@@ -193,7 +182,6 @@ launcher with `error: plugin <name>: <error>`.
   other than store, store_true or store_false; a `nargs` other than the default, `+` or `*`;
   a positional list; a list with choices) shows `CLI only · <flag>`, and that command runs
   from the terminal.
-<!-- [AGENT EDIT END] -->
 
 A plugin command's first argument is the project, as for the built-in commands:
 
@@ -202,7 +190,6 @@ $ python -m multiphy.launch --root <root> hello demo --word x
 ```
 
 Its outcome goes to the project's `logs/launcher.log` like any other command.
-<!-- [AGENT EDIT END] -->
 
 ## Worked example: a sort in one `.npz` file
 
@@ -216,11 +203,8 @@ Its outcome goes to the project's `logs/launcher.log` like any other command.
 5. It extracts the day and returns what `extract_day` returns.
 
 The test `tests/test_docs_project_folder.py` executes this block as written.
-Its first and last lines are this repository's `AGENT EDIT` audit tags; a copy can drop
-them.
 
 ```python
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: worked example of a sort reader registered in-process, added to project demo and extracted in the raw tier (multiphy project folder Task 16) | date: 2026-09-25]
 from pathlib import Path
 from typing import Optional
 
@@ -303,7 +287,6 @@ def main(root):
 
     # 4. Extract: normalize into source/, cut the halves, read the raw voltage, pool the full day.
     return extract_day(project, 'D1')
-# [AGENT EDIT END]
 ```
 
 `main(root)` returns the day, its tier, its `source_id` and its feature ids. The ids depend
@@ -329,4 +312,3 @@ $ python -m multiphy.launch --root <root>/lab status demo
 D1 · 2026-01-05 · raw · sources ok · features ok · runs 0
 across days · runs 0
 ```
-<!-- [AGENT EDIT END] -->

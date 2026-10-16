@@ -1,5 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: module docstring for the per-run curation history (run-curation Task 1) | date: 2026-10-04]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: module docstring: the history is replaced whole on each write (run-curation Task 2, D14) | date: 2026-10-04]
 """Curation of one across-day run: one controller writes one history, replaced whole on each write (D14).
 
 Each across-day run has one history of curator actions. Nothing in it is edited in place:
@@ -8,9 +6,6 @@ stored; they are rebuilt on every open by replaying the history over the run's `
 tracks and unmatched units. A row that is malformed or no longer applies to that result is
 skipped and listed, never deleted.
 """
-# [AGENT EDIT END]
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: curation state, history rows and replay (run-curation Task 1) | date: 2026-10-04]
 from __future__ import annotations
 
 import copy
@@ -215,11 +210,9 @@ def replay(tracks: Sequence[Sequence[str]], unmatched: Sequence[str], rows: Sequ
     done, redo = [], []
     for row in rows:
         what = _malformed(row, seen)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an op_id is reserved on its first row even when that row is malformed (run-curation Task 1, fix round 1) | date: 2026-10-04]
         op_id = row.get('op_id', '') if isinstance(row, dict) else ''
         if isinstance(op_id, str) and op_id:
             seen.add(op_id)  # an op_id is spent once seen, even on a malformed row
-        # [AGENT EDIT END]
         if what is not None:
             skipped.append((op_id, f'malformed: {what}'))
             continue
@@ -243,18 +236,12 @@ def replay(tracks: Sequence[Sequence[str]], unmatched: Sequence[str], rows: Sequ
     state.undo_target = done[-1]['op_id'] if done else None
     state.redo_target = redo[-1]['op_id'] if redo else None
     return state
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, one-writer lock and the Curation controller (run-curation Task 2) | date: 2026-10-04]
 import csv
 import io
 import datetime
 import os
 import secrets
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the rewrite copies the old file mode (run-curation Task 2, D14) | date: 2026-10-04]
 import shutil
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, one-writer lock and the Curation controller (run-curation Task 2) | date: 2026-10-04]
 import socket
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -268,24 +255,16 @@ _UNREADABLE = {'pid': None, 'host': None, 'token': None}
 
 
 def read_history(curation_dir: Path) -> list:
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the whole file is read; it is only ever replaced whole, so a last line without a newline is a complete row (run-curation Task 2, D14) | date: 2026-10-04]
     """The history rows as string dicts; malformed rows are kept for replay to skip and list."""
     path = Path(curation_dir) / HISTORY
     if not path.exists():
         return []
     text = path.read_bytes().decode('utf-8')
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every physical line is parsed on its own, so a bad line never absorbs the lines after it (run-curation Task 2, D32) | date: 2026-10-04]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a last line without a newline is kept (run-curation Task 2, D14) | date: 2026-10-04]
     lines = text.split('\n')
     if lines[-1] == '':
         lines.pop()  # the final newline ends the last line
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an existing file with no header line differs from COLUMNS and is refused, never read as a fresh run (run-curation Task 2 Do 1) | date: 2026-10-04]
     if not lines or tuple(_parse_line(lines[0]) or ()) != COLUMNS:
         raise ValueError(f'{path}: unknown history columns')
-    # [AGENT EDIT END]
     rows = []
     for line in lines[1:]:
         fields = _parse_line(line)
@@ -301,10 +280,8 @@ def _parse_line(line: str) -> Optional[list]:
         return next(csv.reader([line]), [])
     except csv.Error:
         return None
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a row is written only as a line read_history parses back to the same cells (run-curation Task 2, fix round 4) | date: 2026-10-04]
 def _history_line(row: dict) -> str:
     """The row as one history line; ValueError when read_history would not read it back unchanged."""
     cells = [row[col] for col in COLUMNS]
@@ -317,10 +294,8 @@ def _history_line(row: dict) -> str:
     if _parse_line(line[:-1]) != cells:
         raise ValueError('the history reader cannot read this row back (a cell may exceed the csv field size limit)')
     return line
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 def _read_lock(path: Path) -> Optional[dict]:
     """The decoded lock: None when there is none, all-None fields when it cannot be read (treated as remote)."""
     try:
@@ -357,9 +332,7 @@ def _local_live(lock: Optional[dict]) -> bool:
 
 
 class Curation:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: class docstring: the history is replaced whole on each write (run-curation Task 2, D14) | date: 2026-10-04]
     """The one controller of a run's history: rewrites it under the lock and replays the result."""
-    # [AGENT EDIT END]
 
     def __init__(self, curation_dir: Path, result):
         self.curation_dir = Path(curation_dir)
@@ -390,19 +363,13 @@ class Curation:
             fd = os.open(self._lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
             return False
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a lock this call created but could not write is removed, the error re-raised (run-curation Task 2, fix round 1) | date: 2026-10-04]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed close is part of the failed acquisition: the descriptor is closed once and the created lock removed (run-curation Task 2, review r1) | date: 2026-10-04]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed acquisition removes the path only while it is still the file this call created; a successor's lock stays (run-curation Task 2, review r2) | date: 2026-10-04]
         created = None
         try:
             try:
                 created = os.fstat(fd)
-                # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a short lock write is an OSError, so the created file is removed (run-curation Task 2, Do step 3) | date: 2026-10-04]
                 data = self._lock_json().encode()
                 if os.write(fd, data) != len(data):
                     raise OSError('short write of the lock file')
-                # [AGENT EDIT END]
             finally:
                 os.close(fd)
         except BaseException:
@@ -413,11 +380,7 @@ class Curation:
             except OSError:
                 pass  # gone, replaced or unreadable: nothing of this call's is left to remove
             raise
-        # [AGENT EDIT END]
         return True
-        # [AGENT EDIT END]
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 
     def _acquire(self) -> None:
         if self._create_lock():
@@ -449,14 +412,12 @@ class Curation:
         try:
             self._replay()
         except BaseException:
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only the lock this call wrote is removed; a successor's lock stays and the opening error is the one raised (run-curation Task 2, fix round 2) | date: 2026-10-04]
             if not self.read_only:
                 try:
                     if self._owns():
                         os.remove(self._lock_path)  # the lock this call wrote (D35)
                 except OSError:
                     pass  # a lock that cannot be checked or removed is left; the opening error stands
-            # [AGENT EDIT END]
             raise
         return self
 
@@ -474,8 +435,6 @@ class Curation:
             self.taken_over = True
             raise PermissionError('taken over')
 
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each write replaces the whole history: current text plus the new line to a synced temp file with the old mode, then os.replace; any error once the write starts removes the temp file and turns read-only with no retry (run-curation Task 2, D14, D35, D40) | date: 2026-10-04]
     def _write(self, row: dict) -> CurationState:
         """Replace the history with its current text plus one new line; a failure turns this controller read-only."""
         line = _history_line(row)  # refuses a row the reader cannot read back
@@ -487,10 +446,8 @@ class Curation:
                 old = True
             except FileNotFoundError:
                 text, old = '', False
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only a missing history starts with the header; an existing one keeps its own first line (run-curation Task 2 Do 5) | date: 2026-10-04]
             if not old:
                 text = ','.join(COLUMNS) + '\n'
-            # [AGENT EDIT END]
             elif not text.endswith('\n'):
                 text += '\n'
             with open(tmp, 'w', newline='', encoding='utf-8') as f:
@@ -508,8 +465,6 @@ class Curation:
                 pass  # already renamed, never created, or cannot be removed
             self._fail(str(error) or type(error).__name__)
             raise  # no retry (D35)
-    # [AGENT EDIT END]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 
     def _fail(self, reason: str) -> None:
         """Turn read-only after a failed write; one re-read and replay, else the previous state stays."""
@@ -519,38 +474,22 @@ class Curation:
             self._replay()
         except Exception:
             pass
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 
     def do(self, operation: str, **fields) -> CurationState:
         self._check_writable()
         row = make_row(operation, **fields)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a row replay would skip as malformed is refused before it is written, so a returned action is never lost on replay (run-curation Task 2, fix round 3) | date: 2026-10-04]
         what = _malformed(row, set())
         if what is not None:
             raise ValueError(what)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a row the history reader cannot read back is refused before it is applied or written (run-curation Task 2, fix round 4) | date: 2026-10-04]
         _history_line(row)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
         apply(self.state, row)  # a ValueError refuses the action and nothing is written
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the action is written by replacing the whole history (run-curation Task 2, D14) | date: 2026-10-04]
         return self._write(row)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 
     def _step(self, target: Optional[str], operation: str, nothing: str) -> CurationState:
         if target is None:
             raise ValueError(nothing)
         self._check_writable()
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: undo and redo rows are written by replacing the whole history (run-curation Task 2, D14) | date: 2026-10-04]
         return self._write(make_row(operation, target_op=target))
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: history file, lock and controller (run-curation Task 2) | date: 2026-10-04]
 
     def undo(self) -> CurationState:
         return self._step(self.state.undo_target, 'undo', 'nothing to undo')
@@ -570,8 +509,6 @@ class Curation:
         tmp = self.curation_dir / f'{LOCK}.{self.token}.tmp'
         tmp.write_text(self._lock_json())
         os.replace(tmp, self._lock_path)
-        # [AGENT EDIT END]
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: writes are enabled only after the re-read and replay succeed; on failure stay read-only and remove the lock this take-over wrote (run-curation Task 2, D34) | date: 2026-10-04]
         try:
             self._replay()
         except BaseException as error:
@@ -586,9 +523,7 @@ class Curation:
         self.taken_over = False
         self.lock_owner = None
         self.remote_lock = False
-        # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: close; a read-only controller never removes the lock (run-curation Task 2, fix round 1) | date: 2026-10-04]
     def close(self) -> None:
         if not self.read_only and self._owns():
             try:
@@ -596,8 +531,6 @@ class Curation:
             except FileNotFoundError:
                 pass
         self.closed = True
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: accepted-track export of one across-day run (run-curation Task 3) | date: 2026-10-04]
 import pandas as pd
 
 EXPORT_COLUMNS = ('track_id', 'cellid', 'siteid', 'n_units', 'n_days', 'accepted_at', 'curator')
@@ -632,14 +565,12 @@ def write_export(state: CurationState, sites: dict, curation_dir: Path, out: Opt
         with stream:
             table.to_csv(stream, index=False, columns=list(EXPORT_COLUMNS))
     except BaseException:
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a failed cleanup raises naming the left file, the write error as its context (run-curation Task 3 fix round 1) | date: 2026-10-04]
         try:
             os.remove(out)  # the file this call created
         except FileNotFoundError:
             pass  # already gone: nothing is left
         # any other removal error propagates: its filename names the file left behind, and the
         # write error that started the cleanup is its __context__
-        # [AGENT EDIT END]
         raise
     return out
 
@@ -656,7 +587,6 @@ def export_run(project_path: Path, run: str, out: Optional[Path] = None) -> Path
     entry = catalog.read_run(project_path / RUNS_DIR / run)  # only across-day runs live in the project's runs/
     if entry is None:
         raise ValueError(f'{run} is not a completed run')
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a run placed in the project's runs/ by hand (output_dir) is refused unless its saved selection is across-day (run-curation Task 3, D41) | date: 2026-10-04]
     from multiphy.run.run_dir import read_json_object
     try:
         mode = read_json_object(project_path / RUNS_DIR / run / 'selection.json').get('mode')
@@ -664,10 +594,8 @@ def export_run(project_path: Path, run: str, out: Optional[Path] = None) -> Path
         raise ValueError(f'{run} is not an across-day run') from error
     if mode != 'across_days':
         raise ValueError(f'{run} is not an across-day run')
-    # [AGENT EDIT END]
     result = backends.load_result(entry.result_path)
     sites = dict(zip(result.units.cellid, result.units.session_id))  # a project day's siteid is its session_id
     curation_dir = project_path / 'curation' / 'runs' / run
     state = replay(result.tracks, result.unmatched, read_history(curation_dir))
     return write_export(state, sites, curation_dir, out)
-# [AGENT EDIT END]

@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the synthetic phy day is consistent and feeds the old extraction path (multiphy project folder Task 3) | date: 2026-09-25]
 """The synthetic phy day holds a consistent sort, a raw file and inputs for the old path."""
 from __future__ import annotations
 
@@ -47,4 +46,3 @@ def test_weak_unit_old_path_counts(tmp_path):
     assert len(ds.labels) == 7
     assert [(e['source_unit_id'], e['split_index'], e['reason']) for e in ds.exclusions] == [
         ('D1:4', 1, 'Too few spikes in temporal split.')]
-# [AGENT EDIT END]

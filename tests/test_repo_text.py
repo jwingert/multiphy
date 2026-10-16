@@ -45,3 +45,14 @@ def test_no_tracked_file_names_old_paths():
             for number, line in enumerate(text.splitlines(), 1)
             if any(p.search(line) for p in patterns)]
     assert hits == []
+
+
+def test_no_tracked_file_holds_a_tag():
+    tag = 'AGENT ' + 'EDIT'
+    files = tracked_text()
+    assert len(files) >= 240
+    hits = [f'{path}:{number}'
+            for path, text in files
+            for number, line in enumerate(text.splitlines(), 1)
+            if tag in line]
+    assert hits == []

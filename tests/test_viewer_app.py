@@ -1,10 +1,7 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the App window shows a mode's RunData through set_data; a failed preparation keeps the shown run and its lock; the layout file is per mode and written atomically (viewer-split Task 7) | date: 2026-10-06]
 """The ``App`` window over ``DictData`` runs and the fake mode; every file it writes lives under ``tmp_path``."""
 import json
 import os
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the settings pin test matches the settings folder name (day-table-keys Task 6) | date: 2026-10-14]
 import re
-# [AGENT EDIT END]
 from pathlib import Path
 
 import pandas as pd
@@ -15,27 +12,18 @@ from multiphy.viewer import display
 from multiphy.viewer.app import App
 
 from .viewer_fakes import FAKE_MODE, DictData
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table tests read track ids and the two-day native fake (native-same-day Task 10) | date: 2026-10-11]
 from multiphy import clusters as cl
 from multiphy.viewer.qt import QtCore
 
 from .viewer_fakes import day_table_data
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: runs of three and seven days for the Browse fit tests (day-table widths) | date: 2026-10-13]
 from .viewer_fakes import many_days_data
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the key tests press keys in a window whose shortcuts are read from a settings file under tmp_path (day-table-keys Task 4) | date: 2026-10-14]
 from PySide6.QtTest import QTest
 
 from multiphy.viewer import keys
 
 from .theme_fixtures import theme_env  # noqa: F401
-# [AGENT EDIT END]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the settings pin test reads the settings file name through theme (day-table-keys Task 6) | date: 2026-10-14]
 from multiphy.viewer import theme
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the project-run tests open snapshot runs in old and new windows (viewer-split Task 8) | date: 2026-10-06]
 import copy
 import shutil
 
@@ -43,14 +31,11 @@ from multiphy.project.selection import Selection
 from multiphy.run.project_run import run_selection
 from multiphy.viewer import app as viewer_app
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs come from extracted_project; the old viewers are gone, so importlib checks they cannot be found (viewer-split Task 9) | date: 2026-10-07]
 import importlib.util
 
 from multiphy.project.folder import Project
 
 from .synthetic_day import extracted_project
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 UNITS = ['a-01', 'b-01', 'c-01', 'd-01']
 
@@ -119,10 +104,8 @@ def test_wrong_shape_layout_opens_default(qt, tmp_path):
     for w in (window, reference):
         w._save_layout = lambda: None
         w.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel has its own dock beside the probe's pane; a layout saved without it opens the default once (drift-view Task 4) | date: 2026-10-08]
 def test_drift_dock_beside_probe(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     dock = window._docks['drift']
@@ -149,10 +132,8 @@ def test_layout_without_drift_opens_default(qt, tmp_path):
     for w in (first, window, reference):
         w._save_layout = lambda: None
         w.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a layout saved with the one spiking dock opens the default once (browse-same-day Task 5) | date: 2026-10-12]
 def test_layout_with_spiking_dock_opens_default(qt, tmp_path):
     first = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     first.show()
@@ -173,9 +154,7 @@ def test_layout_with_spiking_dock_opens_default(qt, tmp_path):
     assert sorted(t.objectName() for t in window.tabifiedDockWidgets(window._docks['isi'])) == ['um_acg_dock']
     window._save_layout = lambda: None
     window.close()
-# [AGENT EDIT END]
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a panel that fails while the new run renders (a Qt slot, whose exception PySide6 sends to sys.excepthook) still reaches set_data's cleanup: the new controller is closed and the error re-raised (viewer-split Task 7, fix round 1) | date: 2026-10-06]
 def test_failed_render_closes_new_controller(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.set_data(_data(), curation_dir=tmp_path / 'a')
@@ -193,10 +172,8 @@ def test_failed_render_closes_new_controller(qt, tmp_path):
     window.state.changed.disconnect(broken_panel)
     window._save_layout = lambda: None
     window.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a lock release that fails during the render cleanup still detaches the controller and disables the controls, and the render error is the one raised (viewer-split Task 7, fix round 2) | date: 2026-10-06]
 def test_failed_render_with_failed_close_detaches_controller(qt, tmp_path, monkeypatch):
     from multiphy import curation
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
@@ -223,11 +200,8 @@ def test_failed_render_with_failed_close_detaches_controller(qt, tmp_path, monke
     window.state.changed.disconnect(broken_panel)
     window._save_layout = lambda: None
     window.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_run opens any project run in its mode and matches the old windows; the run list and the imported entry are built before the controller switch; main takes only --run (viewer-split Task 8) | date: 2026-10-06]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs are built from extracted_project and run_selection, not the deleted snapshot harness (viewer-split Task 9) | date: 2026-10-07]
 @pytest.fixture(scope='module')
 def runs(tmp_path_factory):
     """A D1+D2+D3 run, a second D1+D2+D3 run and a D1+D2 run of one project."""
@@ -237,7 +211,6 @@ def runs(tmp_path_factory):
     out['second'] = run_selection(Selection(out['project'], ('D1', 'D2', 'D3')), 'functional_likelihood')
     out['two_days'] = run_selection(Selection(out['project'], ('D1', 'D2')), 'functional_likelihood')
     return out
-# [AGENT EDIT END]
 
 
 @pytest.fixture
@@ -323,10 +296,8 @@ def test_main_requires_run(qt, capsys):
         viewer_app.main(['--run', 'x', '--backend', 'x'])
     assert caught.value.code == 2
     assert 'unrecognized arguments: --backend x' in capsys.readouterr().err
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the run box fills from canonical paths read before set_data; abbreviations of --run exit 2; import_match_result declares MatchResult (viewer-split Task 8) | date: 2026-10-07]
 def test_run_box_reads_no_paths_after_switch(qt, runs, clean_curation, monkeypatch):
     window = viewer_app.open_run(runs['across_days'])
     original = window.set_data
@@ -356,10 +327,8 @@ def test_import_match_result_declares_match_result():
     import typing
     from multiphy.contract.results import MatchResult
     assert typing.get_type_hints(App.import_match_result)['return'] is MatchResult
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - refresh_runs takes the prepared list and reads nothing; the Refresh button lists again and shows a failure in the status bar (viewer-split Task 8) | date: 2026-10-07]
 def test_refresh_runs_reads_nothing(qt, runs, clean_curation, monkeypatch):
     window = viewer_app.open_run(runs['across_days'])
     listed = list(window._run_entries)
@@ -377,17 +346,13 @@ def test_refresh_runs_reads_nothing(qt, runs, clean_curation, monkeypatch):
     with pytest.raises(TypeError):
         window.refresh_runs()
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the old viewer modules are deleted (viewer-split Task 9) | date: 2026-10-07]
 def test_old_viewer_modules_gone():
     for name in ('gui', 'multiday_viewer', 'benchmark_viewer'):
         assert importlib.util.find_spec('multiphy.' + name) is None, name
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table in the Browse column: a run opens unpicked, a day pick shows its track, a tracked click picks the earliest member, select_pair finds pair rows in either order (native-same-day Task 10) | date: 2026-10-11]
 def _day_window(tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.set_data(day_table_data())
@@ -435,11 +400,8 @@ def test_select_pair_finds_row_either_order(qt, tmp_path):
     assert window.evidence.status.text() == 'no pair evidence'
     assert window.header.text() == 'Selected units: A-4, B-2'
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: select_pair keeps a given selection; a curation action and an undo keep the string selected (day-table-keys Task 3) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test takes theme_env, so the App's shortcut reads use a settings file under tmp_path, never the user's multiphy.ini; tag wraps the whole test (day-table-keys final review fix round 1) | date: 2026-10-14]
 def test_select_pair_keeps_selection(qt, theme_env):
     tmp_path = theme_env
     window = _day_window(tmp_path)
@@ -452,10 +414,8 @@ def test_select_pair_keeps_selection(qt, theme_env):
     assert state.selection == ['A-1', 'A-4', 'B-2']
     assert window.evidence.status.text() == 'no pair evidence'
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test takes theme_env, so the App's shortcut reads use a settings file under tmp_path, never the user's multiphy.ini; tag wraps the whole test (day-table-keys final review fix round 1) | date: 2026-10-14]
 def test_curation_keeps_string_selection(qt, theme_env):
     tmp_path = theme_env
     window = _day_window(tmp_path)
@@ -476,12 +436,8 @@ def test_curation_keeps_string_selection(qt, theme_env):
     days.accept()
     assert state.selection == ['A-1', 'B-1']
     _close(window)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an undo that removes the shown track keeps the pick and its string (day-table-keys Task 3 fix round 1) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test takes theme_env, so the App's shortcut reads use a settings file under tmp_path, never the user's multiphy.ini; tag wraps the whole test (day-table-keys final review fix round 1) | date: 2026-10-14]
 def test_undo_of_merge_keeps_string(qt, theme_env):
     tmp_path = theme_env
     window = _day_window(tmp_path)
@@ -501,11 +457,8 @@ def test_undo_of_merge_keeps_string(qt, theme_env):
     assert (state.row.cellid_a, state.row.cellid_b) == ('A-3', 'B-2')
     assert t.item(t.currentRow(), 0).data(QtCore.Qt.UserRole) == cl.cluster_id(['A-3'])
     _close(window)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day-table action on a track a filter hides keeps the pick (D36) (native-same-day Task 12) | date: 2026-10-12]
 def test_hidden_track_action_keeps_pick(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.set_data(day_table_data(), curation_dir=tmp_path / 'cur')
@@ -528,10 +481,8 @@ def test_hidden_track_action_keeps_pick(qt, tmp_path):
     assert window.tracked.table.currentRow() == -1
     assert window.state.selection == ['B-1']
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day-table action on a shown track moves Tracked units to it (D36) (native-same-day Task 12 fix round 1) | date: 2026-10-12]
 def test_shown_track_action_follows_it(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.set_data(day_table_data(), curation_dir=tmp_path / 'cur')
@@ -541,12 +492,8 @@ def test_shown_track_action_follows_it(qt, tmp_path):
     t = window.tracked.table
     assert t.item(t.currentRow(), 0).data(QtCore.Qt.UserRole) == cl.cluster_id(['A-2'])
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a drift-dot click toggles the unit in the day table; Browse is the default front tab (browse-same-day Task 4) | date: 2026-10-12]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same dot again drops that day's strung unit; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the test takes theme_env, so the App's shortcut reads use a settings file under tmp_path, never the user's multiphy.ini; tag wraps the whole test (day-table-keys final review fix round 1) | date: 2026-10-14]
 def test_drift_click_toggles_day_table(qt, theme_env):
     tmp_path = theme_env
     window = _day_window(tmp_path)
@@ -564,8 +511,6 @@ def test_drift_click_toggles_day_table(qt, theme_env):
     assert window.days.strung == {}
     assert window.state.selection == ['B-1']
     _close(window)
-# [AGENT EDIT END]
-# [AGENT EDIT END]
 
 
 def _front_tab(window):
@@ -594,10 +539,8 @@ def test_browse_in_front_by_default(qt, tmp_path):
     assert _front_tab(second) == 'Browse'
     second._save_layout = lambda: None
     second.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the interval histogram and the autocorrelogram are two docks tabbed together left of the fingerprint (browse-same-day Task 5) | date: 2026-10-12]
 def test_isi_and_acg_docks_tabbed(qt, tmp_path):
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.resize(1600, 1000)
@@ -613,10 +556,8 @@ def test_isi_and_acg_docks_tabbed(qt, tmp_path):
     assert window._docks['isi'].geometry().y() > window._docks['waveform'].geometry().y()
     window._save_layout = lambda: None
     window.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Browse opens fitted to up to five day columns at their narrowest; more days, or a narrower drag, scroll; Reset layout fits again (day-table widths) | date: 2026-10-13]
 def _settle(qt):
     for _ in range(3):
         qt.processEvents()
@@ -698,10 +639,8 @@ def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path):
     assert not days.scroll.horizontalScrollBar().isVisible()
     assert [t.width() for t in days.tables.values()] == [narrowest] * 3
     window.close()
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved keys drive the day table: W S A D F Esc X move and string, E saves then steps, Shift+E and Q curate, letters type in the notes, inspect-only keys only move, a rebound key applies at once (day-table-keys Task 4) | date: 2026-10-14]
 def _activate(window):
     """Show ``window`` and wait until it is the active window, so its shortcuts fire."""
     window.show()
@@ -816,13 +755,10 @@ def test_rebound_key_applies_live(qt, theme_env):
     _press(window, QtCore.Qt.Key_D)
     assert days.strung == {}
     _close(window)
-# [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pins tmp_settings: with no fixture requested, the settings file lies in a fresh settings folder under the pytest base temp, never ~/.config/multiphy or an after folder (day-table-keys Task 6) | date: 2026-10-14]
 def test_settings_live_in_a_fresh_tmp_folder():
     p = Path(theme.settings().fileName())
     assert p.name == 'multiphy.ini'
     assert p.parent.name == 'multiphy'
     assert re.fullmatch(r'settings\d+', p.parent.parent.name) is not None
-# [AGENT EDIT END]

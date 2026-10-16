@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: codex | user: wingertj | reason: verify diagnostic timing, missing-pair identity, and tie-aware reciprocal ranks | date: 2026-09-18]
 from types import SimpleNamespace
 
 import numpy as np
@@ -70,4 +69,3 @@ def test_report_writes_only_new_cache_directory_with_lineage(tmp_path, monkeypat
     assert (target / 'METHODS.md').exists() and (target / 'names.py').exists()
     with pytest.raises(FileExistsError):
         diagnostic.write_report('dataset', 'result', output_dir='diagnostic', root=tmp_path)
-# [AGENT EDIT END]

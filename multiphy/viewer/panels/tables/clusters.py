@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tracked-units table, from gui.py:1509-1896 with the dated members of multiday_viewer.py:265-275 and the merge refusal of multiday_viewer.py:277-290; every window call goes through Actions and the state's RunData; fix round 2: the constructor declares state: PairState and actions: Actions (viewer-split Task 6, fix round 2) | date: 2026-10-06]
 """Tracked units: the object a curator actually works on."""
 from types import SimpleNamespace
 
@@ -7,18 +6,13 @@ import pandas as pd
 
 from multiphy import clusters as cl
 from multiphy.viewer.data import Words
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: labels, buttons and cells carry theme properties and tokens instead of colours (launcher-gui Task 8) | date: 2026-10-07]
 from multiphy.viewer import theme
 from multiphy.viewer.panels.tables.base import NumericItem, _table
 from multiphy.viewer.state import Actions, PairState
 from multiphy.viewer.qt import QtCore, QtWidgets
-# [AGENT EDIT END]
 
 
 class ClusterPanel(QtWidgets.QWidget):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the queue also takes proposed same-day links (native-same-day Task 8 fix round 1) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a proposed link's partner may be on the same day or another day; tag wraps the whole docstring (native-same-day Task 8, final review fix round 1) | date: 2026-10-12]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an accepted or rejected track leaves the review queue for every flag (D35) (native-same-day Task 12) | date: 2026-10-12]
     """Tracked units: the object a curator actually works on.
 
     A well holds thousands of candidate pairs but only tens of clusters, and
@@ -33,13 +27,8 @@ class ClusterPanel(QtWidgets.QWidget):
     again. A unit a rejected track left ``unmatched`` stays out of the queue
     for its proposed link too.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
     panel_id, panel_title = 'clusters', 'Tracked units'
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the members of the track a curator picked, for the day table (native-same-day Task 8) | date: 2026-10-11]
     track_shown = QtCore.Signal(list)
-    # [AGENT EDIT END]
 
     def __init__(self, state: PairState, actions: Actions, words: Words, parent=None):
         super().__init__(parent)
@@ -57,7 +46,6 @@ class ClusterPanel(QtWidgets.QWidget):
         top.addStretch(1)
         self.inspect_tag = QtWidgets.QLabel('inspect-only')
         self.inspect_tag.setToolTip('same-day runs are not curated')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tags take role and tone properties that the app style sheet colours (launcher-gui Task 8) | date: 2026-10-07]
         self.inspect_tag.setProperty('role', 'hint')
         self.inspect_tag.hide()
         top.addWidget(self.inspect_tag)
@@ -69,7 +57,6 @@ class ClusterPanel(QtWidgets.QWidget):
         self.lock_tag = QtWidgets.QLabel('')
         self.lock_tag.setProperty('tone', 'unsure')
         self.lock_tag.setStyleSheet('font-size:11px;')
-        # [AGENT EDIT END]
         self.lock_tag.hide()
         top.addWidget(self.lock_tag)
         self.take_over_btn = QtWidgets.QPushButton('Take over')
@@ -84,9 +71,7 @@ class ClusterPanel(QtWidgets.QWidget):
         self.cancel_take_over_btn.clicked.connect(lambda: self._ask_take_over(False))
         self.confirm_take_over_btn.clicked.connect(lambda: self.actions.take_over())
         self.count = QtWidgets.QLabel('')
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a hint label the app style sheet colours (launcher-gui Task 8) | date: 2026-10-07]
         self.count.setProperty('role', 'hint')
-        # [AGENT EDIT END]
         top.addWidget(self.count)
         lay.addLayout(top)
 
@@ -98,7 +83,6 @@ class ClusterPanel(QtWidgets.QWidget):
         self.table.currentCellChanged.connect(lambda r, *a: self.on_cluster(r))
         lay.addWidget(self.table, 2)
 
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Members heading and a hint label the app style sheet colours, in one row (launcher-gui Task 8) | date: 2026-10-07]
         members_row = QtWidgets.QHBoxLayout()
         members_row.addWidget(QtWidgets.QLabel('<b>Members</b>'))
         members_hint = QtWidgets.QLabel('click one to open its strongest link')
@@ -106,7 +90,6 @@ class ClusterPanel(QtWidgets.QWidget):
         members_row.addWidget(members_hint)
         members_row.addStretch(1)
         lay.addLayout(members_row)
-        # [AGENT EDIT END]
         self.members = _table(['unit', words.member_column, 'best link'], [96, 82, 72])
         self.members.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.members.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
@@ -121,7 +104,6 @@ class ClusterPanel(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout()
         grid.setSpacing(4)
         self.buttons = {}
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the buttons lose their fills; Accept and Reject are outlined in their status colour by the app style sheet (launcher-gui Task 8) | date: 2026-10-07]
         verdicts = {'Accept': 'accept', 'Reject': 'reject'}
         for n, (label, tip, slot) in enumerate((
                 ('Accept', 'accept this tracked unit', self.accept),
@@ -138,21 +120,16 @@ class ClusterPanel(QtWidgets.QWidget):
             if label in verdicts:
                 b.setProperty('verdict', verdicts[label])
             b.setStyleSheet('padding:6px 4px;')
-            # [AGENT EDIT END]
             b.clicked.connect(slot)
             grid.addWidget(b, n // 3, n % 3)
             self.buttons[label] = b
         lay.addLayout(grid)
         self.status = QtWidgets.QLabel('')
         self.status.setWordWrap(True)
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a hint label the app style sheet colours (launcher-gui Task 8) | date: 2026-10-07]
         self.status.setProperty('role', 'hint')
-        # [AGENT EDIT END]
         lay.addWidget(self.status)
 
     # ------------------------------------------------------------- rendering
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a track with a proposed same-day link is flagged and queued, except units a reject left unmatched (D16, D33) (native-same-day Task 8) | date: 2026-10-11]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only a proposed or unmatched row needs review (D35); fallback=False leaves no row current when preferred_id is not shown (D36) (native-same-day Task 12) | date: 2026-10-12]
     def refresh_list(self, *_args, preferred_id=None, fallback=True) -> None:
         """Rebuild the list and make the row of ``preferred_id`` (else the previous row) current.
 
@@ -215,14 +192,12 @@ class ClusterPanel(QtWidgets.QWidget):
                      NumericItem(r.min_internal_posterior),
                      QtWidgets.QTableWidgetItem(r.status)]
             cells[0].setData(QtCore.Qt.UserRole, r.cluster_id)
-            # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: flagged and decided cells carry theme tokens (launcher-gui Task 8) | date: 2026-10-07]
             if r.review:
                 theme.tone(cells[2], 'unsure')
             if r.status == 'accepted':
                 theme.tone(cells[4], 'accept')
             elif r.status == 'rejected':
                 theme.tone(cells[4], 'reject')
-            # [AGENT EDIT END]
             for j, it in enumerate(cells):
                 t.setItem(i, j, it)
         t.setSortingEnabled(True)
@@ -247,8 +222,6 @@ class ClusterPanel(QtWidgets.QWidget):
         del blocker
         # A rebuild can leave the same row current, so Qt emits no change.
         self.on_cluster(t.currentRow())
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
     def _update_skipped(self, skipped):
         if not skipped:
@@ -292,7 +265,6 @@ class ClusterPanel(QtWidgets.QWidget):
         hit = self._rows[self._rows.cluster_id == cid]
         return cid, (list(hit.iloc[0].members) if len(hit) else [])
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the member fill moves to _fill_members; on_cluster emits track_shown last when a row is current, and show_track_of shows a unit's track without a state change (D32) (native-same-day Task 8) | date: 2026-10-11]
     def on_cluster(self, _row):
         cid, members = self.current_cluster()
         self._fill_members(members)
@@ -348,7 +320,6 @@ class ClusterPanel(QtWidgets.QWidget):
         self.members.setSortingEnabled(True)
         self.members.setCurrentCell(-1, -1)
         del blocker
-    # [AGENT EDIT END]
 
     def selected_members(self):
         return [self.members.item(i.row(), 0).data(QtCore.Qt.UserRole)
@@ -460,4 +431,3 @@ class ClusterPanel(QtWidgets.QWidget):
             return
         self.refresh_list(preferred_id=cl.cluster_id(union))
         self.status.setText(f'merged {len(ids)} clusters')
-# [AGENT EDIT END]

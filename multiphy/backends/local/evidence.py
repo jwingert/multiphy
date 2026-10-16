@@ -1,4 +1,3 @@
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names event-response fingerprints (launcher-gui Task 10) | date: 2026-10-07]
 """
 Matching logic. Imports no UI toolkit and no recording loader, so it can be
 tested without a display and without touching the data tree.
@@ -26,9 +25,7 @@ The reference for "same" is within-day reliability, which is the most a neuron
 can correlate with itself. Real day-to-day response change only lowers it, so
 the resulting probability is conservative.
 
-# [AGENT EDIT START | agent: claude-opus-5 | user: wingertj | reason: cross-day match curation tool | date: 2026-09-14]
 """
-# [AGENT EDIT END]
 from dataclasses import dataclass, asdict, field
 
 import numpy as np
@@ -57,7 +54,6 @@ class Criteria:
 
 # ------------------------------------------------------------- small helpers
 def _aligned(a, b):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names an event response (launcher-gui Task 10) | date: 2026-10-07]
     """Both as float arrays, or None when they cannot be compared.
 
     Two curves of different lengths are not a shorter and a longer version of
@@ -66,7 +62,6 @@ def _aligned(a, b):
     with NaN is right; broadcasting them was a crash, and truncating them
     would have been a wrong number.
     """
-    # [AGENT EDIT END]
     a, b = np.asarray(a, float).ravel(), np.asarray(b, float).ravel()
     if a.shape != b.shape or a.size == 0:
         return None
@@ -292,9 +287,7 @@ def pair_evidence(ua, ub, offset_um=0.0, shared_stims=None):
         acg_cosine=cosine(ua.get('acg'), ub.get('acg')),
         spike_width_a=ua.get('sw_ms', np.nan), spike_width_b=ub.get('sw_ms', np.nan),
         d_spike_width_ms=abs(ua.get('sw_ms', np.nan) - ub.get('sw_ms', np.nan)),
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the all-channel peak-to-peak correlation is named footprint_r (event-optional Task 1) | date: 2026-10-09]
         footprint_r=pearson(ua.get('ptp'), ub.get('ptp')),
-        # [AGENT EDIT END]
         amp_a=ua.get('amp', np.nan), amp_b=ub.get('amp', np.nan),
     )
     # driven rate restricted to stimuli played on both days
@@ -347,7 +340,6 @@ STREAMS = {
 ALL_PROPERTIES = [p for v in STREAMS.values() for p, _ in v]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run_streams gives the streams a run measured: events add stim and the session rate, waveform halves add wave (event-optional Task 6) | date: 2026-10-10]
 def run_streams(events: bool, *, waveform: bool) -> dict:
     """The streams a run can fit, in ``Ensemble`` order: ``stim``, ``phys``, ``wave``.
 
@@ -370,7 +362,6 @@ def run_streams(events: bool, *, waveform: bool) -> dict:
 def _reference_properties(streams: dict) -> list:
     """``ALL_PROPERTIES`` plus every property of ``streams``, once each: what the references hold."""
     return list(dict.fromkeys([*ALL_PROPERTIES, *(p for stream in streams.values() for p, _ in stream)]))
-# [AGENT EDIT END]
 
 
 class LogLR:
@@ -422,8 +413,6 @@ def _logistic_fit(X, y, l2=1.0):
 
 
 class Ensemble:
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the event response (launcher-gui Task 10) | date: 2026-10-07]
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names any stream dict, not two fixed streams (event-optional Task 6) | date: 2026-10-10]
     """One score per stream, and a global score combining them.
 
     ``streams`` maps a stream name to its ``(property, sign)`` list (``run_streams``); ``None``
@@ -431,10 +420,7 @@ class Ensemble:
     so the balance between event response, physiology and waveform is measured rather than
     asserted. A stream left out of ``streams`` is not scored at all.
     """
-    # [AGENT EDIT END]
-    # [AGENT EDIT END]
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a likelihood ratio per property and a weight per stream of any stream dict (event-optional Task 6) | date: 2026-10-10]
     def __init__(self, same_ref, diff_ref, streams=None):
         self.streams = STREAMS if streams is None else streams
         self.lr = {}
@@ -446,7 +432,6 @@ class Ensemble:
         self.bias = 0.0
         self.fitted = False
         self._fit(same_ref, diff_ref)
-    # [AGENT EDIT END]
 
     def stream_score(self, values, stream):
         tot = np.zeros(np.shape(np.atleast_1d(
@@ -455,7 +440,6 @@ class Ensemble:
             tot = tot + self.lr[prop](sgn * np.asarray(values.get(prop, np.nan), float))
         return tot
 
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one fitted weight per stream in dict order, bias last; the references read ALL_PROPERTIES plus every stream property (event-optional Task 6) | date: 2026-10-10]
     def _fit(self, same_ref, diff_ref):
         properties = _reference_properties(self.streams)
         rows, labels = [], []
@@ -495,7 +479,6 @@ class Ensemble:
         n = max((len(np.atleast_1d(ref.get(p, []))) for p in properties), default=0)
         vals = {p: np.asarray(ref.get(p, [np.nan] * n), float) for p in properties}
         return self.score(vals)
-    # [AGENT EDIT END]
 
 
 class Mixture:
@@ -551,4 +534,3 @@ class Mixture:
         p = self.posterior(grid)
         ok = grid[np.isfinite(p) & (p >= target)]
         return float(ok.min()) if len(ok) else np.nan
-# [AGENT EDIT END]

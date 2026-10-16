@@ -1,11 +1,8 @@
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: user guide to the project folder, its inputs and the init, extract and status commands (multiphy project folder Task 16; fix round 1: the extent refusal covers the last trial only, baselines are clipped, and the channel check compares a declared count; fix round 2: a full-day waveform pools up to 100 sampled spikes per half; final review fix round 1: init takes the raw layout from params.py with or without a dat_path) | date: 2026-09-25] -->
 # The project folder
 
 A **project** is one folder that holds a set of recording days made with one probe. Each day
 is added once, from a phy (KiloSort) folder, an optional events CSV and an optional raw voltage
 file. multiphy then extracts the day's features, also once, and can check at any time that
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide names launch run and init --probe (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command list gains launch export (run-curation Task 10) | date: 2026-10-05] -->
 the files the day came from are unchanged, runs any registered matcher on its extracted
 days, and exports the tracks a curator accepted. Five commands do all of this:
 
@@ -16,12 +13,8 @@ python -m multiphy.launch [--root DIR] status  PROJECT [--verify]
 python -m multiphy.launch [--root DIR] run     PROJECT --backend ID [--day DAY | --days DAY DAY ...] [--python EXE] [backend options]
 python -m multiphy.launch [--root DIR] export  PROJECT --run RUN [--out PATH]
 ```
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide names the launcher window (launcher-gui Task 11) | date: 2026-10-07] -->
 `python -m multiphy.launch [--root DIR] gui [PROJECT]` opens a window that runs the
 same commands and opens runs (`### gui` in section 9).
-<!-- [AGENT EDIT END] -->
 
 To read spikes, events or voltage in a format other than phy, events CSV or a flat binary
 file, see [`adding_a_source.md`](adding_a_source.md).
@@ -42,8 +35,6 @@ Every project lives directly under one **lab root**. It is `--root DIR` when giv
 
 ## 2. The project layout
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the layout names the runs and curation folders (Plan B Task 10) | date: 2026-09-28] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the layout names one curation folder per across-days run: history.csv, history.lock, exports/ (run-curation Task 10) | date: 2026-10-05] -->
 ```
 <root>/
   M1/                          the project
@@ -77,8 +68,6 @@ Every project lives directly under one **lab root**. It is `--root DIR` when giv
       launcher.log             one line per command run on this project
   _runtime/                    temporary snippets during a raw-tier extraction
 ```
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 - A day's `source_id` is the sha256 of `source/extraction_manifest.json`. Its halves id and
   full id are the sha256 of `features/halves/manifest.json` and `features/full/manifest.json`.
@@ -87,13 +76,8 @@ Every project lives directly under one **lab root**. It is `--root DIR` when giv
   a day is extracted, `.extract.lock` sits in its day folder. A lock left by a process that
   died stays until you remove it, and the error names it:
   `project.json is locked by <host> <pid>; remove <path> if that process is gone.`
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: only run writes runs/ (Plan B Task 10) | date: 2026-09-28] -->
 - `status` counts the folders in each day's `runs/` and in the project's `runs/`. Only `run`
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer writes curation/ (viewer-split final review fix round 1) | date: 2026-10-07] -->
   writes `runs/`; `init`, `extract` and `status` never do. The viewer writes `curation/`.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one history and one lock per across-days run; same-day runs are inspect-only; archives have no GUI view (run-curation Task 10) | date: 2026-10-05] -->
 - `curation/runs/<run>/history.csv` is the curation of the across-days run `runs/<run>`: one
   line per curator action, undo and redo included. No line is ever edited; the file is replaced
   whole on each write, so a reader sees the old file or the new one. The viewer rebuilds the
@@ -102,21 +86,12 @@ Every project lives directly under one **lab root**. It is `--root DIR` when giv
 - `history.lock` lets one viewer write a run's history. A second viewer of the run opens
   read-only. A lock left by a process that died on this host is reclaimed when the run opens; a
   lock from another host can be taken over (**Take over**, then **Confirm take over**).
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: inspect-only writes no curation; closing still saves the window layout (run-curation Task 10 fix round 2) | date: 2026-10-05] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer shows same-day runs in its same_day mode (viewer-split final review fix round 1) | date: 2026-10-07] -->
 - Same-day runs are inspect-only: the viewer shows them in its same_day mode and writes no
   curation history.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the layout file sits under the lab root, not the project (run-curation final review 2) | date: 2026-10-06] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the layout file names of both modes (viewer-split Task 10) | date: 2026-10-07] -->
   Closing it still saves the window layout to `viewer/same_day_layout.json` (an across-days run:
   `viewer/across_days_layout.json`) under the lab root
-<!-- [AGENT EDIT END] -->
   (the folder that holds every project).
-<!-- [AGENT EDIT END] -->
   Benchmark archives and collections have no GUI view; their CLI scoring is unchanged.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 ## 3. Written once: a changed day goes in a new project
 
@@ -139,7 +114,6 @@ Two more rules follow from this:
 
 ## 4. `project.json`
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: identity.probe is recorded by init --probe (Plan B Task 10) | date: 2026-09-28] -->
 | Field | Value |
 |---|---|
 | `schema_version` | `1` |
@@ -151,7 +125,6 @@ Two more rules follow from this:
 | `identity.probe` | `null`, or the probe type the first `init --probe TYPE` recorded |
 | `identity.subject`, `identity.implant` | `null`; kept for later tools |
 | `days` | day name -> day record |
-<!-- [AGENT EDIT END] -->
 
 A day record:
 
@@ -223,11 +196,9 @@ baseline,60000,66000,,
 stimulus,66000,81000,2,noise_R
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: condition labels are stripped, then compared (Plan B Task 10) | date: 2026-09-28] -->
 - `condition` labels are stripped of surrounding spaces, then compared exactly, across trials
   and across days. A label must name everything that makes the condition, for example the
   sound and the ear.
-<!-- [AGENT EDIT END] -->
 - Without trial rows, each stimulus is its own trial, numbered from 1 in start order.
 - The analysis window becomes `[0, stop of the last trial)`. Spikes at or after that stop
   are left out. Baseline windows never change the recording's length.
@@ -325,11 +296,9 @@ command, and no day is added:
 - a day already in the project;
 - two days sharing a date;
 - a folder name the project cannot hold;
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init records the raw file without opening it (Plan B Task 10) | date: 2026-09-28] -->
 - a file the readers need that is missing;
 - a sort or events file that cannot be opened. `init` checks the sort and events files and
   records the raw file without opening it: an unreadable raw file is refused at `extract`.
-<!-- [AGENT EDIT END] -->
 
 `--sort`, `--date`, `--events` and `--raw` belong to the `--day` form, and `--from` refuses
 them. `init --day D1 --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]` adds one day.
@@ -378,17 +347,14 @@ To use the new target, add the day to a new project.
 
 ## 9. The commands
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: SIGINT ends a command as cancelled (launcher-gui Task 11) | date: 2026-10-07] -->
 `--root DIR` goes before the command. Each command prints its result lines on stdout, and
 progress on stderr. Any error prints `error: <message>` on stderr and exits 1, including a
 command line that does not parse. Success, and `--help`, exit 0. SIGINT while a
 command runs (Ctrl-C, or Cancel in the window) prints `cancelled` on stderr and exits 130; the
 log line then ends `cancelled`, written, as for every outcome, only when the project exists.
-<!-- [AGENT EDIT END] -->
 
 ### `init`
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init documents --probe TYPE (Plan B Task 10) | date: 2026-09-28] -->
 Adds days to a project, and creates the project when it does not exist yet. It prints only
 its notes. With `--from`, each note starts with its day, for example
 `D2: raw file found at dat_path; pass --uv-per-bit to use it`.
@@ -400,7 +366,6 @@ written (`project M1 probe is NP1; --probe says NP2`); one without `--probe` rec
 ```
 $ python -m multiphy.launch --root /data/multiphy init M1 --from /data/incoming/M1 --uv-per-bit 0.195 --probe NP1
 ```
-<!-- [AGENT EDIT END] -->
 
 ### `extract`
 
@@ -464,7 +429,6 @@ Without `--verify`, `status` compares only sizes and `mtime_ns`, and writes noth
 `project.json`. `--verify` re-hashes every file, the raw file included. It records the sha256
 of a raw file that has none yet, with `sha256_from` `"verify"`.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide documents launch run and its output line (Plan B Task 10) | date: 2026-09-28] -->
 ### run
 
 `launch run` runs one registered backend on the project's extracted days and writes a new
@@ -475,20 +439,16 @@ options follow `--backend ID`.
   extracted days. `--days D1 D2 ...` names two or more days. The run goes in the project's
   `runs/`.
 - `--day D1` matches the day's two temporal halves, and the run goes in `days/D1/runs/`.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a backend that reads trial timing runs without events, with a warning, when the days lack events or a shared condition (event-optional Task 13) | date: 2026-10-10] -->
 - A benchmark baseline (a backend that cannot run on real days) is refused across days. A
   backend that reads trial timing runs without events when a chosen day has no trial events or
   no condition is on every chosen day: 5 s chunks stand in for trials, spont comes from the
   whole recording when a day has no baseline windows, and each fallback prints one
   `warning · <reason>` line on stderr before the run and is saved as `run_evidence` in the
   result's provenance.
-<!-- [AGENT EDIT END] -->
 - A templates-tier day is refused: it has no waveform halves.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a day, or one day's half, without a single unit is refused before any warning (event-optional Task 14) | date: 2026-10-10] -->
 - A day without a single unit is refused (`days without a single unit: D2; run without them`),
   and so is one day whose half has none (`day D1 half recording0000_part001 has no single unit`),
   before any warning.
-<!-- [AGENT EDIT END] -->
 - A backend available in this interpreter runs in process. With `--python EXE`, or when the
   backend is unavailable here, it runs in `EXE` or else the verified lab interpreter; when it
   fails there, the error names the run folder it left.
@@ -507,18 +467,12 @@ $ python -m multiphy.launch --root /data/multiphy run M1 --backend functional_li
 /data/multiphy/M1/runs/20260928T120000Z_functional_likelihood_1a2b3c4d · functional_likelihood · D1,D2 · excluded 3
 ```
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days run is curated in curation/runs/<run>/history.csv; a same-day run is inspect-only (run-curation Task 10) | date: 2026-10-05] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run (viewer-split Task 10) | date: 2026-10-07] -->
 Open a finished run of either kind with `python -m multiphy.viewer --run DIR`; it
 opens in the mode the run's `selection.json` records (see [viewer.md](viewer.md)). The viewer
 runs no matcher. An
-<!-- [AGENT EDIT END] -->
 across-days run is curated in `curation/runs/<run>/history.csv` (section 2); a same-day run is
 inspect-only.
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide documents launch export and its output line (run-curation Task 10) | date: 2026-10-05] -->
 ### export
 
 `launch export PROJECT --run RUN [--out PATH]` writes the tracks a curator accepted in the
@@ -540,18 +494,14 @@ $ python -m multiphy.launch --root /data/multiphy export M1 --run 20260928T12000
 /data/multiphy/M1/curation/runs/20260928T120000Z_functional_likelihood_1a2b3c4d/exports/accepted_tracks_20261005-101500.csv · 12 tracks · 31 units
 ```
 
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide documents launch gui: the window, its forms, the queue, Cancel, the root switch and the menus (launcher-gui Task 11) | date: 2026-10-07] -->
 ### gui
 
 `launch [--root DIR] gui [PROJECT]` opens the launcher window on the lab root (`--root`, else
 the default, section 1). `PROJECT` (a name, or a path directly under the root) is shown first,
 and a name that is not yet a project fills the `project` field of the init and plugin forms.
 `launch gui` itself writes no log line.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the window's open size (launcher spacing) | date: 2026-10-13] -->
 The window opens at 1280 × 860 (`OPEN_SIZE`), or at most 90% of the screen's free width and
 height, every time; its size is not remembered.
-<!-- [AGENT EDIT END] -->
 
 ```
 $ python -m multiphy.launch --root /data/multiphy gui M1
@@ -574,14 +524,10 @@ terminal.
 **The checked days.** `extract` takes the checked days not yet extracted (none checked: every
 day not yet extracted when Run is pressed); `run` takes one checked day (its two halves) or several (across days),
 all extracted at the raw tier. A backend that cannot run on them is greyed, and hover says why.
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: min_repeats must be at least 2 (event-optional Task 14) | date: 2026-10-10] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run form's evidence tags and the greyed stimulus stream (event-optional Task 13) | date: 2026-10-10] -->
 For a backend that reads trial timing, tags under the backend name each evidence fallback of the
 checked days (`no events`, `spont · whole recording`; the reasons in hover), as `launch run` would
 warn; without events the `stimulus` feature stream is greyed. A `min_repeats` that is not an
 integer of at least 2 shows one `error` tag instead and disables Run.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
 **Running, waiting.** Each command runs as `python -m multiphy.launch --root <root> …`
 and logs its own line; the log pane shows `$ launch …`, the output and `exit <code>`. One
@@ -611,24 +557,16 @@ registered for the rest of the process.
 **The log pane** is monospace: a child's `[… INFO]` lines are muted; `error:` lines, `exit N`
 with N ≠ 0 and `killed` are in the reject colour.
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: graphite is the default theme; the Unit colours menu (graphite-palettes Task 6) | date: 2026-10-11] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Help sentence lists Keyboard shortcuts between Viewer guide and About multiphy; tag wraps the whole paragraph (day-table-keys Task 5) | date: 2026-10-14] -->
 **The menu bar**, shared with the viewer: `Settings` ▸ `Theme` (`Graphite`, the default, `Dark`
 or `Light`) and `Settings` ▸ `Unit colours` (see [Theme](viewer.md#theme) in the viewer guide);
 `Help` ▸ `Launcher guide` (this file) and `Viewer guide` (`docs/viewer.md`), each in its own
 read-only window, then `Keyboard shortcuts`, where the viewer's keys are changed (one key per
 action, saved in `multiphy.ini`).
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About multiphy and the window icon (logo) | date: 2026-10-13] -->
 `Help` ▸ `About multiphy` shows the logo and the version (`0.0.0` until launch); the logo is also
 the window icon.
-<!-- [AGENT EDIT END] -->
-<!-- [AGENT EDIT END] -->
 
-<!-- [AGENT EDIT END] -->
 ### `logs/launcher.log`
 
-<!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the outcome may be cancelled; a cancelled line in the example (launcher-gui Task 11) | date: 2026-10-07] -->
 Each command on a project that has a `project.json` afterwards, failed ones included, appends
 one line. The line holds the UTC time, the command with the arguments given after it (not
 `--root`), and the outcome: `ok`, `error: <message>` or `cancelled`:
@@ -640,7 +578,5 @@ one line. The line holds the UTC time, the command with the arguments given afte
 2026-09-26T05:46:32.987474+00:00 · extract M1 --day D1 · error: Day D1 is already extracted; features are written once. Put it in a new project to extract it again.
 2026-09-26T05:47:02.104311+00:00 · extract M1 · cancelled
 ```
-<!-- [AGENT EDIT END] -->
 
 A command line that does not parse runs nothing and writes no line.
-<!-- [AGENT EDIT END] -->

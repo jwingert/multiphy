@@ -5,10 +5,10 @@ import os
 
 from PySide6 import QtWidgets
 
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
-from nems_lbhb.unit_match.viewer.app import App, open_run
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
+from multiphy.viewer.app import App, open_run
 
 from .synthetic_day import extracted_project
 

@@ -16,12 +16,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match.contract import names, registry
+from multiphy.contract import names, registry
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header tags group a run's saved reasons as the launch form does (event-optional Task 12) | date: 2026-10-10]
-from nems_lbhb.unit_match.contract.inputs import Input, evidence_tags
+from multiphy.contract.inputs import Input, evidence_tags
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: unit colours come from the active Unit colours palette (graphite-palettes Task 2) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
 
 

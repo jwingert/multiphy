@@ -3,9 +3,9 @@ import json
 import sys
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.errors import ContractViolation
-from nems_lbhb.unit_match.run import subprocess as sp
+from multiphy.contract import registry
+from multiphy.contract.errors import ContractViolation
+from multiphy.run import subprocess as sp
 
 
 def test_command_is_argv_not_shell_and_roundtrips(tmp_path):
@@ -13,7 +13,7 @@ def test_command_is_argv_not_shell_and_roundtrips(tmp_path):
     program, argv = sp.build_command(src, 'unitmatch', {'tracking': 'common_constrained', 'threshold': .8},
                                      output=tmp_path / 'out', partition='test')
     assert program == sys.executable
-    assert argv[:4] == ['-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend']
+    assert argv[:4] == ['-u', '-m', 'multiphy.run', 'run-backend']
     assert '--tracking' in argv and argv[argv.index('--tracking') + 1] == 'common_constrained'
     assert argv[argv.index('--threshold') + 1] == '0.8' and '--partition' in argv
     assert all(isinstance(a, str) and ' ' not in a or a.startswith('{') for a in argv)

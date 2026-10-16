@@ -1,7 +1,7 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the store keeps only chains and triangle checks over verdict rows; one chain test replaces the table tests (run-curation Task 9) | date: 2026-10-05]
 import pandas as pd
 
-from nems_lbhb.unit_match import store
+from multiphy import store
 
 
 def test_chains_from_verdict_rows():

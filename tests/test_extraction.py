@@ -4,8 +4,8 @@ import json
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.extract_benchmark import SnippetReader, plan_snippets, extract_manifest
-from nems_lbhb.unit_match.benchmark import load_dataset
+from multiphy.extract_benchmark import SnippetReader, plan_snippets, extract_manifest
+from multiphy.benchmark import load_dataset
 
 
 @pytest.mark.parametrize('compressed', [False, True])
@@ -109,7 +109,7 @@ def test_manifest_end_to_end_and_clock_refusal(tmp_path, monkeypatch, separate_s
 # [AGENT EDIT START | agent: codex | user: wingertj | reason: prevent accidental snippet output into the code tree and verify failed extraction cleanup | date: 2026-09-18]
 def test_scratch_location_rejects_relative_repository_and_symlink_escape(tmp_path):
     from pathlib import Path
-    from nems_lbhb.unit_match.paths import extraction_scratch_root
+    from multiphy.paths import extraction_scratch_root
     with pytest.raises(ValueError, match='absolute'):
         extraction_scratch_root('local-scratch')
     repository = Path(__file__).resolve().parents[1]
@@ -122,7 +122,7 @@ def test_scratch_location_rejects_relative_repository_and_symlink_escape(tmp_pat
 
 
 def test_reader_failure_cleans_only_owned_scratch_child(tmp_path):
-    from nems_lbhb.unit_match.extract_benchmark import open_recording_sources
+    from multiphy.extract_benchmark import open_recording_sources
     scratch = tmp_path / 'scratch'
     scratch.mkdir()
     sentinel = scratch / 'other-job.dat'

@@ -7,7 +7,7 @@ import shutil
 
 import pytest
 
-from nems_lbhb.unit_match.project.identity import (FileIdentity, SourceChanged, SourceMissing, record, retargeted,
+from multiphy.project.identity import (FileIdentity, SourceChanged, SourceMissing, record, retargeted,
                                                     sha256_file, verify)
 
 

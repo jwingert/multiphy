@@ -6,7 +6,7 @@ import dataclasses
 
 import pytest
 
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, read_day, register_reader
+from multiphy.sources.base import clear_readers_for_tests, read_day, register_reader
 
 from .test_sources_events import _Reader, _stub_day
 

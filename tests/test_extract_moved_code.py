@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .lab_blocker import run_without_lab
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 
 UNIT_FEATURES_NAMES = ('ISI_BINS', 'ACG_BINS', '_isi_acg', 'temporal_sample_windows',
                        '_checked_sample_spikes', 'waveform_sample_selection',
@@ -18,8 +18,8 @@ RAW_PASS_NAMES = ('_voltage_stream', 'plan_snippets', 'SnippetReader', 'Filtered
 
 
 def test_moved_names_are_same_objects():
-    from nems_lbhb.unit_match import extract_benchmark, features
-    from nems_lbhb.unit_match.extract import raw_pass, unit_features
+    from multiphy import extract_benchmark, features
+    from multiphy.extract import raw_pass, unit_features
 
     same = {name: getattr(features, name) is getattr(unit_features, name)
             for name in UNIT_FEATURES_NAMES}
@@ -32,16 +32,16 @@ def test_moved_names_are_same_objects():
 def test_extract_benchmark_cli_help():
     env = dict(os.environ)
     env['PYTHONPATH'] = str(REPO)
-    proc = subprocess.run([sys.executable, '-m', 'nems_lbhb.unit_match.extract_benchmark', '--help'],
+    proc = subprocess.run([sys.executable, '-m', 'multiphy.extract_benchmark', '--help'],
                           cwd=REPO, env=env, capture_output=True, text=True, timeout=600)
     assert proc.returncode == 0, proc.stderr
 
 
 def test_extract_modules_import_without_lab():
     code = (
-        'import nems_lbhb.unit_match.extract.raw_pass\n'
-        'import nems_lbhb.unit_match.extract.unit_features\n'
-        'import nems_lbhb.unit_match.extract.pipeline\n'
+        'import multiphy.extract.raw_pass\n'
+        'import multiphy.extract.unit_features\n'
+        'import multiphy.extract.pipeline\n'
         "print('ok')\n"
     )
     proc = run_without_lab(code, REPO)

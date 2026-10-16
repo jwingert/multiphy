@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import backends as b
+from multiphy import backends as b
 
 
 def units(*ids):
@@ -21,9 +21,9 @@ def track(u, p, score_column='p_global', **kwargs):
 @pytest.fixture
 def pair_backend():
     """A candidate-pair backend registered for the run_backend adapter checks, then removed."""
-    from nems_lbhb.unit_match.contract import registry
-    from nems_lbhb.unit_match.contract.backend import COMMON_TRACKER_OPTIONS, Availability, BackendSpec, Provides
-    from nems_lbhb.unit_match.contract.inputs import Input
+    from multiphy.contract import registry
+    from multiphy.contract.backend import COMMON_TRACKER_OPTIONS, Availability, BackendSpec, Provides
+    from multiphy.contract.inputs import Input
 
     class PairBackend:
         spec = BackendSpec('pairs_test', '1', frozenset({Input.UNITS, Input.CANDIDATE_PAIRS}), frozenset(),
@@ -128,7 +128,7 @@ def test_stimulus_ablation_preserves_other_evidence_without_using_it():
     p['fingerprint_r'] = .75
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered id; the current_local alias is gone (Task 1); tracked via result_from_pairs under unitmatch (Task 3) | date: 2026-09-27]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: stream choice is the tracker helper score_column_for; no backend selects it (Task 3) | date: 2026-09-27]
-    from nems_lbhb.unit_match.backends.local.tracker import score_column_for
+    from multiphy.backends.local.tracker import score_column_for
     result = track(units('A-1', 'B-1'), p, score_column=score_column_for(p, 'stimulus'),
                    provenance={'feature_stream': 'stimulus'})
     # [AGENT EDIT END]

@@ -20,7 +20,7 @@ from typing import Optional
 
 import numpy as np
 
-from nems_lbhb.unit_match.waveform_preprocessing import SharedWaveformPreprocessor
+from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
 
 OPTIONS = {'before': 41, 'after': 41, 'max_spikes': 100, 'min_spikes': 20, 'seed': 0}
 
@@ -180,7 +180,7 @@ def extracted_project(folder: Path, days: tuple = ('D1', 'D2'), *, project: str 
     in ``no_event_days`` is written without events and added with ``events=None``.
     """
 # [AGENT EDIT END]
-    from nems_lbhb.unit_match.launch import commands
+    from multiphy.launch import commands
 
     folder = Path(folder)
     root = folder / 'lab'

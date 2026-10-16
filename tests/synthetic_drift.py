@@ -15,8 +15,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match.backends.local.references import trial_splits, unit_observation
-from nems_lbhb.unit_match.contract.inputs import TrialTiming
+from multiphy.backends.local.references import trial_splits, unit_observation
+from multiphy.contract.inputs import TrialTiming
 
 SAMPLE_RATE = 30000.0
 COLUMNS_X_UM = (11.0, 27.0, 43.0, 59.0)

@@ -20,9 +20,9 @@ optionally, `ScoreKind`/`TrackKind` classify what a result emits, and `Decision`
 names why each candidate pair ended up selected or not.
 
 ```python
-from nems_lbhb.unit_match.contract.inputs import Input, MatchingInput
-from nems_lbhb.unit_match.contract.backend import BackendSpec, Option, Provides, RunContext
-from nems_lbhb.unit_match.contract.results import MatchResult, ScoreKind, TrackKind, Decision
+from multiphy.contract.inputs import Input, MatchingInput
+from multiphy.contract.backend import BackendSpec, Option, Provides, RunContext
+from multiphy.contract.results import MatchResult, ScoreKind, TrackKind, Decision
 
 print([f for f in MatchingInput.__dataclass_fields__])
 print([f for f in BackendSpec.__dataclass_fields__])
@@ -84,7 +84,7 @@ before calling a backend.
 
 ```python
 import pandas as pd
-from nems_lbhb.unit_match.contract.inputs import MatchingInput
+from multiphy.contract.inputs import MatchingInput
 
 units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
 
@@ -127,8 +127,8 @@ equal `spec.id`, and the emitted `score.kind`/`track_kind` must be in `spec.prov
 
 ```python
 import pandas as pd
-from nems_lbhb.unit_match.backends.local.tracker import result_from_pairs
-from nems_lbhb.unit_match.contract import registry
+from multiphy.backends.local.tracker import result_from_pairs
+from multiphy.contract import registry
 
 units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
 pairs = pd.DataFrame({'cellid_a': ['A-1'], 'cellid_b': ['B-1'], 'p_global': [0.95]})
@@ -167,7 +167,7 @@ field. `.get(key, default)` reads either a typed field or an `extra` key by name
 call sites do not need to know which kind a given key is.
 
 ```python
-from nems_lbhb.unit_match.contract.provenance import Provenance
+from multiphy.contract.provenance import Provenance
 
 p = Provenance(dataset_id='demo', partition='test').merged(extra={'threshold': 0.9})
 print('typed field:', p.get('dataset_id'))
@@ -237,7 +237,7 @@ writes no result: a saved offset is never wrong and never silently missing.
 ## 5. The runner's nine steps and the run directory contents
 
 `run.runner.run(dataset, backend_id, options, *, group_column, partition=None, ...)`
-(`nems_lbhb/unit_match/run/runner.py`) does, in order: (1) resolve the backend and
+(`multiphy/run/runner.py`) does, in order: (1) resolve the backend and
 check `available()`; (2) validate `options` against the spec; (3) select the
 requested partition, if any; (4) confirm every unit has a `group_column` value; (5)
 build the base `Provenance` from the dataset's metadata; (6) for each group, build a
@@ -261,7 +261,7 @@ comes from the whole recording, and the reasons are saved as `run_evidence` in e
 group's provenance. Only `launch run` prints them as warnings; this command prints none:
 
 ```bash
-$PY -m nems_lbhb.unit_match.run run-backend \
+$PY -m multiphy.run run-backend \
   --input /auto/data/nems_db/unit_match/benchmarks/prn069a_temporal_shared_v1/dataset \
   --backend functional_likelihood --partition test \
   --root /tmp/contract_doc_demo_root
@@ -287,7 +287,7 @@ benchmark it runs the `test` partition:
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01] -->
 ```python
-from nems_lbhb.unit_match.run import runner
+from multiphy.run import runner
 
 # dataset: the benchmark dataset read from the --input folder above.
 # timing:  {session_id: TrialTiming}, one entry for every session in dataset.units,
@@ -316,8 +316,8 @@ run, nor one whose backend id is not registered.
 
 ```python
 import pandas as pd
-from nems_lbhb.unit_match.backends.local.tracker import result_from_pairs
-from nems_lbhb.unit_match.run import run_dir
+from multiphy.backends.local.tracker import result_from_pairs
+from multiphy.run import run_dir
 
 units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
 pairs = pd.DataFrame({'cellid_a': ['A-1'], 'cellid_b': ['B-1'], 'p_global': [0.95]})
@@ -356,10 +356,10 @@ run id or dropped an eligible unit).
 
 ```python
 import pandas as pd
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.errors import BackendUnavailable, ContractViolation, MissingInputs
-from nems_lbhb.unit_match.contract.inputs import MatchingInput
-from nems_lbhb.unit_match.run import options as opt
+from multiphy.contract import registry
+from multiphy.contract.errors import BackendUnavailable, ContractViolation, MissingInputs
+from multiphy.contract.inputs import MatchingInput
+from multiphy.run import options as opt
 
 spec = registry.get('functional_likelihood').spec
 try:
@@ -411,7 +411,7 @@ backend id (or any other new code) by adding a `Name(...)` entry under the right
 namespace in `contract/names.py`; nothing else needs to change.
 
 ```python
-from nems_lbhb.unit_match.contract.names import (backend_help, backend_label, backend_short,
+from multiphy.contract.names import (backend_help, backend_label, backend_short,
                                                  display, help_text, short)
 
 print(display('backend', 'functional_likelihood'))

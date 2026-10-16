@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract.inputs import Input, MatchingInput, RawWaveformBundle, CheckpointRef
+from multiphy.contract.inputs import Input, MatchingInput, RawWaveformBundle, CheckpointRef
 
 
 def units(*ids):
@@ -83,7 +83,7 @@ def test_fitted_model_input_gone(tmp_path):
 def test_docs_name_no_fixed_model_path(tmp_path):
     from pathlib import Path
     import re
-    import nems_lbhb.unit_match as package
+    import multiphy as package
     removed = re.compile(r'score-local|benchmark_local|--model\b|previously fitted|frozen[- ]model|evidence ablations'
                          r'|local combined|stimulus-only and physiology-only|local probability calibration', re.I)
     hits = [f'{p.name}:{n}' for p in Path(package.__file__).parent.rglob('*.md')

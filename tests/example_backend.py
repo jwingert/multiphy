@@ -10,10 +10,10 @@ registered in-process, only inside the conformance test.
 from __future__ import annotations
 import numpy as np
 
-from nems_lbhb.unit_match.contract.backend import Availability, BackendSpec, Option, Provides
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.backends.local.tracker import result_from_pairs
+from multiphy.contract.backend import Availability, BackendSpec, Option, Provides
+from multiphy.contract.inputs import Input
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.backends.local.tracker import result_from_pairs
 
 SPEC = BackendSpec(
     'random_baseline', '1',

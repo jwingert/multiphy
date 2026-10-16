@@ -29,7 +29,7 @@ def build_command(input_path, backend_id, options, *, output, partition=None, gr
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one interpreter check for both command builders (Plan B Task 2) | date: 2026-09-28]
     program = _program(interpreter)
     # [AGENT EDIT END]
-    argv = ['-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend', '--input', str(source),
+    argv = ['-u', '-m', 'multiphy.run', 'run-backend', '--input', str(source),
             '--backend', backend_id, '--output', str(Path(output).expanduser().absolute())]
     if partition:
         argv += ['--partition', partition]
@@ -57,7 +57,7 @@ def build_selection_command(project_path: Path, days: tuple, backend_id: str, op
     """``(program, argv)`` that runs ``backend_id`` on ``days`` of the project at ``project_path``."""
     spec = registry.get(backend_id).spec
     program = _program(interpreter)
-    argv = (['-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend', '--project', str(project_path)]
+    argv = (['-u', '-m', 'multiphy.run', 'run-backend', '--project', str(project_path)]
             + (['--day', days[0]] if len(days) == 1 else ['--days', *days])
             + ['--backend', backend_id, '--output', str(output)]
             + opt.to_argv(spec, opt.validate(spec, options)))

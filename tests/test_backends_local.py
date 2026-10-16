@@ -2,9 +2,9 @@
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.backends.local import tracker
+from multiphy.contract import registry
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.backends.local import tracker
 
 
 def units(*ids):
@@ -41,7 +41,7 @@ def test_legacy_backend_gone():
 
 
 def test_run_backend_unknown_alias():
-    from nems_lbhb.unit_match import backends as b
+    from multiphy import backends as b
     with pytest.raises(KeyError):
         b.run_backend('current_local', units('A-1', 'B-1'), pairs(('A-1', 'B-1', .99)))
 # [AGENT EDIT END]

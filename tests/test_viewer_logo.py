@@ -8,12 +8,12 @@ import numpy as np
 import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nems_lbhb.unit_match import __version__
-from nems_lbhb.unit_match.launch import window as window_module
-from nems_lbhb.unit_match.launch.plugins import load_plugins
-from nems_lbhb.unit_match.viewer import app as viewer_app
-from nems_lbhb.unit_match.viewer import logo
-from nems_lbhb.unit_match.viewer.logo import make_logo
+from multiphy import __version__
+from multiphy.launch import window as window_module
+from multiphy.launch.plugins import load_plugins
+from multiphy.viewer import app as viewer_app
+from multiphy.viewer import logo
+from multiphy.viewer.logo import make_logo
 
 from .launch_window_fixtures import qt, runs  # noqa: F401 (fixtures by name)
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
@@ -76,7 +76,7 @@ def test_version():
 
 
 def test_docs_name_the_logo():
-    package = make_logo.HERE.parents[1]  # logo -> viewer -> unit_match
+    package = make_logo.HERE.parents[1]  # logo -> viewer -> multiphy
     viewer = (package / 'docs' / 'viewer.md').read_text(encoding='utf-8')
     for word in ('| `logo/` |', 'make_logo.py', '`About multiphy`', '`0.0.0`', 'PRN067a-338-1'):
         assert word in viewer, word

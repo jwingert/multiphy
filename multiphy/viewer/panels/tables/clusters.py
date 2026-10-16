@@ -5,13 +5,13 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match.viewer.data import Words
+from multiphy import clusters as cl
+from multiphy.viewer.data import Words
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: labels, buttons and cells carry theme properties and tokens instead of colours (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import theme
-from nems_lbhb.unit_match.viewer.panels.tables.base import NumericItem, _table
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtWidgets
+from multiphy.viewer import theme
+from multiphy.viewer.panels.tables.base import NumericItem, _table
+from multiphy.viewer.state import Actions, PairState
+from multiphy.viewer.qt import QtCore, QtWidgets
 # [AGENT EDIT END]
 
 

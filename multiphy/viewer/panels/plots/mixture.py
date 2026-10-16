@@ -2,17 +2,17 @@
 """How each probability is formed, for the day pair on screen: the fitted mixture of every stream."""
 import numpy as np
 
-from nems_lbhb.unit_match import evidence as ev
+from multiphy import evidence as ev
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: colours come from the active theme's tokens; the figure is styled in the theme (launcher-gui Task 8) | date: 2026-10-07]
 import matplotlib
 
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the weights line names each saved stream by its word (event-optional Task 12) | date: 2026-10-10]
-from nems_lbhb.unit_match.viewer.display import STREAM_WORDS, colors, shows_scores
+from multiphy.viewer.display import STREAM_WORDS, colors, shows_scores
 # [AGENT EDIT END]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

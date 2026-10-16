@@ -12,9 +12,9 @@ import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 # [AGENT EDIT END]
 
-from nems_lbhb.unit_match.viewer import display, theme
+from multiphy.viewer import display, theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: teardown restores the default unit palette (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
 
 

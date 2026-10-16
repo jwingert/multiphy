@@ -22,16 +22,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.launch.commands import extract, init_day, init_from, status, status_lines
-from nems_lbhb.unit_match.project.folder import Project, ProjectLocked
-from nems_lbhb.unit_match.project.identity import sha256_file
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, get_reader, read_day
+from multiphy.launch.commands import extract, init_day, init_from, status, status_lines
+from multiphy.project.folder import Project, ProjectLocked
+from multiphy.project.identity import sha256_file
+from multiphy.sources.base import clear_readers_for_tests, get_reader, read_day
 
 from .lab_blocker import run_without_lab
 from .synthetic_day import N_CHANNELS, N_SAMPLES, write_day
 # [AGENT EDIT END]
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 UV_PER_BIT = 0.195
 # The brief's values, written out rather than imported from the code under test.
 D1_LINE = 'D1 · 2026-01-01 · raw · sources ok · features ok · runs 0'
@@ -420,8 +420,8 @@ import os
 import shutil
 from pathlib import Path
 
-from tests.unit_match.synthetic_day import write_day
-from nems_lbhb.unit_match.launch.commands import extract, init_from, status, status_lines
+from tests.synthetic_day import write_day
+from multiphy.launch.commands import extract, init_from, status, status_lines
 
 tmp = Path({str(tmp_path)!r})
 sd = write_day(tmp / 'in', 'D1')

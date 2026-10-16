@@ -16,9 +16,9 @@ import re
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests
+from multiphy.sources.base import clear_readers_for_tests
 
-DOCS = Path(__file__).resolve().parents[2] / 'nems_lbhb' / 'unit_match' / 'docs'
+DOCS = Path(__file__).resolve().parents[1] / 'multiphy' / 'docs'
 PYTHON_FENCE = re.compile(r'^```python\n(.*?)^```[ \t]*$', re.MULTILINE | re.DOTALL)
 
 
@@ -87,10 +87,10 @@ def test_docs_name_run_history():
 def test_pair_logistic_texts_say_held_out_sessions():
     import inspect
 
-    import nems_lbhb.unit_match.backends.local as local
-    from nems_lbhb.unit_match import drift_validation
-    from nems_lbhb.unit_match.backends.local import pair_logistic
-    from nems_lbhb.unit_match.contract.names import NAMES
+    import multiphy.backends.local as local
+    from multiphy import drift_validation
+    from multiphy.backends.local import pair_logistic
+    from multiphy.contract.names import NAMES
     texts = {
         'backends.local': local.__doc__,
         'pair_logistic': inspect.getsource(pair_logistic),

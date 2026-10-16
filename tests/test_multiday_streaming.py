@@ -8,12 +8,12 @@ from pathlib import Path
 # [AGENT EDIT END]
 import pytest
 
-from test_unit_match_multiday_reuse import source, reused
-from nems_lbhb.unit_match.benchmark import load_dataset, save_dataset
-from nems_lbhb.unit_match.extract_benchmark import extract_manifest
+from tests.test_multiday_reuse import source, reused
+from multiphy.benchmark import load_dataset, save_dataset
+from multiphy.extract_benchmark import extract_manifest
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: multiday.py is retired; no multiday import (Plan B Task 8) | date: 2026-09-28]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.waveform_preprocessing import SharedWaveformPreprocessor
+from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
 
 
 def shared_source(tmp_path, session='DAY001a'):

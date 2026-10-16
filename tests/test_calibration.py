@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.evidence import CalibratedPairModel
+from multiphy.evidence import CalibratedPairModel
 
 
 def population(seed, n=160):
@@ -89,6 +89,6 @@ def test_import_cannot_bypass_fit_provenance_invariants(key, value):
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: CalibratedPairModel stays after the fixed-model path is removed (Task 2) | date: 2026-09-27]
 def test_calibrated_pair_model_kept(tmp_path):
-    from nems_lbhb.unit_match.backends.local.calibrated import CalibratedPairModel as Kept
+    from multiphy.backends.local.calibrated import CalibratedPairModel as Kept
     assert Kept(('fingerprint_r',)).properties == ('fingerprint_r',)
 # [AGENT EDIT END]

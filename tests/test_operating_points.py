@@ -9,11 +9,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.backends import MatchResult, save_result
-from nems_lbhb.unit_match.benchmark import BenchmarkDataset, save_dataset
-from nems_lbhb.unit_match import operating_points as op
+from multiphy.backends import MatchResult, save_result
+from multiphy.benchmark import BenchmarkDataset, save_dataset
+from multiphy import operating_points as op
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the score-kind refusal test builds a calibrated score block (Follow-up Task 5) | date: 2026-09-29]
-from nems_lbhb.unit_match.contract.results import ScoreBlock, ScoreKind
+from multiphy.contract.results import ScoreBlock, ScoreKind
 # [AGENT EDIT END]
 
 
@@ -66,8 +66,8 @@ def score_result(ds, partition='calibration', values=(.95, .2, .1, .8), backend=
         p.update(checkpoint_sha256='c' * 64, checkpoint_probe='synthetic', network_preprocessing={'crop': 5},
                  training={'training_groups': ['train_well']})
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: 12-field MatchResult: uncalibrated native scores, native tracks, typed Provenance (Task 12) | date: 2026-09-22]
-    from nems_lbhb.unit_match.contract.provenance import Provenance
-    from nems_lbhb.unit_match.contract.results import ScoreBlock, ScoreKind, TrackKind
+    from multiphy.contract.provenance import Provenance
+    from multiphy.contract.results import ScoreBlock, ScoreKind, TrackKind
     return MatchResult(backend, 'native1', partition + '_scores', units, pairs, (), tuple(units.cellid), (),
                        ScoreBlock(ScoreKind.UNCALIBRATED, 'match_score'), TrackKind.NATIVE, 'native_intermediate',
                        Provenance.from_json(p)).validate()
@@ -238,7 +238,7 @@ def test_artifacts_are_hashed_immutable_cache_only_and_preserve_native_results(t
     output = op.run_select(archive, calibration, target_fdr=0., output_dir='selected', root=tmp_path)
     applied = op.run_apply(archive, test, output / 'selection.json', output_dir='applied', root=tmp_path)
     assert test.read_bytes() == old
-    from nems_lbhb.unit_match.comparison_report import inspect_run
+    from multiphy.comparison_report import inspect_run
     inspected = inspect_run(applied)
     assert inspected
     saved_result = op.load_result(applied / 'result.json')
@@ -315,7 +315,7 @@ def test_deleting_a_competitor_cannot_create_a_calibration_operating_point():
 
 
 def test_nested_real_collection_namespaces_share_frozen_cutoff(tmp_path):
-    from nems_lbhb.unit_match.benchmark_collection import create_collection
+    from multiphy.benchmark_collection import create_collection
     base = dataset()
     sessions = base.units.set_index('cellid').session_id
     for suffix in ('a', 'b'):
@@ -367,8 +367,8 @@ def test_generated_notes_claim_no_fitted_model(tmp_path):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a candidate-pair backend's scores are uncalibrated like every native score (Plan B Task 9) | date: 2026-09-28]
 def test_random_baseline_scores_are_uncalibrated():
-    from nems_lbhb.unit_match.contract import registry
-    from tests.unit_match.example_backend import RandomBaselineBackend
+    from multiphy.contract import registry
+    from tests.example_backend import RandomBaselineBackend
     ds = dataset()
     registry.register(RandomBaselineBackend())
     try:

@@ -1,6 +1,6 @@
 # Running temporal single-unit comparisons
 
-Code lives in `nems_lbhb/unit_match/`. Generated input arrays, datasets, method
+Code lives in `multiphy/`. Generated input arrays, datasets, method
 results, model checkpoints, and reports live beneath the existing cache root:
 `/auto/data/nems_db/unit_match/benchmarks/`. The commands below reject output
 paths outside that root and never overwrite an existing dataset or run.
@@ -82,7 +82,7 @@ required. Do not generate parallel preprocessing archives routinely. A future
 sensitivity check should use a small sample before justifying another representation.
 
 ```bash
-python -m nems_lbhb.unit_match.extract_benchmark --manifest /path/to/source_manifest.json
+python -m multiphy.extract_benchmark --manifest /path/to/source_manifest.json
 ```
 
 Compressed AP recordings are read forward through gzip into memory; no complete
@@ -100,7 +100,7 @@ An opt-in mode accumulates exactly the same waveform means and standard errors
 in memory while reading the compressed source:
 
 ```bash
-python -m nems_lbhb.unit_match.extract_benchmark --manifest /path/to/source_manifest.json --waveform-storage streaming_summary
+python -m multiphy.extract_benchmark --manifest /path/to/source_manifest.json --waveform-storage streaming_summary
 ```
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the multiday archive command is retired; real days are project runs (Plan B Task 10) | date: 2026-09-28] -->
@@ -134,9 +134,9 @@ an unavailable method. The API revisions are recorded in
 from exact reproduction of its original preprint.
 
 ```bash
-python -m nems_lbhb.unit_match.runners run-backend --input DATASET --backend unitmatch
-python -m nems_lbhb.unit_match.runners run-backend --input DATASET --backend dant --settings SETTINGS.json
-python -m nems_lbhb.unit_match.runners run-backend --input DATASET --backend deepunitmatch --checkpoint CHECKPOINT --checkpoint-probe PROBE_TYPE
+python -m multiphy.runners run-backend --input DATASET --backend unitmatch
+python -m multiphy.runners run-backend --input DATASET --backend dant --settings SETTINGS.json
+python -m multiphy.runners run-backend --input DATASET --backend deepunitmatch --checkpoint CHECKPOINT --checkpoint-probe PROBE_TYPE
 ```
 
 For a dataset currently being extracted, add `--wait-for-pid EXTRACTION_PID`.
@@ -162,7 +162,7 @@ unchanged. The runner reads the persisted waveform/response features directly;
 it does not query the database or build a daily cache. A same-day project run
 (`launch run PROJECT --backend ID --day DAY`) opens inspect-only with
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day run opens with the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
-`python -m nems_lbhb.unit_match.viewer --run DIR`; reference neuron identities are not shown, and its
+`python -m multiphy.viewer --run DIR`; reference neuron identities are not shown, and its
 <!-- [AGENT EDIT END] -->
 observations are within-recording temporal parts rather than recording days.
 <!-- [AGENT EDIT END] -->
@@ -179,8 +179,8 @@ implied links. It is not the false-positive rate among all candidate negatives,
 and it is not a guaranteed future error rate.
 
 ```bash
-python -m nems_lbhb.unit_match.operating_points select --input FULL_COLLECTION --scores CALIBRATION_SCORES/result.json --target-fdr 0.01 --output FROZEN_SELECTION
-python -m nems_lbhb.unit_match.operating_points apply --input FULL_COLLECTION --scores TEST_RUN/result.json --selection FROZEN_SELECTION/selection.json --output SELECTED_TEST_RUN
+python -m multiphy.operating_points select --input FULL_COLLECTION --scores CALIBRATION_SCORES/result.json --target-fdr 0.01 --output FROZEN_SELECTION
+python -m multiphy.operating_points apply --input FULL_COLLECTION --scores TEST_RUN/result.json --selection FROZEN_SELECTION/selection.json --output SELECTED_TEST_RUN
 ```
 
 Native calibration scores come from `runners run-backend --partition calibration`
@@ -204,7 +204,7 @@ per session (`runner.run(..., extra_inputs={'timing': timing})`, timing from
 [docs/contract.md](docs/contract.md), section 5), or on project days with
 `launch run` (see [docs/project_folder.md](docs/project_folder.md)), which passes
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run opens with the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
-each day's timing and opens with `python -m nems_lbhb.unit_match.viewer --run DIR`.
+each day's timing and opens with `python -m multiphy.viewer --run DIR`.
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->
 The `run-backend` CLI builds no timing and refuses this method.
@@ -214,8 +214,8 @@ The `run-backend` CLI builds no timing and refuses this method.
 ## 4. Train DeepUnitMatch explicitly
 
 ```bash
-python -m nems_lbhb.unit_match.runners prepare-deep --input DATASET --source-checkout OFFICIAL_CHECKOUT
-python -m nems_lbhb.unit_match.runners train-deep --prepared PREPARED_DIRECTORY
+python -m multiphy.runners prepare-deep --input DATASET --source-checkout OFFICIAL_CHECKOUT
+python -m multiphy.runners train-deep --prepared PREPARED_DIRECTORY
 ```
 
 Preparation selects only the training partition, validates held-out original
@@ -234,7 +234,7 @@ preserved; repeated source recordings, changed source hashes and partition
 leakage are rejected. For a complete held-out collection:
 
 ```bash
-python -m nems_lbhb.unit_match.benchmark_collection --input TRAIN_DATASET --input CALIBRATION_DATASET --input TEST_DATASET --output CACHE_COLLECTION --dataset-id COLLECTION_ID
+python -m multiphy.benchmark_collection --input TRAIN_DATASET --input CALIBRATION_DATASET --input TEST_DATASET --output CACHE_COLLECTION --dataset-id COLLECTION_ID
 ```
 
 For a fixed missing-counterpart test, use a test archive alone with

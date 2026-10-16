@@ -1,12 +1,12 @@
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: failing tests for BackendSpec, registry and names table (Task 5) | date: 2026-09-22]
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import (Availability, BackendSpec, Option, Provides,
+from multiphy.contract import registry
+from multiphy.contract.backend import (Availability, BackendSpec, Option, Provides,
                                                    COMMON_TRACKER_OPTIONS, NATIVE_TRACKING_OPTIONS)
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.contract import names
+from multiphy.contract.inputs import Input
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.contract import names
 
 
 class Fake:
@@ -110,7 +110,7 @@ def _install_entry_points(monkeypatch, *eps):
 
 def test_entry_point_backend_is_listed_runnable_and_on_the_cli(monkeypatch, capsys):
     from .example_backend import RandomBaselineBackend
-    from nems_lbhb.unit_match.run.__main__ import main
+    from multiphy.run.__main__ import main
     _install_entry_points(monkeypatch, _EntryPoint('random_baseline', lambda: RandomBaselineBackend()))
     assert 'random_baseline' in [s.id for s in registry.list_specs()]
     assert 'functional_likelihood' in [s.id for s in registry.list_specs()]  # built-ins still come first  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]

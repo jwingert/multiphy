@@ -7,14 +7,14 @@ import pandas as pd
 import pytest
 from PySide6 import QtWidgets
 
-from nems_lbhb.unit_match import curation
-from nems_lbhb.unit_match.viewer.modes import same_day
-from nems_lbhb.unit_match.viewer.panels.tables import BrowsePanel, ClusterPanel
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
+from multiphy import curation
+from multiphy.viewer.modes import same_day
+from multiphy.viewer.panels.tables import BrowsePanel, ClusterPanel
+from multiphy.viewer.state import Actions, PairState
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day-table fake, the clusters module and Qt roles for the Task 8 tests (native-same-day Task 8) | date: 2026-10-11]
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match.viewer.qt import QtCore
+from multiphy import clusters as cl
+from multiphy.viewer.qt import QtCore
 
 from .viewer_fakes import DictData, day_table_data
 # [AGENT EDIT END]
@@ -207,7 +207,7 @@ def _day_panel(curates=True, data=None):
     """A ``DayTablePanel`` on ``data`` (``day_table_data()`` when ``None``), its controller (starting from that
     run's tracks) and state, and the recorded ``select_pair`` calls."""
     import dataclasses
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.panels.tables import DayTablePanel
     data = day_table_data() if data is None else data
     controller = _Controller(data)
     state = PairState()
@@ -242,12 +242,12 @@ def _texts(table, col):
 
 
 def _fill(panel, cellid):
-    from nems_lbhb.unit_match.viewer import theme
+    from multiphy.viewer import theme
     return _cell(panel, cellid[0], cellid).data(theme.FILL_ROLE)
 
 
 def _tone(panel, cellid):
-    from nems_lbhb.unit_match.viewer import theme
+    from multiphy.viewer import theme
     return _cell(panel, cellid[0], cellid).data(theme.TONE_ROLE)
 
 
@@ -288,7 +288,7 @@ def test_other_days_sort_track_then_distance(qt):
 
 def test_spread_shares_spare_width(qt):
     from PySide6 import QtTest
-    from nems_lbhb.unit_match.viewer.panels.tables import days
+    from multiphy.viewer.panels.tables import days
     assert days.spread(244) == [90, 56, 56, 42]
     assert days.spread(172) == [64, 40, 40, 28]
     assert days.spread(186) == [69, 43, 43, 31]
@@ -305,7 +305,7 @@ def test_spread_shares_spare_width(qt):
 
 def test_day_sort_signatures():
     import inspect
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel, days
+    from multiphy.viewer.panels.tables import DayTablePanel, days
     assert str(inspect.signature(days.spread)) == '(width: int) -> list'
     assert str(inspect.signature(DayTablePanel.reference)) == '(self, site: str) -> Optional[str]'
 # [AGENT EDIT END]
@@ -567,7 +567,7 @@ def test_same_day_header_again_reverses_held_list(qt):
 
 def test_same_day_signatures():
     import inspect
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.panels.tables import DayTablePanel
     assert str(inspect.signature(DayTablePanel.same_column_ids)) == '(self) -> list'
     assert str(inspect.signature(DayTablePanel.toggle)) == '(self, cellid: str, *, same_day: bool = False) -> None'
 # [AGENT EDIT END]
@@ -605,7 +605,7 @@ def test_inspect_only_day_table_hides_buttons(qt):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: day-table number reading leaves the run's columns untouched and reads nullable and string cells as missing (native-same-day Task 9 fix round 1) | date: 2026-10-11]
 def test_day_numbers_copy_and_read_missing():
     import numpy as np
-    from nems_lbhb.unit_match.viewer.panels.tables.days import _numbers
+    from multiphy.viewer.panels.tables.days import _numbers
     source = pd.Series([0.8, np.inf, -np.inf])
     out = _numbers(source)
     assert source.tolist() == [0.8, np.inf, -np.inf]
@@ -657,7 +657,7 @@ def test_decided_track_leaves_review(qt):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the class docstring names each day's reference unit; tag wraps the whole function (day-table-keys Task 3) | date: 2026-10-14]
 def test_same_day_column_fits_its_columns(qt):
     from PySide6 import QtTest
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.panels.tables import DayTablePanel
     panel, _, _, _ = _day_panel()
     panel.resize(900, 400)
     panel.show()
@@ -707,7 +707,7 @@ def test_day_headers_and_status_letters(qt):
 
 
 def test_day_columns_keep_their_narrowest_width_and_scroll(qt):
-    from nems_lbhb.unit_match.viewer.panels.tables import days
+    from multiphy.viewer.panels.tables import days
     panel, _, _, _ = _day_panel()
     panel.resize(panel.same_table.width() + 120, 400)
     panel.show()
@@ -731,8 +731,8 @@ def test_day_columns_keep_their_narrowest_width_and_scroll(qt):
 def test_day_widths_fit_under_the_theme(qt):
     """Under the app style sheet each of the four headers shows unelided beside its sort arrow, and ``318-1 ⇄``,
     ``9999``, ``0.97`` and every status letter fit their columns at ``WIDTHS``."""
-    from nems_lbhb.unit_match.viewer import display, theme
-    from nems_lbhb.unit_match.viewer.panels.tables import days
+    from multiphy.viewer import display, theme
+    from multiphy.viewer.panels.tables import days
     panel, _, _, _ = _day_panel()
     panel.setStyleSheet(theme.stylesheet(display.PALETTES['graphite'], 'c', 'v'))
     panel.show()
@@ -770,7 +770,7 @@ def _tones(panel):
 
 
 def test_wasd_strings_units_across_days(qt):
-    from nems_lbhb.unit_match.viewer import display, theme
+    from multiphy.viewer import display, theme
     panel, _, state, opened = _day_panel(data=string_days_data())
     panel.pick('A-1')
     assert list(panel.tables) == ['A', 'B', 'C']
@@ -876,8 +876,8 @@ def test_same_day_extra_beside_string(qt):
 
 def test_string_signatures():
     import inspect
-    from nems_lbhb.unit_match.viewer.app import App
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.app import App
+    from multiphy.viewer.panels.tables import DayTablePanel
     assert str(inspect.signature(DayTablePanel.move_day)) == '(self, d: int) -> None'
     assert str(inspect.signature(DayTablePanel.drop_day)) == '(self) -> None'
     assert str(inspect.signature(DayTablePanel.clear_string)) == '(self) -> None'
@@ -889,7 +889,7 @@ def test_string_signatures():
 
 def test_reselect_signature():
     import inspect
-    from nems_lbhb.unit_match.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.panels.tables import DayTablePanel
     assert str(inspect.signature(DayTablePanel.reselect)) == '(self) -> None'
 # [AGENT EDIT END]
 

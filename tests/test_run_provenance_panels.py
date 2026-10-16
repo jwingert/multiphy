@@ -14,18 +14,18 @@ import pytest
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture test reads the viewer's MixturePanel on a PairState over DictData, not gui (viewer-split Task 5) | date: 2026-10-06]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.backends.local import functional_likelihood as fl
-from nems_lbhb.unit_match.contract.provenance import Provenance, payload_digest
+from multiphy.backends.local import functional_likelihood as fl
+from multiphy.contract.provenance import Provenance, payload_digest
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the depth-label helper is removed (Follow-up Task 1) | date: 2026-09-29]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_run of the one viewer (viewer-split Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer.app import open_run
+from multiphy.viewer.app import open_run
 # [AGENT EDIT END]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day-pair helpers live in the Qt-free data module (viewer-split Task 2) | date: 2026-10-06]
-from nems_lbhb.unit_match.viewer import data
+from multiphy.viewer import data
 # [AGENT EDIT END]
 from PySide6 import QtWidgets
 
@@ -89,13 +89,13 @@ def test_mixture_panel_draws_the_fitted_model(qt):
     """The drawn P(same) curve is the posterior of the Mixture the backend fits, bandwidth included."""
     import numpy as np
     import pandas as pd
-    from nems_lbhb.unit_match import evidence as ev
+    from multiphy import evidence as ev
     rng = np.random.default_rng(0)
     same, diff = rng.normal(1.0, 0.4, 40), rng.normal(-0.5, 0.6, 60)
     model = ev.Mixture(same, diff).fit(np.concatenate([same[:10], diff[:30]]))
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's MixturePanel on a PairState over DictData with the same day pair; the stim axes draw, the phys axes say not fitted (viewer-split Task 5) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer.panels.plots.mixture import MixturePanel
-    from nems_lbhb.unit_match.viewer.state import PairState
+    from multiphy.viewer.panels.plots.mixture import MixturePanel
+    from multiphy.viewer.state import PairState
     from .viewer_fakes import DictData
     state = PairState()
     state.set_data(DictData(['D1:0', 'D2:0'], {}, {}, {'D1:0': 'D1', 'D2:0': 'D2'}))

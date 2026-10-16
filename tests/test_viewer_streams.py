@@ -14,22 +14,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import backends
-from nems_lbhb.unit_match.contract.provenance import Provenance
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
-from nems_lbhb.unit_match.run.run_dir import load_result, save_result
+from multiphy import backends
+from multiphy.contract.provenance import Provenance
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
+from multiphy.run.run_dir import load_result, save_result
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the mixture ticks test applies the graphite theme (graphite-palettes Task 3) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import data, display, theme
+from multiphy.viewer import data, display, theme
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.app import App, open_run
-from nems_lbhb.unit_match.viewer.panels.plots.mixture import MixturePanel
-from nems_lbhb.unit_match.viewer.panels.tables import EvidencePanel
+from multiphy.viewer.app import App, open_run
+from multiphy.viewer.panels.plots.mixture import MixturePanel
+from multiphy.viewer.panels.tables import EvidencePanel
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Qt through viewer/qt.py, the binding pin (event-optional Task 12, fix round 1) | date: 2026-10-10]
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy.viewer.qt import QtWidgets
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
+from multiphy.viewer.state import Actions, PairState
 
 from .synthetic_day import extracted_project
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: theme_env restores the theme the mixture fills test sets (graphite-palettes Task 2) | date: 2026-10-11]

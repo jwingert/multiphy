@@ -8,11 +8,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import curation
-from nems_lbhb.unit_match.clusters import cluster_id
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy import curation
+from multiphy.clusters import cluster_id
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 
 from .synthetic_day import extracted_project
 
@@ -116,7 +116,7 @@ def test_export_run_refuses_one_day_run(project):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a one-day run saved into the project's runs/ by output_dir is refused by its saved selection mode (run-curation Task 3, D41) | date: 2026-10-04]
 def test_export_run_refuses_one_day_run_in_project_runs(project):
-    from nems_lbhb.unit_match.project.folder import RUNS_DIR
+    from multiphy.project.folder import RUNS_DIR
 
     run_selection(Selection(project, ('D1',)), FL, output_dir=project.path / RUNS_DIR / 'one_day')
     with pytest.raises(ValueError, match='not an across-day run'):

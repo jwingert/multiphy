@@ -3,7 +3,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.benchmark import SourceRecording, build_dataset, save_dataset, load_dataset
+from multiphy.benchmark import SourceRecording, build_dataset, save_dataset, load_dataset
 
 
 def source(well='animal:1', session='source1', partition='test'):

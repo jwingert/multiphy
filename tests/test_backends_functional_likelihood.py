@@ -8,26 +8,23 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import nems_lbhb.unit_match.backends  # noqa: F401  (registers the built-ins)
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01]
-from nems_lbhb.unit_match_lbhb import prepare_baphy
-# [AGENT EDIT END]
-from nems_lbhb.unit_match.backends.local import functional_likelihood
-from nems_lbhb.unit_match.backends.local.functional_likelihood import run_functional_likelihood
-from nems_lbhb.unit_match.contract import inputs, registry
-from nems_lbhb.unit_match.contract.backend import RunContext
-from nems_lbhb.unit_match.contract.inputs import Input, MatchingInput
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.evaluation import evaluate_result
+import multiphy.backends  # noqa: F401  (registers the built-ins)
+from multiphy.backends.local import functional_likelihood
+from multiphy.backends.local.functional_likelihood import run_functional_likelihood
+from multiphy.contract import inputs, registry
+from multiphy.contract.backend import RunContext
+from multiphy.contract.inputs import Input, MatchingInput
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.evaluation import evaluate_result
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - provenance and mixture tests check numbers against an independent fit | date: 2026-09-27]
 import dataclasses
 import itertools
 
 import numpy as np
 
-from nems_lbhb.unit_match.backends.local import evidence as ev
-from nems_lbhb.unit_match.backends.local.examples import fit_ensemble, labeled_examples
-from nems_lbhb.unit_match.backends.local.references import group_observations
+from multiphy.backends.local import evidence as ev
+from multiphy.backends.local.examples import fit_ensemble, labeled_examples
+from multiphy.backends.local.references import group_observations
 # [AGENT EDIT END]
 
 from .synthetic_drift import ground_truth, make_drift_days
@@ -300,12 +297,6 @@ def test_old_ids_unknown(tmp_path):
     for old in ('constrained', 'legacy_fresh'):
         with pytest.raises(KeyError):
             registry.get(old)
-
-
-def test_backend_reads_no_baphy(tmp_path):
-    text = Path(functional_likelihood.__file__).read_text()
-    assert 'prepare_baphy' not in text and 'recover_baphy_timing' not in text
-    assert callable(prepare_baphy.recover_baphy_timing)
 
 
 def test_trial_timing_name(tmp_path):

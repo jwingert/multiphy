@@ -1,5 +1,5 @@
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: one command line generated from backend option schemas | date: 2026-09-22]
-"""``python -m nems_lbhb.unit_match.run run-backend --input DIR --backend ID [options]``.
+"""``python -m multiphy.run run-backend --input DIR --backend ID [options]``.
 
 Backend options are generated from the backend's spec, so ``--help`` after ``--backend ID``
 lists exactly what that backend takes. ``list-backends`` prints ids, labels and availability.
@@ -57,7 +57,7 @@ def main(argv=None):
     head.add_argument('--backend', required=True, choices=[s.id for s in registry.list_specs()])
     known, _ = head.parse_known_args([a for a in argv if a != 'run-backend'])
     spec = registry.get(known.backend).spec
-    parser = argparse.ArgumentParser(prog='python -m nems_lbhb.unit_match.run', description=__doc__)
+    parser = argparse.ArgumentParser(prog='python -m multiphy.run', description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     p = sub.add_parser('run-backend')
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run-backend takes an archive (--input) or project days (--project) (Plan B Task 2) | date: 2026-09-28]

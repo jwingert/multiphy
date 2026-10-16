@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import external_backends as ext
+from multiphy import external_backends as ext
 
 
 def synthetic_np1010():

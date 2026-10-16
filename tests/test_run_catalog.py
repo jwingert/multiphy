@@ -4,15 +4,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fixture built with result_from_pairs (Task 3 Do 10) | date: 2026-09-27]
-from nems_lbhb.unit_match.backends import result_from_pairs
-from nems_lbhb.unit_match.contract import registry
+from multiphy.backends import result_from_pairs
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import catalog, run_dir
-
-REAL = Path('/auto/data/nems_db/unit_match')
+from multiphy.run import catalog, run_dir
 
 
 def _result(run_id, backend='unitmatch'):  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
@@ -133,17 +129,4 @@ def test_labels_show_method_and_date_adding_time_then_folder_only_on_collision()
     assert catalog.run_labels([_entry('plugin_backend', day)]) == ['plugin_backend · 09-18']
     tip = catalog.run_tooltip(entries[0])
     assert 'UnitMatch' in tip and '2026-09-18 14:13' in tip and '/runs/a' in tip
-
-
-@pytest.mark.skipif(not (REAL / 'multiday' / 'prince_w16_prn067_prn068_prn069_v1').is_dir(),
-                    reason='pilot archive not mounted')
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: format 1 pilot runs and unregistered ids are hidden, so only registered ids are listed (Task 1) | date: 2026-09-27]
-def test_real_archives_list_only_registered_ids():
-    registered = {spec.id for spec in registry.list_specs()}
-    for archive in (REAL / 'multiday' / 'prince_w16_prn067_prn068_prn069_v1',
-                    REAL / 'benchmarks' / 'prn069a_temporal_shared_v1'):
-        manifest = json.loads((archive / 'dataset' / 'manifest.json').read_text())
-        entries = catalog.find_runs(archive / 'dataset', dataset_id=manifest['metadata']['dataset_id'])
-        assert {e.backend_id for e in entries} <= registered
-# [AGENT EDIT END]
 # [AGENT EDIT END]

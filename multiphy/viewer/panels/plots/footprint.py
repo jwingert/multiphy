@@ -2,9 +2,9 @@
 """Each selected unit's peak-to-peak amplitude along the probe, in measured coordinates."""
 import numpy as np
 
-from nems_lbhb.unit_match.features import probe_geometry
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.features import probe_geometry
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

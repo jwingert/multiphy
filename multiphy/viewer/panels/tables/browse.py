@@ -2,10 +2,10 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table replaces the day pairs and candidates (native-same-day Task 10) | date: 2026-10-11]
 """The navigation column: the saved-run list, Import and the day table."""
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.data import Words
-from nems_lbhb.unit_match.viewer.state import PairState
+from multiphy.viewer.data import Words
+from multiphy.viewer.state import PairState
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no sorted candidates table, so no QtCore (native-same-day Task 10) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy.viewer.qt import QtWidgets
 # [AGENT EDIT END]
 
 

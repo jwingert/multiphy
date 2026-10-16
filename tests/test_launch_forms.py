@@ -11,19 +11,19 @@ from typing import Optional
 
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import Option
-from nems_lbhb.unit_match.launch.__main__ import _parse, build_parser
-from nems_lbhb.unit_match.launch.forms import (BOUND, Field, command_argv, commands_of, form_fields,
+from multiphy.contract import registry
+from multiphy.contract.backend import Option
+from multiphy.launch.__main__ import _parse, build_parser
+from multiphy.launch.forms import (BOUND, Field, command_argv, commands_of, form_fields,
                                                has_value)
-from nems_lbhb.unit_match.launch.plugins import load_plugins
+from multiphy.launch.plugins import load_plugins
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher reads a selection's evidence through selection_evidence (event-optional Task 11) | date: 2026-10-10]
-from nems_lbhb.unit_match.contract.inputs import RunEvidence
-from nems_lbhb.unit_match.launch.forms import EVENT_CHOICES, selection_evidence
-from nems_lbhb.unit_match.project.folder import Project
+from multiphy.contract.inputs import RunEvidence
+from multiphy.launch.forms import EVENT_CHOICES, selection_evidence
+from multiphy.project.folder import Project
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import options as opt
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests
+from multiphy.run import options as opt
+from multiphy.sources.base import clear_readers_for_tests
 
 
 def _tuples(fields):
@@ -182,7 +182,7 @@ def test_form_argv_parses_like_typed(tmp_path):
                           'profile', '--threshold', '0.8'])
     status = form_fields(commands['status'], BOUND['status'])
     _same_parse(command_argv('status', status, {'verify': True}, project='P'), ['status', 'P', '--verify'])
-    (tmp_path / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.unit_match.example_plugin']}),
+    (tmp_path / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.example_plugin']}),
                                             encoding='utf-8')
     try:
         plugin_commands = load_plugins(tmp_path).commands

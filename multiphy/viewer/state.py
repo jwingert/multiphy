@@ -12,7 +12,7 @@ from typing import Callable, Optional
 
 import pandas as pd
 
-from nems_lbhb.unit_match.viewer.qt import QtCore
+from multiphy.viewer.qt import QtCore
 
 
 class PairState(QtCore.QObject):

@@ -2,10 +2,10 @@
 """Each selected unit's peristimulus histogram over the exact stimulus conditions every selected unit shares."""
 import numpy as np
 
-from nems_lbhb.unit_match.viewer import display
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer import display
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.qt import QtWidgets
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

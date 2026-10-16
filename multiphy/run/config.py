@@ -30,7 +30,7 @@ def extraction_scratch_root(scratch_root=None, *, root=None):
     if not candidate.is_absolute():
         raise ValueError('Extraction scratch_root must be an absolute directory path.')
     candidate = candidate.resolve()
-    repository = Path(__file__).resolve().parents[3]
+    repository = Path(__file__).resolve().parents[2]
     if candidate == repository or repository in candidate.parents:
         raise ValueError('Temporary voltage snippets must stay outside the code repository.')
     return candidate

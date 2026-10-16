@@ -14,12 +14,12 @@ one neuron; an unmatched observation remains available for review. Across-day
 tracks are identity hypotheses, not established biological ground truth.
 
 Runs start from the launcher, never from a viewer. `launch run` runs any
-registered backend; `python -m nems_lbhb.unit_match.run list-backends` names
+registered backend; `python -m multiphy.run list-backends` names
 every registered backend and whether it is available in this interpreter:
 
 ```bash
-python -m nems_lbhb.unit_match.launch run PROJECT --backend ID            # every extracted day, across days
-python -m nems_lbhb.unit_match.launch run PROJECT --backend ID --day D1   # one day's two halves
+python -m multiphy.launch run PROJECT --backend ID            # every extracted day, across days
+python -m multiphy.launch run PROJECT --backend ID --day D1   # one day's two halves
 ```
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run (viewer-split Task 10) | date: 2026-10-07] -->
@@ -27,8 +27,8 @@ Open a completed run of either kind with one command; it opens in the mode its
 `selection.json` records (see [`docs/viewer.md`](docs/viewer.md)):
 
 ```bash
-python -m nems_lbhb.unit_match.viewer --run /path/to/PROJECT/runs/<run>
-python -m nems_lbhb.unit_match.viewer --run /path/to/PROJECT/days/<day>/runs/<run>
+python -m multiphy.viewer --run /path/to/PROJECT/runs/<run>
+python -m multiphy.viewer --run /path/to/PROJECT/days/<day>/runs/<run>
 ```
 <!-- [AGENT EDIT END] -->
 
@@ -102,7 +102,7 @@ refuses. Any registered backend runs across days the same way:
 <!-- [AGENT EDIT END] -->
 
 ```bash
-python -m nems_lbhb.unit_match.launch run PROJECT --backend unitmatch --days D1 D2
+python -m multiphy.launch run PROJECT --backend unitmatch --days D1 D2
 ```
 
 Across-days runs have no `--partition` option. Each run is a new folder in the
@@ -331,7 +331,7 @@ tested dependency directory, without downloading or installing into the base
 interpreter:
 
 ```bash
-python -m nems_lbhb.unit_match.dependency_setup \
+python -m multiphy.dependency_setup \
   --unitmatch-source /path/to/pinned/UnitMatch-checkout \
   --dant-source /path/to/pinned/pyDANT-checkout \
   --overlay /path/to/tested-dependency-directory \

@@ -9,14 +9,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.benchmark import load_dataset
+from multiphy.benchmark import load_dataset
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 16 fix round 2: _spike_features for the baseline test moved here from test_docs_project_folder.py | date: 2026-09-25]
-from nems_lbhb.unit_match.extract.full_day import (_spike_features, full_day_rows, load_full_day,
+from multiphy.extract.full_day import (_spike_features, full_day_rows, load_full_day,
                                                    pool_day_row, save_full_day)
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.extract.split import halves
-from nems_lbhb.unit_match.extract_benchmark import extract_manifest
-from nems_lbhb.unit_match.multiday_reuse import reuse_day_summary
+from multiphy.extract.split import halves
+from multiphy.extract_benchmark import extract_manifest
+from multiphy.multiday_reuse import reuse_day_summary
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: the pooled row is checked against an oracle that does not run pool_day_row | date: 2026-09-25]
 from .full_day_oracle import assert_pooled_from_halves

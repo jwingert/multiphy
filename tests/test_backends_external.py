@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import RunContext
-from nems_lbhb.unit_match.contract.errors import BackendUnavailable
-from nems_lbhb.unit_match.contract.inputs import Input, MatchingInput, RawWaveformBundle, CheckpointRef
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
+from multiphy.contract import registry
+from multiphy.contract.backend import RunContext
+from multiphy.contract.errors import BackendUnavailable
+from multiphy.contract.inputs import Input, MatchingInput, RawWaveformBundle, CheckpointRef
+from multiphy.contract.results import ScoreKind, TrackKind
 
 
 def test_external_specs_declare_inputs_and_emissions():
@@ -45,7 +45,7 @@ def test_unavailable_backend_raises_before_touching_data(tmp_path):
 
 
 def test_deepunitmatch_probe_mismatch_is_a_contract_violation(tmp_path, monkeypatch):
-    from nems_lbhb.unit_match.contract.errors import ContractViolation
+    from multiphy.contract.errors import ContractViolation
     backend = registry.get('deepunitmatch')
     monkeypatch.setattr(backend, 'available', lambda: type('A', (), {'ok': True, 'version': 'x', 'reason': None})())
     ids = ('A-1', 'B-1')
@@ -72,7 +72,7 @@ def _resolver_score(n, values):
 
 
 def _first_resolver_groups():
-    from nems_lbhb.unit_match.backends.native_groups import resolve_groups
+    from multiphy.backends.native_groups import resolve_groups
     score = np.array([[1, .99, .8, .5], [.99, 1, .7, .1], [.8, .7, 1, .8], [.5, .1, .8, 1]], dtype=float)
     return resolve_groups(['a', 'b', 'c', 'd'], ['s1', 's2', 's2', 's3'], [1, 1, 1, 1], score, [10, 10, 10, 10])
 
@@ -89,14 +89,14 @@ def test_resolver_keeps_best_mean_score():
     ([5, float('nan'), 1], (('a', 'c'),)),
 ])
 def test_resolver_tie_goes_to_more_spikes_then_cellid(n_spikes, expected):
-    from nems_lbhb.unit_match.backends.native_groups import resolve_groups
+    from multiphy.backends.native_groups import resolve_groups
     score = np.array([[1, .9, .9], [.9, 1, .5], [.9, .5, 1]], dtype=float)
     groups = resolve_groups(['a', 'b', 'c'], ['s1', 's2', 's2'], [1, 1, 1], score, n_spikes)
     assert groups.tracks == expected
 
 
 def test_resolver_one_session_group_is_all_proposed():
-    from nems_lbhb.unit_match.backends.native_groups import resolve_groups
+    from multiphy.backends.native_groups import resolve_groups
     score = np.array([[1, .9, .9], [.9, 1, .9], [.9, .9, 1]], dtype=float)
     groups = resolve_groups(['a', 'b', 'c'], ['s1', 's1', 's1'], [1, 1, 1], score, [1, 1, 1])
     assert groups.tracks == ()
@@ -104,7 +104,7 @@ def test_resolver_one_session_group_is_all_proposed():
 
 
 def test_resolver_skips_missing_scores():
-    from nems_lbhb.unit_match.backends.native_groups import resolve_groups
+    from multiphy.backends.native_groups import resolve_groups
     ids = ['a', 'b', 'c', 'd', 'x', 'y', 'z']
     ix = {c: i for i, c in enumerate(ids)}
     score = _resolver_score(7, {(ix['b'], ix['d']): .3, (ix['c'], ix['a']): .25,
@@ -115,14 +115,14 @@ def test_resolver_skips_missing_scores():
 
 
 def test_resolver_rejects_mismatched_inputs():
-    from nems_lbhb.unit_match.backends.native_groups import resolve_groups
+    from multiphy.backends.native_groups import resolve_groups
     with pytest.raises(ValueError) as err:
         resolve_groups(['a', 'b'], ['s1'], [1, 1], np.eye(2), [1, 1])
     assert str(err.value) == 'resolve_groups inputs disagree in length'
 
 
 def test_label_pairs_marks_kept_proposed_same_session():
-    from nems_lbhb.unit_match.backends.native_groups import label_pairs
+    from multiphy.backends.native_groups import label_pairs
     groups = _first_resolver_groups()
     pairs = pd.DataFrame({'cellid_a': ['a', 'a', 'b', 'a', 'e'], 'cellid_b': ['c', 'b', 'c', 'e', 'f']})
     sessions = {'a': 's1', 'b': 's2', 'c': 's2', 'd': 's3', 'e': 's4', 'f': 's4'}

@@ -30,11 +30,11 @@ import matplotlib
 from matplotlib import font_manager
 # [AGENT EDIT END]
 
-from nems_lbhb.unit_match.viewer import display
+from multiphy.viewer import display
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved and switched unit palette (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.qt import Figure, QtCore, QtGui, QtWidgets
+from multiphy.viewer.qt import Figure, QtCore, QtGui, QtWidgets
 
 TONE_ROLE = QtCore.Qt.UserRole + 101      # a cell's text colour token
 FILL_ROLE = QtCore.Qt.UserRole + 102      # a cell's background colour token

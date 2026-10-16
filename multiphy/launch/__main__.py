@@ -4,7 +4,7 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names export (run-curation Task 3) | date: 2026-10-04]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names the cancelled outcome and exit 130 (launcher-gui Task 2) | date: 2026-10-07]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docstring names gui (launcher-gui Task 5) | date: 2026-10-07]
-"""``python -m nems_lbhb.unit_match.launch [--root DIR] {init,extract,status,run,export,gui,<plugin command>} …``.
+"""``python -m multiphy.launch [--root DIR] {init,extract,status,run,export,gui,<plugin command>} …``.
 
 Plugin commands, such as ``lbhb-init``, come from the modules named in ``<root>/multiphy.json``
 and from ``multiphy.plugins`` entry points; each takes the project first, then its own options.
@@ -61,7 +61,7 @@ from . import commands
 from .plugins import load_plugins
 # [AGENT EDIT END]
 
-PROG = 'python -m nems_lbhb.unit_match.launch'
+PROG = 'python -m multiphy.launch'
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Task 15 rework fix round 1: --events and --raw belong to the --day arm; init_from takes neither, a --from day folder holds its own | date: 2026-09-25]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init gains --probe TYPE (Plan B Task 3) | date: 2026-09-28]
 INIT_USAGE = ('%(prog)s [-h] PROJECT (--from DIR | --day DAY --sort DIR --date YYYY-MM-DD '

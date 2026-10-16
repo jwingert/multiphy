@@ -1,6 +1,6 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher's command line: exit codes, printed lines and launcher.log (multiphy project folder Task 15) | date: 2026-09-25]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the module docstring names run (Plan B Task 3) | date: 2026-09-28]
-"""The launcher's command line, ``python -m nems_lbhb.unit_match.launch [--root DIR] {init,extract,status,run} …``.
+"""The launcher's command line, ``python -m multiphy.launch [--root DIR] {init,extract,status,run} …``.
 
 ``main`` returns 0 on success; any error, a refused command line included, prints
 ``error: <message>`` to stderr and returns 1. When the command line parses and
@@ -23,14 +23,14 @@ import sys
 
 import pytest
 
-from nems_lbhb.unit_match.launch.__main__ import main
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests
+from multiphy.launch.__main__ import main
+from multiphy.project.folder import Project
+from multiphy.sources.base import clear_readers_for_tests
 
 from .lab_blocker import run_without_lab
 from .synthetic_day import write_day
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 # The brief's values, written out rather than imported from the code under test.
 RAW_FOUND = 'raw file found at dat_path; pass --uv-per-bit to use it'
 D1_LINE = 'D1 · 2026-01-01 · raw · sources ok · features ok · runs 0'
@@ -256,7 +256,7 @@ def test_cli_help(tmp_path, capsys):
     env = dict(os.environ, PYTHONPATH=str(REPO))
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help reads multiphy.json from a tmp root, never the lab default (Plan C Task 1 fix round 1) | date: 2026-10-01]
     help_root = str(tmp_path / 'help')
-    proc = subprocess.run([sys.executable, '-m', 'nems_lbhb.unit_match.launch', '--root', help_root, '--help'],
+    proc = subprocess.run([sys.executable, '-m', 'multiphy.launch', '--root', help_root, '--help'],
                           cwd=REPO, env=env, capture_output=True, text=True, timeout=120)
     # [AGENT EDIT END]
     assert proc.returncode == 0, proc.stderr
@@ -271,7 +271,7 @@ def test_cli_help(tmp_path, capsys):
     usage = capsys.readouterr().out.split('\n\n', 1)[0]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: init gains --probe TYPE (Plan B Task 3) | date: 2026-09-28]
     assert ' '.join(usage.split()) == (
-        'usage: python -m nems_lbhb.unit_match.launch init [-h] PROJECT '
+        'usage: python -m multiphy.launch init [-h] PROJECT '
         '(--from DIR | --day DAY --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]) [--uv-per-bit X] '
         '[--probe TYPE]')
     # [AGENT EDIT END]
@@ -279,7 +279,7 @@ def test_cli_help(tmp_path, capsys):
 
     # The entry point runs the command and exits with main's code: 0 after it ran, 1 after an error.
     Project.ensure(root, 'P')
-    command = [sys.executable, '-m', 'nems_lbhb.unit_match.launch', '--root', str(root), 'status']
+    command = [sys.executable, '-m', 'multiphy.launch', '--root', str(root), 'status']
     proc = subprocess.run(command + ['P'], cwd=REPO, env=env, capture_output=True, encoding='utf-8', timeout=120)
     assert (proc.returncode, proc.stdout) == (0, 'across days · runs 0\n'), proc.stderr
     assert [line.split(' · ', 1)[1] for line in _log_lines(root)] == ['status P · ok']
@@ -290,7 +290,7 @@ def test_cli_help(tmp_path, capsys):
 
     # The command line imports no lab module, and main returns 0 for --help.
     proc = run_without_lab(
-        'from nems_lbhb.unit_match.launch.__main__ import main\n'
+        'from multiphy.launch.__main__ import main\n'
         # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: --help reads multiphy.json from a tmp root, never the lab default (Plan C Task 1 fix round 1) | date: 2026-10-01]
         f"code = main(['--root', {help_root!r}, '--help'])\n"
         # [AGENT EDIT END]
@@ -331,7 +331,7 @@ def test_run_refuses_abbreviated_backend_option(tmp_path, capsys):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch export and the export name a plugin cannot take (run-curation Task 3) | date: 2026-10-04]
 def test_plugin_cannot_register_export():
-    from nems_lbhb.unit_match.launch import plugins
+    from multiphy.launch import plugins
     with pytest.raises(ValueError, match='plugin command export is already defined'):
         plugins.PluginApi().add_command('export', lambda parser: None, lambda args, root: [])
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: gui is a builtin command a plugin cannot take (launcher-gui Task 5) | date: 2026-10-07]
@@ -341,8 +341,8 @@ def test_plugin_cannot_register_export():
 
 
 def test_launch_export_prints_path(tmp_path, capsys):
-    from nems_lbhb.unit_match.project.selection import Selection
-    from nems_lbhb.unit_match.run.project_run import run_selection
+    from multiphy.project.selection import Selection
+    from multiphy.run.project_run import run_selection
     from .synthetic_day import extracted_project
 
     path = extracted_project(tmp_path)
@@ -369,7 +369,7 @@ def test_cli_cancelled_outcome(tmp_path, from_dir, capsys, monkeypatch):
     root = tmp_path / 'root'
     assert main(['--root', str(root), 'init', 'P', '--from', str(from_dir), '--uv-per-bit', '0.195']) == 0
     capsys.readouterr()
-    monkeypatch.setattr('nems_lbhb.unit_match.launch.__main__.extract', _interrupt)
+    monkeypatch.setattr('multiphy.launch.__main__.extract', _interrupt)
     assert main(['--root', str(root), 'extract', 'P']) == 130
     err = capsys.readouterr().err
     assert err.endswith('cancelled\n'), err
@@ -380,12 +380,12 @@ def test_cli_cancelled_log_failure_keeps_130(tmp_path, from_dir, capsys, monkeyp
     root = tmp_path / 'root'
     assert main(['--root', str(root), 'init', 'P', '--from', str(from_dir), '--uv-per-bit', '0.195']) == 0
     capsys.readouterr()
-    monkeypatch.setattr('nems_lbhb.unit_match.launch.__main__.extract', _interrupt)
+    monkeypatch.setattr('multiphy.launch.__main__.extract', _interrupt)
 
     def _read_only(*args, **kwargs):
         raise OSError('read-only')
 
-    monkeypatch.setattr('nems_lbhb.unit_match.launch.__main__._log', _read_only)
+    monkeypatch.setattr('multiphy.launch.__main__._log', _read_only)
     assert main(['--root', str(root), 'extract', 'P']) == 130
     lines = capsys.readouterr().err.splitlines()
     assert 'cancelled' in lines and 'error: read-only' in lines, lines
@@ -396,10 +396,10 @@ def test_cli_sigint_real_process(tmp_path, inherited):
     import signal
     root = tmp_path / 'root'
     root.mkdir()
-    (root / 'multiphy.json').write_text('{"plugins": ["tests.unit_match.wait_plugin"]}', encoding='utf-8')
+    (root / 'multiphy.json').write_text('{"plugins": ["tests.wait_plugin"]}', encoding='utf-8')
     Project.ensure(root, 'P')
     preexec = (lambda: signal.signal(signal.SIGINT, signal.SIG_IGN)) if inherited == 'ignored' else None
-    proc = subprocess.Popen([sys.executable, '-m', 'nems_lbhb.unit_match.launch', '--root', str(root), 'wait', 'P'],
+    proc = subprocess.Popen([sys.executable, '-m', 'multiphy.launch', '--root', str(root), 'wait', 'P'],
                             cwd=REPO, env=dict(os.environ, PYTHONPATH=str(REPO), PYTHONDONTWRITEBYTECODE='1'),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=preexec)
     try:

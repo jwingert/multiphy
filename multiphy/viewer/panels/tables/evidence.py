@@ -2,19 +2,19 @@
 """Scalar evidence, the criterion outcomes, and the verdict controls."""
 import numpy as np
 
-from nems_lbhb.unit_match import store as st
-from nems_lbhb.unit_match.viewer import display
+from multiphy import store as st
+from multiphy.viewer import display
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: labels, buttons and cells carry theme properties and tokens instead of colours (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: P_SOUND renamed P_EVENT (launcher-gui Task 10) | date: 2026-10-07]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the streams line reads each stream's word and probability column from display (event-optional Task 12) | date: 2026-10-10]
-from nems_lbhb.unit_match.viewer.display import (STREAM_WORDS, diagnostic_gate_outcome, headline_probability,
+from multiphy.viewer.display import (STREAM_WORDS, diagnostic_gate_outcome, headline_probability,
                                                  pct, probability, shows_scores)
 # [AGENT EDIT END]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.tables.base import _table
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy.viewer.panels.tables.base import _table
+from multiphy.viewer.state import Actions, PairState
+from multiphy.viewer.qt import QtWidgets
 # [AGENT EDIT END]
 
 

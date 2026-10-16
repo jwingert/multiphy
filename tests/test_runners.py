@@ -9,11 +9,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import paths, runners, external_backends
-from nems_lbhb.unit_match.backends import BackendUnavailable, load_result, result_from_pairs
+from multiphy import paths, runners, external_backends
+from multiphy.backends import BackendUnavailable, load_result, result_from_pairs
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: run_backend_dataset now goes through run.runner and the registered UnitMatch backend; patch its defining module and its availability probe (Task 11) | date: 2026-09-22]
-from nems_lbhb.unit_match.backends import unitmatch as unitmatch_backend
-from nems_lbhb.unit_match.contract.backend import Availability
+from multiphy.backends import unitmatch as unitmatch_backend
+from multiphy.contract.backend import Availability
 
 
 def _patch_unitmatch(monkeypatch, fn):
@@ -195,7 +195,7 @@ def test_parser_exposes_explicit_actions_and_faithful_native_defaults():
 
 
 def test_runner_reads_real_persisted_benchmark_contract(tmp_path, monkeypatch):
-    from nems_lbhb.unit_match.benchmark import BenchmarkDataset, save_dataset
+    from multiphy.benchmark import BenchmarkDataset, save_dataset
     fixture = Dataset()
     units = fixture.units.assign(siteid=fixture.units.session_id,
         recording_group=['original_train', 'original_train', 'original_test', 'original_test'])
@@ -251,7 +251,7 @@ def test_dependency_wait_without_pidfd_rejects_pid_reuse(tmp_path, monkeypatch):
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: a misspelled option is refused, never silently dropped (whole-branch review fix 6) | date: 2026-09-23]
 def test_run_backend_dataset_refuses_an_undeclared_option(tmp_path, monkeypatch):
-    from nems_lbhb.unit_match.contract.errors import ContractViolation
+    from multiphy.contract.errors import ContractViolation
     (tmp_path / 'input').mkdir()
     (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}')
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())

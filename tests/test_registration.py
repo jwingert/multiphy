@@ -10,9 +10,9 @@ import itertools
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.backends.local import evidence as ev
-from nems_lbhb.unit_match.backends.local.examples import fit_ensemble, labeled_examples
-from nems_lbhb.unit_match.backends.local.registration import functional_offsets, match_offsets, profile_offsets
+from multiphy.backends.local import evidence as ev
+from multiphy.backends.local.examples import fit_ensemble, labeled_examples
+from multiphy.backends.local.registration import functional_offsets, match_offsets, profile_offsets
 
 from .synthetic_drift import make_drift_days, observations_by_session
 

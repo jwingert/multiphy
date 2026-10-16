@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 import pytest
-from nems_lbhb.unit_match.benchmark_workflow import Workflow, run_workflow
+from multiphy.benchmark_workflow import Workflow, run_workflow
 
 
 def test_resume_verifies_completed_artifacts_and_rejects_changed_config(tmp_path):
@@ -91,7 +91,7 @@ def test_interrupt_marks_uncertain_and_prohibits_same_owner_retry(tmp_path):
 
 
 def mock_pipeline(monkeypatch, tmp_path, fail_training=False, bad_partition=False):
-    from nems_lbhb.unit_match import benchmark, benchmark_collection, runners  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: benchmark_local is gone (Task 2) | date: 2026-09-27]
+    from multiphy import benchmark, benchmark_collection, runners  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: benchmark_local is gone (Task 2) | date: 2026-09-27]
     paths = [tmp_path / name for name in ('training', 'calibration', 'test', 'missing')]
     calls, collections = [], {}
     for i, path in enumerate(paths):

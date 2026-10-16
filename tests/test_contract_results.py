@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.backends import result_from_pairs
-from nems_lbhb.unit_match.contract.results import (Decision, ScoreBlock, ScoreKind, TrackKind,
+from multiphy.backends import result_from_pairs
+from multiphy.contract.results import (Decision, ScoreBlock, ScoreKind, TrackKind,
                                                    single_units)
 # [AGENT EDIT END]
 
@@ -85,8 +85,8 @@ def test_partition_rules_and_unknown_decision():
 
 
 def test_validate_against_spec_checks_emissions():
-    from nems_lbhb.unit_match.contract.backend import BackendSpec, Provides
-    from nems_lbhb.unit_match.contract.inputs import Input
+    from multiphy.contract.backend import BackendSpec, Provides
+    from multiphy.contract.inputs import Input
     spec = BackendSpec('unitmatch', '1',  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
                        frozenset({Input.UNITS}), frozenset(),
                        Provides(frozenset({ScoreKind.UNCALIBRATED}), frozenset({TrackKind.COMMON})), ())
@@ -100,7 +100,7 @@ def test_validate_against_spec_checks_emissions():
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: proposed_link is a pair decision (native-same-day Task 1) | date: 2026-10-11]
 def test_proposed_link_is_a_decision():
-    from nems_lbhb.unit_match.contract.results import DECISIONS
+    from multiphy.contract.results import DECISIONS
     assert Decision('proposed_link') is Decision.PROPOSED_LINK
     assert ('proposed_link' in DECISIONS) is True
 # [AGENT EDIT END]

@@ -3,7 +3,7 @@
 
 Imports no Qt and no lab module.
 """
-from nems_lbhb.unit_match.viewer.modes import across_days, same_day
+from multiphy.viewer.modes import across_days, same_day
 
 MODES = {'across_days': across_days.ACROSS_DAYS, 'same_day': same_day.SAME_DAY}
 # [AGENT EDIT END]

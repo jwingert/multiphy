@@ -15,26 +15,26 @@ from typing import Optional
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import BackendSpec
+from multiphy.contract import registry
+from multiphy.contract.backend import BackendSpec
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launch run prints the warnings the run saves (event-optional Task 9) | date: 2026-10-10]
-from nems_lbhb.unit_match.launch import commands
+from multiphy.launch import commands
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.project.folder import RUNS_DIR, Project
-from nems_lbhb.unit_match.project.selection import Selection
+from multiphy.project.folder import RUNS_DIR, Project
+from multiphy.project.selection import Selection
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day refusal names the halves' session ids (event-optional Task 14) | date: 2026-10-10]
-from nems_lbhb.unit_match.project.selection import HALVES_SESSIONS
+from multiphy.project.selection import HALVES_SESSIONS
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: opt had no use in this file (Follow-up Task 5) | date: 2026-09-29]
-from nems_lbhb.unit_match.run import run_dir, runner
+from multiphy.run import run_dir, runner
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import subprocess as sp
-from nems_lbhb.unit_match.run.__main__ import main
+from multiphy.run import subprocess as sp
+from multiphy.run.__main__ import main
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: run start refuses days without single units (event-optional Task 14) | date: 2026-10-10]
-from nems_lbhb.unit_match.run.project_run import (check_real_day_run, check_single_unit_days, project_run_path,
+from multiphy.run.project_run import (check_real_day_run, check_single_unit_days, project_run_path,
                                                   run_selection, selection_runs)
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run.subprocess import build_selection_command
+from multiphy.run.subprocess import build_selection_command
 
 from .synthetic_day import extracted_project
 
@@ -266,10 +266,10 @@ def test_build_selection_command_argv():
     # [AGENT EDIT END]
     program, argv = build_selection_command(Path('/x/P'), ('D1',), FL, {}, output=Path('/x/o'))
     assert program == str(Path(sys.executable).absolute())
-    assert argv == ['-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend', '--project', '/x/P', '--day', 'D1',
+    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', '/x/P', '--day', 'D1',
                     '--backend', 'functional_likelihood', '--output', '/x/o'] + defaults
     _, argv = build_selection_command(Path('/x/P'), ('D1', 'D2'), FL, {}, output=Path('/x/o'))
-    assert argv == ['-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend', '--project', '/x/P',
+    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', '/x/P',
                     '--days', 'D1', 'D2', '--backend', 'functional_likelihood', '--output', '/x/o'] + defaults
 
 

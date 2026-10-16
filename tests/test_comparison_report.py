@@ -3,12 +3,12 @@ import json
 
 import pytest
 
-from test_unit_match_benchmark import dataset
-from nems_lbhb.unit_match.backends import MatchResult, save_result, load_result
-from nems_lbhb.unit_match.benchmark import save_dataset, load_dataset
-from nems_lbhb.unit_match.benchmark_collection import create_collection
-from nems_lbhb.unit_match.comparison_report import inspect_run, write_comparison
-from nems_lbhb.unit_match.evaluation import evaluate_result
+from tests.test_benchmark import dataset
+from multiphy.backends import MatchResult, save_result, load_result
+from multiphy.benchmark import save_dataset, load_dataset
+from multiphy.benchmark_collection import create_collection
+from multiphy.comparison_report import inspect_run, write_comparison
+from multiphy.evaluation import evaluate_result
 
 
 def make_run(root, name, data_path, *, units_override=None):
@@ -17,8 +17,8 @@ def make_run(root, name, data_path, *, units_override=None):
     pairs = ds.pairs[['cellid_a', 'cellid_b']].copy()
     pairs = pairs[pairs.cellid_a.isin(units.cellid) & pairs.cellid_b.isin(units.cellid)]
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: 12-field MatchResult (score block, track kind, rule, typed Provenance) and a contract Decision; the old current_legacy alias is the registered legacy_fresh id; pilot provenance keys kept to exercise the fallbacks (Task 12) | date: 2026-09-22]
-    from nems_lbhb.unit_match.contract.provenance import Provenance
-    from nems_lbhb.unit_match.contract.results import Decision, ScoreBlock, ScoreKind, TrackKind
+    from multiphy.contract.provenance import Provenance
+    from multiphy.contract.results import Decision, ScoreBlock, ScoreKind, TrackKind
     pairs['match_score'] = .1
     pairs['selected'] = False
     pairs['decision'] = Decision.BELOW_THRESHOLD.value
@@ -91,7 +91,7 @@ def test_local_aggregate_schema_without_backend_or_partition_fields(tmp_path):
     data = save_dataset(dataset(), tmp_path / 'data', cache_root=tmp_path)
     run = make_run(tmp_path, 'local', data)
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: former constrained result is a unitmatch result built by result_from_pairs (Task 3 fix round 1) | date: 2026-09-27]
-    from nems_lbhb.unit_match.backends import result_from_pairs
+    from multiphy.backends import result_from_pairs
     saved = load_result(run / 'result.json')
     ds = load_dataset(data)
     result = result_from_pairs('unitmatch', '1', ds.units, saved.pairs[['cellid_a', 'cellid_b', 'match_score']],

@@ -14,13 +14,13 @@ import pytest
 from PySide6 import QtWidgets
 from PySide6.QtTest import QTest
 
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.launch import window as launch_window
-from nems_lbhb.unit_match.launch.__main__ import main
-from nems_lbhb.unit_match.launch.plugins import PluginApi
-from nems_lbhb.unit_match.launch.window import LauncherWindow, day_rows, list_projects, run_groups, run_window
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.run import catalog
+from multiphy.launch import commands
+from multiphy.launch import window as launch_window
+from multiphy.launch.__main__ import main
+from multiphy.launch.plugins import PluginApi
+from multiphy.launch.window import LauncherWindow, day_rows, list_projects, run_groups, run_window
+from multiphy.project.folder import Project
+from multiphy.run import catalog
 
 from .launch_window_fixtures import qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import extracted_project, write_day
@@ -116,7 +116,7 @@ def test_open_run_by_kind(qt, runs, monkeypatch):
         assert window.viewers[-1].curation is None
         assert len(window.viewers) == 2
         # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: launcher-gui Task 5 fix round 1: a viewer that cannot be imported is logged, not raised | date: 2026-10-07]
-        monkeypatch.setitem(sys.modules, 'nems_lbhb.unit_match.viewer.app', None)
+        monkeypatch.setitem(sys.modules, 'multiphy.viewer.app', None)
         window.open_run()
         assert _last_log(window).startswith('error:')
         assert len(window.viewers) == 2
@@ -157,7 +157,7 @@ def test_bad_plugin_root_refused(qt, runs, tmp_path, monkeypatch):
 
     missing = tmp_path / 'missing_plugin'
     missing.mkdir()
-    (missing / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.unit_match.no_such_plugin']}))
+    (missing / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.no_such_plugin']}))
     refused(missing, 'error: plugin')
 
     (tmp_path / 'bad_configure_plugin.py').write_text(

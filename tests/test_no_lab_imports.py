@@ -1,30 +1,25 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: public unit_match imports never reach the lab database (multiphy project folder Task 1) | date: 2026-09-25]
-"""Importing the matching core loads no lab module; celldb is imported only where queried."""
+"""Importing multiphy loads no lab module."""
 from __future__ import annotations
 
+import importlib
 import sys
-import types
 from pathlib import Path
 
-import pandas as pd
-
-import nems_lbhb
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _parmfiles moved to baphy_features (Plan C Task 7) | date: 2026-10-02]
-from nems_lbhb.unit_match_lbhb import baphy_features
-# [AGENT EDIT END]
+import pytest
 
 from .lab_blocker import run_without_lab
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 
 
 def test_core_modules_import_without_lab():
     code = (
-        'import nems_lbhb.unit_match.benchmark\n'
-        'import nems_lbhb.unit_match.extract_benchmark\n'
-        'import nems_lbhb.unit_match.multiday_reuse\n'
-        'import nems_lbhb.unit_match.streaming_waveforms\n'
-        'from nems_lbhb.unit_match.contract import registry\n'
+        'import multiphy.benchmark\n'
+        'import multiphy.extract_benchmark\n'
+        'import multiphy.multiday_reuse\n'
+        'import multiphy.streaming_waveforms\n'
+        'from multiphy.contract import registry\n'
         "registry.get('functional_likelihood')\n"  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: mechanism id (Task 3) | date: 2026-09-27]
         "print('ok')\n"
     )
@@ -36,21 +31,14 @@ def test_core_modules_import_without_lab():
 def test_blocker_blocks_lab_modules():
     proc = run_without_lab('import nems_lbhb.db\n', REPO)
     assert proc.returncode == 1
-    assert 'blocked: nems_lbhb.db' in proc.stderr
+    assert proc.stderr.strip().splitlines()[-1] == 'ImportError: blocked: nems_lbhb'
 
 
-def test_parmfiles_still_query_db(monkeypatch):
-    rows = pd.DataFrame([
-        {'resppath': '/auto/x/', 'parmfile': 'a.m', 'runclass': 'BNT'},
-        {'resppath': '/tmp/', 'parmfile': 'b.m', 'runclass': 'BNT'},
-    ])
-    fake = types.ModuleType('nems_lbhb.db')
-    fake.get_rawdata = lambda siteid=None, **kw: rows
-    monkeypatch.setitem(sys.modules, 'nems_lbhb.db', fake)
-    monkeypatch.setattr(nems_lbhb, 'db', fake, raising=False)
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _parmfiles moved to baphy_features (Plan C Task 7) | date: 2026-10-02]
-    assert baphy_features._parmfiles('SITE', 'BNT') == ['/auto/x/a.m']
-    # [AGENT EDIT END]
+def test_session_blocks_lab_imports():
+    with pytest.raises(ImportError) as exc:
+        importlib.import_module('nems_lbhb' + '.unit_match')
+    assert str(exc.value) == 'blocked: nems_lbhb'
+    assert 'nems_lbhb' not in sys.modules
 # [AGENT EDIT END]
 
 
@@ -66,7 +54,7 @@ QT_PRELUDE = (
 def test_gui_imports_without_lab():
     code = QT_PRELUDE + (
         # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer App replaces the deleted gui module (viewer-split Task 9) | date: 2026-10-07]
-        'import nems_lbhb.unit_match.viewer.app\n'
+        'import multiphy.viewer.app\n'
         # [AGENT EDIT END]
         "print('ok')\n"
     )
@@ -78,24 +66,21 @@ def test_gui_imports_without_lab():
 def test_project_path_runs_and_opens_without_lab(tmp_path):
     code = QT_PRELUDE + (
         'from pathlib import Path\n'
-        'from tests.unit_match.synthetic_day import extracted_project\n'
-        'from nems_lbhb.unit_match.launch import commands\n'
+        'from tests.synthetic_day import extracted_project\n'
+        'from multiphy.launch import commands\n'
         # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs open in viewer.app, not the deleted days and benchmark viewers (viewer-split Task 9) | date: 2026-10-07]
-        'from nems_lbhb.unit_match.viewer import app as viewer_app\n'
+        'from multiphy.viewer import app as viewer_app\n'
         # [AGENT EDIT END]
         f'root = extracted_project(Path({str(tmp_path)!r})).parent\n'
         "days = commands.run(root, 'P', backend='functional_likelihood')\n"
         "day = commands.run(root, 'P', backend='functional_likelihood', days=['D1'])\n"
         # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the windows show their runs and units, and opening attempts no blocked import (Plan B Task 11) | date: 2026-09-28]
         'import sys\n'
-        'from nems_lbhb.unit_match import backends\n'
+        'from multiphy import backends\n'
         'attempts = []\n'
         'class _Recorder:\n'
         '    def find_spec(self, name, path=None, target=None):\n'
-        # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the lab modules live in nems_lbhb.unit_match_lbhb (Plan C Task 7) | date: 2026-10-02]
-        "        if name.startswith('nems_lbhb.unit_match_lbhb') or \\\n"
-        # [AGENT EDIT END]
-        "                any(name == b or name.startswith(b + '.') for b in BLOCKED):\n"
+        "        if any(name == b or name.startswith(b + '.') for b in BLOCKED):\n"
         '            attempts.append(name)\n'
         '        return None\n'
         'sys.meta_path.insert(0, _Recorder())\n'

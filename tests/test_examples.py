@@ -13,11 +13,11 @@ import pandas as pd
 # [AGENT EDIT END]
 import pytest
 
-from nems_lbhb.unit_match.backends.local import evidence as ev
+from multiphy.backends.local import evidence as ev
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the jitter tests read signatures, compare frames and patch the examples module (event-optional Task 7) | date: 2026-10-10]
-from nems_lbhb.unit_match.backends.local import examples
+from multiphy.backends.local import examples
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.backends.local.examples import (
+from multiphy.backends.local.examples import (
     MIN_NEIGHBOUR_PAIRS, PROPERTIES, RADIUS_UM, align_channels, fit_ensemble, labeled_examples)
 
 from .synthetic_drift import make_drift_days, observations_by_session, probe_geometry
@@ -180,7 +180,7 @@ def test_fit_ensemble_splits_by_label(drift_examples):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the peak-to-peak correlations are named footprint, in PROPERTIES and in each waveform_channels subset (event-optional Task 1) | date: 2026-10-09]
 def test_properties_name_the_footprint():
-    from nems_lbhb.unit_match.backends.local.pair_logistic import WAVEFORM_CHANNELS, model_properties
+    from multiphy.backends.local.pair_logistic import WAVEFORM_CHANNELS, model_properties
     assert PROPERTIES == ('fingerprint_r', 'd_log_spont', 'd_log_rate_session', 'd_log_rate_shared', 'isi_cosine',
                           'acg_cosine', 'd_spike_width_ms', 'waveform_r', 'footprint_r', 'waveform_r_local',
                           'footprint_r_local')

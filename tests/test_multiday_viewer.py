@@ -21,11 +21,11 @@ from pathlib import Path
 
 import pytest
 
-from nems_lbhb.unit_match import backends
+from multiphy import backends
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - the GUI imports are required, never skipped (Plan B Task 5) | date: 2026-09-28]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the window tests open runs through viewer.app; Qt constants come from viewer.qt (viewer-split Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import app as viewer_app
-from nems_lbhb.unit_match.viewer.qt import QtCore
+from multiphy.viewer import app as viewer_app
+from multiphy.viewer.qt import QtCore
 # [AGENT EDIT END]
 from PySide6 import QtWidgets
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a close event for the layout-failure test (run-curation Task 7 fix round 1) | date: 2026-10-05]
@@ -34,26 +34,26 @@ from PySide6 import QtGui as QtGui
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the load and validate tests read the across-days mode (viewer-split Task 3) | date: 2026-10-06]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open_run and main of the one viewer; App and MODES for the empty window (viewer-split Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer.app import App, main, open_run
-from nems_lbhb.unit_match.viewer.modes import MODES
+from multiphy.viewer.app import App, main, open_run
+from multiphy.viewer.modes import MODES
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.modes import across_days
+from multiphy.viewer.modes import across_days
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the header text is patched on the Qt-free display module (viewer-split Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import display
+from multiphy.viewer import display
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.modes.across_days import validate_days_result
+from multiphy.viewer.modes.across_days import validate_days_result
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.project.folder import RUNS_DIR, Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy.project.folder import RUNS_DIR, Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 
-from tests.unit_match.synthetic_day import extracted_project
+from tests.synthetic_day import extracted_project
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the key-pressing tests read their shortcuts from a settings file under tmp_path (day-table-keys Task 4) | date: 2026-10-14]
-from tests.unit_match.theme_fixtures import theme_env  # noqa: F401
+from tests.theme_fixtures import theme_env  # noqa: F401
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every test reads settings from a fresh folder under the pytest base temp; the pin test reads the settings file name through theme (day-table-keys Task 6) | date: 2026-10-14]
-from nems_lbhb.unit_match.viewer import theme
-from tests.unit_match.settings_fixtures import tmp_settings  # noqa: F401
+from multiphy.viewer import theme
+from tests.settings_fixtures import tmp_settings  # noqa: F401
 # [AGENT EDIT END]
 
 FL = 'functional_likelihood'
@@ -85,23 +85,6 @@ def qt():
 
 def _result(run: Path):
     return backends.load_result(run / 'result.json')
-
-
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - the days viewer's database guard patches blocks and records calls, since the well listing swallows a raised guard (Plan B Task 11) | date: 2026-09-28]
-@pytest.fixture
-def database_calls(monkeypatch):
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the well listing moved to nems_lbhb.unit_match_lbhb.blocks (Plan C Task 7) | date: 2026-10-02]
-    from nems_lbhb.unit_match_lbhb import blocks
-    # [AGENT EDIT END]
-    calls = []
-
-    def no_database(*args, **kwargs):
-        calls.append((args, kwargs))
-        raise AssertionError('the days viewer must not query the recording database')
-
-    monkeypatch.setattr(blocks, 'blocks', no_database)
-    return calls
-# [AGENT EDIT END]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the across-days mode loads the run into RunData (viewer-split Task 3) | date: 2026-10-06]
@@ -136,16 +119,13 @@ def clean_curation(project):
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the days run is curated by one controller in the project's curation/runs/<run> (run-curation Task 5) | date: 2026-10-05]
-def test_open_run_uses_project_curation(qt, project, database_calls, clean_curation):
+def test_open_run_uses_project_curation(qt, project, clean_curation):
     window = open_run(project['days_run'])
     run_curation = project['project'].path / 'curation' / 'runs' / project['days_run'].name
     assert window.curation.curation_dir == run_curation
     assert (run_curation / 'history.lock').exists()
     # [AGENT EDIT END]
     assert window.state.sites == UNITS
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - opening never queried the database (Plan B Task 11) | date: 2026-09-28]
-    assert database_calls == []
-    # [AGENT EDIT END]
     window.close()
 
 
@@ -161,7 +141,7 @@ def test_validate_days_result_refuses_same_day_track(project):
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - database guard (Plan B Task 11) | date: 2026-09-28]
-def test_run_list_refuses_changed_selection(qt, tmp_path, database_calls):
+def test_run_list_refuses_changed_selection(qt, tmp_path):
 # [AGENT EDIT END]
     folder = extracted_project(tmp_path, weak_units=('D1',))
     days = Selection(Project.open(folder.parent, folder.name), ('D1', 'D2'))
@@ -179,16 +159,13 @@ def test_run_list_refuses_changed_selection(qt, tmp_path, database_calls):
     assert window._shown_key == key
     assert (changed / 'result.json') in window._rejected_runs
     assert 'no longer matches project' in window.statusBar().currentMessage()
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - opening and switching runs never queried the database (Plan B Task 11) | date: 2026-09-28]
-    assert database_calls == []
-    # [AGENT EDIT END]
     window.close()
 # [AGENT EDIT END]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - Import refuses a changed run and a result outside a run folder, and opens an unchanged run (Plan B Task 5) | date: 2026-09-28]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - database guard (Plan B Task 11) | date: 2026-09-28]
-def test_import_refuses_changed_selection(qt, tmp_path, database_calls):
+def test_import_refuses_changed_selection(qt, tmp_path):
 # [AGENT EDIT END]
     folder = extracted_project(tmp_path / 'p', weak_units=('D1',))
     days = Selection(Project.open(folder.parent, folder.name), ('D1', 'D2'))
@@ -209,9 +186,6 @@ def test_import_refuses_changed_selection(qt, tmp_path, database_calls):
     assert all(e.result_path.parent != changed for e in window._imported_runs)
     imported = window.import_match_result(other / 'result.json')
     assert window._shown_key == (imported.backend_id, imported.run_id) != key
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - opening and importing never queried the database (Plan B Task 11) | date: 2026-09-28]
-    assert database_calls == []
-    # [AGENT EDIT END]
     window.close()
 # [AGENT EDIT END]
 
@@ -305,7 +279,7 @@ TRACK = ('D1:0', 'D2:0')
 def tracked_run(project):
     """A copy of the days run whose result proposes D1:0+D2:0 as one track, with that pair as its candidate
     (the synthetic functional_likelihood run proposes no track and no pair)."""
-    from nems_lbhb.unit_match.run.run_dir import save_result
+    from multiphy.run.run_dir import save_result
     source = project['days_run']
     run = source.parent / (source.name + '_tracked')
     shutil.copytree(source, run)
@@ -343,7 +317,7 @@ def _select(panel, track_id):
 
 
 def test_reject_shows_singletons(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     panel = window.tracked
     track_id, track = next((t, v) for t, v in window.track_state().tracks.items() if len(v['members']) >= 2)
@@ -362,7 +336,7 @@ def test_reject_shows_singletons(qt, tracked_run, clean_curation):
 
 
 def test_reject_disabled_on_singleton(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     panel = window.tracked
     _select(panel, cluster_id(TRACK))
@@ -395,7 +369,7 @@ def test_verdict_appends_history_row(qt, tracked_run, clean_curation, theme_env)
 
 def test_skipped_tag_lists_op(qt, project, clean_curation):
     import csv
-    from nems_lbhb.unit_match import curation
+    from multiphy import curation
     folder = clean_curation / 'runs' / project['days_run'].name
     folder.mkdir(parents=True)
     row = curation.make_row('split', cluster_id='uc_000000000000', members=['D1:0'])
@@ -415,8 +389,8 @@ def test_skipped_tag_lists_op(qt, project, clean_curation):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 1 - a failed write that is not a refusal (ENOSPC) still disables every mutation control (run-curation Task 5) | date: 2026-10-05]
 def test_failed_write_disables_controls(qt, tracked_run, clean_curation, monkeypatch):
     import errno
-    from nems_lbhb.unit_match import curation
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy import curation
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     panel = window.tracked
     _select(panel, cluster_id(TRACK))
@@ -436,7 +410,7 @@ def test_failed_write_disables_controls(qt, tracked_run, clean_curation, monkeyp
 
 def test_failed_verdict_write_disables_controls(qt, tracked_run, clean_curation, monkeypatch):
     import errno
-    from nems_lbhb.unit_match import curation
+    from multiphy import curation
     window = open_run(tracked_run)
     assert window.state.row is not None
     assert all(b.isEnabled() for b in window.evidence.verdict_buttons)
@@ -497,7 +471,7 @@ def test_failed_header_text_keeps_old_run(qt, tracked_run, clean_curation, monke
 # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - moved from test_unit_match_curation.py: a new window has no run, so the inspect-only tag shows and every mutation control is disabled (run-curation Task 5) | date: 2026-10-05]
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - moved from test_curation.py: a new window has no run, so the inspect-only tag shows and every mutation control is disabled (run-curation Task 5) | date: 2026-10-05]
 def test_new_window_starts_inspect_only(qt, tmp_path, monkeypatch):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a new across-days App with its layout file under tmp_path (viewer-split Task 8) | date: 2026-10-07]
     window = App(MODES['across_days'], layout_file=tmp_path / 'layout.json')
@@ -521,7 +495,7 @@ def _status_of(panel, track_id):
 def test_ctrl_z_undoes_and_ctrl_shift_z_redoes(qt, tracked_run, clean_curation, theme_env):
     import csv
     from PySide6.QtTest import QTest
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     window.show()
     window.activateWindow()
@@ -548,7 +522,7 @@ def test_ctrl_z_undoes_and_ctrl_shift_z_redoes(qt, tracked_run, clean_curation, 
 
 
 def test_reopen_button_enabled_by_status(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     panel = window.tracked
     track_id = cluster_id(TRACK)
@@ -567,7 +541,7 @@ def test_reopen_button_enabled_by_status(qt, tracked_run, clean_curation):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: read-only second viewer, Take over, lock release on close and a failed run switch (run-curation Task 7) | date: 2026-10-05]
 def test_second_window_is_read_only(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     first = open_run(tracked_run)
     second = open_run(tracked_run)
     panel = second.tracked
@@ -588,7 +562,7 @@ def test_second_window_is_read_only(qt, tracked_run, clean_curation):
 
 
 def test_take_over_remote_lock(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     folder = clean_curation / 'runs' / tracked_run.name
     folder.mkdir(parents=True)
     lock = folder / 'history.lock'
@@ -618,7 +592,7 @@ def test_take_over_remote_lock(qt, tracked_run, clean_curation):
 
 
 def test_read_only_disables_reopen(qt, tracked_run, clean_curation):
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     track_id = cluster_id(TRACK)
     first = open_run(tracked_run)
     _select(first.tracked, track_id)
@@ -652,7 +626,7 @@ def test_close_releases_lock(qt, tracked_run, clean_curation):
 
 
 def test_failed_run_switch_keeps_old_run(qt, tracked_run, clean_curation, monkeypatch):
-    from nems_lbhb.unit_match import curation
+    from multiphy import curation
     window = open_run(tracked_run)
     controller = window.curation
     lock = clean_curation / 'runs' / tracked_run.name / 'history.lock'
@@ -728,7 +702,7 @@ def test_same_day_merge_flagged(qt, tracked_run, clean_curation):
 
 def test_export_button_writes_file(qt, tracked_run, clean_curation):
     import csv
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     window = open_run(tracked_run)
     panel = window.tracked
     track_id = cluster_id(TRACK)
@@ -752,7 +726,7 @@ def test_export_button_writes_file(qt, tracked_run, clean_curation):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a read-only viewer's Export replays the history on disk (run-curation Task 8) | date: 2026-10-05]
 def test_read_only_export_replays_history(qt, tracked_run, clean_curation):
     import csv
-    from nems_lbhb.unit_match.clusters import cluster_id
+    from multiphy.clusters import cluster_id
     track_id = cluster_id(TRACK)
     first = open_run(tracked_run)
     second = open_run(tracked_run)

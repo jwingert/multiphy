@@ -7,13 +7,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.backends.local.examples import pair_properties
-from nems_lbhb.unit_match.backends.local.references import (
+from multiphy.backends.local.examples import pair_properties
+from multiphy.backends.local.references import (
     chunk_windows, evidence_by_group, group_observations, reference_windows, require_waveform_halves,
     trial_splits, unit_observation)
-from nems_lbhb.unit_match.contract.inputs import RunEvidence, TrialTiming
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
+from multiphy.contract.inputs import RunEvidence, TrialTiming
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
 
 from .synthetic_day import extracted_project
 from .synthetic_drift import make_drift_days

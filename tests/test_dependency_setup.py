@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from nems_lbhb.unit_match.dependency_setup import DEFAULT_DIRECTORY, _overlay_files, verified_interpreter
+from multiphy.dependency_setup import DEFAULT_DIRECTORY, _overlay_files, verified_interpreter
 import pytest
 
 

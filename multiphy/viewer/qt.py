@@ -22,7 +22,7 @@ _WANT_QT = 'PySide6'
 _have = os.environ.get('QT_API')
 if _have and _have.lower() not in ('pyside6',):
     warnings.warn(
-        f'QT_API is set to {_have!r}, but nems_lbhb.unit_match.viewer requires PySide6. '
+        f'QT_API is set to {_have!r}, but multiphy.viewer requires PySide6. '
         'Matplotlib canvases will not be accepted by the PySide6 layouts. '
         'Unset QT_API or set it to PySide6.', RuntimeWarning)
 else:

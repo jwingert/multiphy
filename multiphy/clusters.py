@@ -38,7 +38,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match import evidence as ev
+from multiphy import evidence as ev
 
 DEFAULT_THRESHOLD = 0.90
 # the ledger API (LEDGER_ROOT, ledger_path, load_ledger, append, current,

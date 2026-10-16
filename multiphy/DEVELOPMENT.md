@@ -213,7 +213,7 @@ Process state and artifact manifests are authoritative; these are dated snapshot
 - Verify the project path end to end on real days: `launch init`, `extract`,
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer command opens the run (viewer-split final review fix round 1) | date: 2026-10-07] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: or all of it from the launcher window (launcher-gui Task 11) | date: 2026-10-07] -->
-  `run` (`run/project_run.py`) and `python -m nems_lbhb.unit_match.viewer --run DIR`, or all of
+  `run` (`run/project_run.py`) and `python -m multiphy.viewer --run DIR`, or all of
   it from `launch gui`, with runs that
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->
@@ -270,7 +270,7 @@ The caller of the new temporal extractor must establish:
 - Stimulus and baseline windows in the same acquisition sample clock. Preserve
   complete acoustic identity, including ear/channel and timing. Only complete
   trials inside each temporal split contribute to its fingerprint.
-- Benchmark/training scripts live in `nems_lbhb/unit_match/`. All generated
+- Benchmark/training scripts live in `multiphy/`. All generated
   data, checkpoints, and reports live beneath the existing cache root,
   `/auto/data/nems_db/unit_match/benchmarks/`; the repository contains code only.
 

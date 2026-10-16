@@ -2,8 +2,8 @@
 """The peak-channel waveform of each selected unit."""
 import numpy as np
 
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

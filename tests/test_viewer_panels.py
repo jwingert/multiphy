@@ -6,19 +6,19 @@ import numpy as np
 import pytest
 from PySide6 import QtWidgets
 
-from nems_lbhb.unit_match.project.selection import selection_of_run
-from nems_lbhb.unit_match.run.run_dir import load_result
-from nems_lbhb.unit_match.viewer import registry
-from nems_lbhb.unit_match.viewer.modes import MODES
-from nems_lbhb.unit_match.viewer.panels import plots  # noqa: F401  (registers the plot panels)
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.state import PairState
+from multiphy.project.selection import selection_of_run
+from multiphy.run.run_dir import load_result
+from multiphy.viewer import registry
+from multiphy.viewer.modes import MODES
+from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.state import PairState
 
 from .viewer_fakes import DictData
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the old viewers and their comparison harness are gone; the runs are a plain project run of each mode (viewer-split Task 9) | date: 2026-10-07]
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 
 from .synthetic_day import extracted_project
 # [AGENT EDIT END]
@@ -28,7 +28,7 @@ import sys
 import shiboken6
 from matplotlib.figure import Figure
 
-from nems_lbhb.unit_match.viewer.panels.plots.base import SafeCanvas
+from multiphy.viewer.panels.plots.base import SafeCanvas
 # [AGENT EDIT END]
 
 

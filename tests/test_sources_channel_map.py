@@ -9,9 +9,9 @@ import shutil
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, read_day
-from nems_lbhb.unit_match.sources.binary import READER as BINARY
-from nems_lbhb.unit_match.sources.phy import READER as PHY
+from multiphy.sources.base import clear_readers_for_tests, read_day
+from multiphy.sources.binary import READER as BINARY
+from multiphy.sources.phy import READER as PHY
 
 from .synthetic_day import write_day
 

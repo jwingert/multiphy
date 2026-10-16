@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.benchmark_pairs import build_benchmark_pairs
+from multiphy.benchmark_pairs import build_benchmark_pairs
 
 
 def fixture_data():

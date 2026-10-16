@@ -20,17 +20,17 @@ from pathlib import Path
 from typing import Optional
 # [AGENT EDIT END]
 
-from nems_lbhb.unit_match.viewer import display, theme
+from multiphy.viewer import display, theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours submenu offers the unit palettes (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtGui, QtWidgets
+from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About shows the logo, the name and the version (logo) | date: 2026-10-13]
-from nems_lbhb.unit_match import __version__
-from nems_lbhb.unit_match.viewer import logo
+from multiphy import __version__
+from multiphy.viewer import logo
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ Keyboard shortcuts reads and saves the keys (day-table-keys Task 5) | date: 2026-10-14]
-from nems_lbhb.unit_match.viewer import keys
+from multiphy.viewer import keys
 # [AGENT EDIT END]
 
 DOCS = Path(__file__).resolve().parents[1] / 'docs'

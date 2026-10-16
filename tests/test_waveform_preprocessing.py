@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 from scipy.signal import butter, sosfiltfilt
 
-from nems_lbhb.unit_match.waveform_preprocessing import SharedWaveformPreprocessor
-from nems_lbhb.unit_match.extract_benchmark import FilteredSnippetReader
+from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
+from multiphy.extract_benchmark import FilteredSnippetReader
 
 
 def whole_trace_reference(voltage, sample_rate, *, scale=1., reference_channels=None):
@@ -144,8 +144,8 @@ def test_streamed_reader_rejects_unknown_preprocessing_profile(tmp_path):
 
 
 def test_shared_manifest_preserves_processing_provenance_and_filtered_waveforms(tmp_path):
-    from nems_lbhb.unit_match.extract_benchmark import extract_manifest
-    from nems_lbhb.unit_match.benchmark import load_dataset
+    from multiphy.extract_benchmark import extract_manifest
+    from multiphy.benchmark import load_dataset
 
     fs = 3000
     voltage = synthetic_voltage(fs)

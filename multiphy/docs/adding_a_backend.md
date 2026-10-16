@@ -5,14 +5,14 @@ emissions and options) plus `available()` and `run(inp, options, ctx) -> MatchRe
 Nothing else in the package needs to know a new backend exists. This is a complete
 worked example — `random_baseline`, a twenty-line backend that requires only units
 and candidate pairs and scores every pair with a seeded uniform draw. It lives at
-`tests/unit_match/example_backend.py` and is registered only inside
-`tests/unit_match/test_contract_conformance.py`, so this doc's example stays tested
+`tests/example_backend.py` and is registered only inside
+`tests/test_contract_conformance.py`, so this doc's example stays tested
 rather than going stale.
 
 ## The file
 
 ```python
-# tests/unit_match/example_backend.py
+# tests/example_backend.py
 """A minimal backend, kept as a live worked example for ``docs/adding_a_backend.md``.
 
 It requires only units and candidate pairs and scores every pair with a seeded uniform
@@ -24,10 +24,10 @@ registered in-process, only inside the conformance test.
 from __future__ import annotations
 import numpy as np
 
-from nems_lbhb.unit_match.contract.backend import Availability, BackendSpec, Option, Provides
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.backends.local.tracker import result_from_pairs
+from multiphy.contract.backend import Availability, BackendSpec, Option, Provides
+from multiphy.contract.inputs import Input
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.backends.local.tracker import result_from_pairs
 
 SPEC = BackendSpec(
     'random_baseline', '1',
@@ -72,7 +72,7 @@ where `make_random_baseline()` returns a `RandomBaselineBackend()`.
 loads them on the first miss (`contract/registry.py`), so installing that package is
 enough for `random_baseline` to show up everywhere: `list-backends` and the
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no Qt dialog reads the option schema since backend_job.py was removed (run-curation final review 2) | date: 2026-10-06] -->
-`--backend` choices of `python -m nems_lbhb.unit_match.run` and the
+`--backend` choices of `python -m multiphy.run` and the
 subprocess launcher.
 <!-- [AGENT EDIT END] -->
  An entry point that fails to load is recorded in
@@ -83,9 +83,9 @@ for a benchmark-only baseline so real-day launches refuse it.
 For this demo, with no package to install, the backend is registered in-process:
 
 ```python
-from nems_lbhb.unit_match.contract import registry
-from tests.unit_match.example_backend import RandomBaselineBackend
-from nems_lbhb.unit_match.run.__main__ import main
+from multiphy.contract import registry
+from tests.example_backend import RandomBaselineBackend
+from multiphy.run.__main__ import main
 
 registry.register(RandomBaselineBackend())
 try:
@@ -120,9 +120,9 @@ Same in-process registration, then the real CLI entry point, on the small PRN069
 temporal-split benchmark used elsewhere in these tests:
 
 ```python
-from nems_lbhb.unit_match.contract import registry
-from tests.unit_match.example_backend import RandomBaselineBackend
-from nems_lbhb.unit_match.run.__main__ import main
+from multiphy.contract import registry
+from tests.example_backend import RandomBaselineBackend
+from multiphy.run.__main__ import main
 
 registry.register(RandomBaselineBackend())
 try:
@@ -140,7 +140,7 @@ Matching result: /tmp/adding_a_backend_demo_root/benchmarks/prn069a_temporal_sha
 
 The equivalent from a shell, once the backend is registered by an installed package
 (the CLI's own process has no in-process registration step to run), is the same
-`run-backend` invocation with no extra ceremony: `$PY -m nems_lbhb.unit_match.run
+`run-backend` invocation with no extra ceremony: `$PY -m multiphy.run
 run-backend --input .../prn069a_temporal_shared_v1/dataset --backend random_baseline
 --partition test --seed 0`. Only the in-process demo above is executed as part of
 this document, since no such package is installed here.
@@ -151,7 +151,7 @@ this document, since no such package is installed here.
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run, and its usage line (viewer-split Task 10) | date: 2026-10-07] -->
 Benchmark archives and collections have no GUI view; their CLI scoring is
-unchanged. A project run opens with `$PY -m nems_lbhb.unit_match.viewer --run DIR`
+unchanged. A project run opens with `$PY -m multiphy.viewer --run DIR`
 in the mode its `selection.json` records: a same-day run made by
 `launch run PROJECT --backend ID --day DAY` opens inspect-only, and an across-days run
 is curated in `curation/runs/<run>/history.csv` (see [viewer.md](viewer.md)). No code
@@ -160,11 +160,11 @@ reads `MatchResult` and takes display names from the registry. That command open
 of this document; `--help` below confirms the flags it takes without opening one:
 
 ```bash
-$PY -m nems_lbhb.unit_match.viewer --help
+$PY -m multiphy.viewer --help
 ```
 
 ```
-usage: python -m nems_lbhb.unit_match.viewer [-h] --run DIR
+usage: python -m multiphy.viewer [-h] --run DIR
 
 Open a completed project run in the unit-match viewer.
 
@@ -195,11 +195,11 @@ upstream source is never edited. A capture that cannot be read raises `BackendUn
 ## The conformance test
 
 ```bash
-$PY -m pytest tests/unit_match/test_contract_conformance.py -k example_backend -v
+$PY -m pytest tests/test_contract_conformance.py -k example_backend -v
 ```
 
 ```
-tests/unit_match/test_contract_conformance.py::test_example_backend_conforms PASSED
+tests/test_contract_conformance.py::test_example_backend_conforms PASSED
 ```
 
 `test_example_backend_conforms` registers `RandomBaselineBackend` through a

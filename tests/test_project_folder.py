@@ -6,8 +6,8 @@ import os
 
 import pytest
 
-from nems_lbhb.unit_match.project.folder import Project, ProjectLocked
-from nems_lbhb.unit_match.project.manifest import new_day
+from multiphy.project.folder import Project, ProjectLocked
+from multiphy.project.manifest import new_day
 
 
 def test_create_writes_manifest(tmp_path):

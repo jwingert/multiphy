@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from nems_lbhb.unit_match import curation
-from nems_lbhb.unit_match.clusters import cluster_id
+from multiphy import curation
+from multiphy.clusters import cluster_id
 
 TRACKS = [['D1:0', 'D2:0', 'D3:0']]
 UNMATCHED = ['D1:1', 'D2:1']

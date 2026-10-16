@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.sources import base
-from nems_lbhb.unit_match.sources.base import (
+from multiphy.sources import base
+from multiphy.sources.base import (
     READER_ERRORS, DaySource, clear_readers_for_tests, read_day, reader_ids, register_reader,
 )
 

@@ -22,16 +22,16 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.benchmark import load_dataset
-from nems_lbhb.unit_match.extract import pipeline
-from nems_lbhb.unit_match.extract.full_day import load_full_day
-from nems_lbhb.unit_match.extract.pipeline import EXTRACTION_OPTIONS, ExtractLocked, extract_day
-from nems_lbhb.unit_match.extract_benchmark import extract_manifest
-from nems_lbhb.unit_match.multiday_reuse import reuse_day_summary
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project, ProjectLocked
-from nems_lbhb.unit_match.project.identity import SourceChanged, SourceMissing
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests
+from multiphy.benchmark import load_dataset
+from multiphy.extract import pipeline
+from multiphy.extract.full_day import load_full_day
+from multiphy.extract.pipeline import EXTRACTION_OPTIONS, ExtractLocked, extract_day
+from multiphy.extract_benchmark import extract_manifest
+from multiphy.multiday_reuse import reuse_day_summary
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project, ProjectLocked
+from multiphy.project.identity import SourceChanged, SourceMissing
+from multiphy.sources.base import clear_readers_for_tests
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: final review fix round 1: the full day is checked against an oracle that does not run pool_day_row | date: 2026-09-25]
 from .full_day_oracle import assert_pooled_from_halves
@@ -39,7 +39,7 @@ from .full_day_oracle import assert_pooled_from_halves
 from .lab_blocker import run_without_lab
 from .synthetic_day import OPTIONS, write_day, write_legacy_inputs
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 READERS = {'sort': 'phy', 'events': 'events_csv', 'raw': 'binary'}
 # The brief's values, written out rather than imported from the code under test.
 OPTIONS_LITERAL = {'before': 41, 'after': 41, 'max_spikes': 100, 'min_spikes': 20, 'seed': 0}
@@ -251,8 +251,8 @@ def test_extract_day_matches_old_path(tmp_path):
         assert '.features-' not in methods
 
     # The pipeline imports no lab module, and nothing from project/days.py.
-    proc = run_without_lab('import sys\nimport nems_lbhb.unit_match.extract.pipeline\n'
-                           "print('nems_lbhb.unit_match.project.days' in sys.modules)\n", REPO)
+    proc = run_without_lab('import sys\nimport multiphy.extract.pipeline\n'
+                           "print('multiphy.project.days' in sys.modules)\n", REPO)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.rstrip().endswith('False')
 

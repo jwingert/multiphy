@@ -6,9 +6,9 @@ import json
 
 import numpy as np
 
-from nems_lbhb.unit_match.benchmark import load_dataset
-from nems_lbhb.unit_match.extract_benchmark import extract_manifest
-from nems_lbhb.unit_match.multiday_reuse import reuse_day_summary
+from multiphy.benchmark import load_dataset
+from multiphy.extract_benchmark import extract_manifest
+from multiphy.multiday_reuse import reuse_day_summary
 
 from .synthetic_day import OPTIONS, write_day, write_legacy_inputs
 

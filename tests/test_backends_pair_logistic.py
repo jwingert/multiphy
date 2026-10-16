@@ -14,15 +14,15 @@ import pandas as pd
 # [AGENT EDIT END]
 import pytest
 
-import nems_lbhb.unit_match.backends  # noqa: F401  (registers the built-ins)
-from nems_lbhb.unit_match.backends.local import pair_logistic
-from nems_lbhb.unit_match.backends.local.pair_logistic import SCORE_COLUMN, run_pair_logistic
-from nems_lbhb.unit_match.contract import registry
+import multiphy.backends  # noqa: F401  (registers the built-ins)
+from multiphy.backends.local import pair_logistic
+from multiphy.backends.local.pair_logistic import SCORE_COLUMN, run_pair_logistic
+from multiphy.contract import registry
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the spec test reads Input (event-optional Task 10) | date: 2026-10-10]
-from nems_lbhb.unit_match.contract.inputs import Input
+from multiphy.contract.inputs import Input
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.contract.results import ScoreKind
-from nems_lbhb.unit_match.evaluation import evaluate_result
+from multiphy.contract.results import ScoreKind
+from multiphy.evaluation import evaluate_result
 
 from .synthetic_drift import ground_truth, make_drift_days
 

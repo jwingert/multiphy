@@ -16,7 +16,7 @@ import hashlib
 
 import pandas as pd
 
-from nems_lbhb.unit_match import evidence as ev
+from multiphy import evidence as ev
 
 VERDICTS = ('accept', 'reject', 'unsure')
 # the per-animal table API (STORE_ROOT, store_path, load, record, upsert,

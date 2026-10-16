@@ -11,13 +11,13 @@ import pandas as pd
 import pytest
 from PySide6 import QtWidgets
 
-from nems_lbhb.unit_match.viewer import display
-from nems_lbhb.unit_match.viewer.app import App
+from multiphy.viewer import display
+from multiphy.viewer.app import App
 
 from .viewer_fakes import FAKE_MODE, DictData
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table tests read track ids and the two-day native fake (native-same-day Task 10) | date: 2026-10-11]
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match.viewer.qt import QtCore
+from multiphy import clusters as cl
+from multiphy.viewer.qt import QtCore
 
 from .viewer_fakes import day_table_data
 # [AGENT EDIT END]
@@ -27,26 +27,26 @@ from .viewer_fakes import many_days_data
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the key tests press keys in a window whose shortcuts are read from a settings file under tmp_path (day-table-keys Task 4) | date: 2026-10-14]
 from PySide6.QtTest import QTest
 
-from nems_lbhb.unit_match.viewer import keys
+from multiphy.viewer import keys
 
 from .theme_fixtures import theme_env  # noqa: F401
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the settings pin test reads the settings file name through theme (day-table-keys Task 6) | date: 2026-10-14]
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT END]
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the project-run tests open snapshot runs in old and new windows (viewer-split Task 8) | date: 2026-10-06]
 import copy
 import shutil
 
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
-from nems_lbhb.unit_match.viewer import app as viewer_app
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
+from multiphy.viewer import app as viewer_app
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the runs come from extracted_project; the old viewers are gone, so importlib checks they cannot be found (viewer-split Task 9) | date: 2026-10-07]
 import importlib.util
 
-from nems_lbhb.unit_match.project.folder import Project
+from multiphy.project.folder import Project
 
 from .synthetic_day import extracted_project
 # [AGENT EDIT END]
@@ -198,7 +198,7 @@ def test_failed_render_closes_new_controller(qt, tmp_path):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a lock release that fails during the render cleanup still detaches the controller and disables the controls, and the render error is the one raised (viewer-split Task 7, fix round 2) | date: 2026-10-06]
 def test_failed_render_with_failed_close_detaches_controller(qt, tmp_path, monkeypatch):
-    from nems_lbhb.unit_match import curation
+    from multiphy import curation
     window = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
     window.set_data(_data(), curation_dir=tmp_path / 'a')
     failing = _data()
@@ -354,7 +354,7 @@ def test_main_rejects_abbreviated_run(qt, flag):
 
 def test_import_match_result_declares_match_result():
     import typing
-    from nems_lbhb.unit_match.contract.results import MatchResult
+    from multiphy.contract.results import MatchResult
     assert typing.get_type_hints(App.import_match_result)['return'] is MatchResult
 # [AGENT EDIT END]
 
@@ -383,7 +383,7 @@ def test_refresh_runs_reads_nothing(qt, runs, clean_curation, monkeypatch):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the old viewer modules are deleted (viewer-split Task 9) | date: 2026-10-07]
 def test_old_viewer_modules_gone():
     for name in ('gui', 'multiday_viewer', 'benchmark_viewer'):
-        assert importlib.util.find_spec('nems_lbhb.unit_match.' + name) is None, name
+        assert importlib.util.find_spec('multiphy.' + name) is None, name
 # [AGENT EDIT END]
 
 

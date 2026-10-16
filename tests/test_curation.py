@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import clusters as cl
+from multiphy import clusters as cl
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every test reads settings from a fresh folder under the pytest base temp (day-table-keys Task 6) | date: 2026-10-14]
-from tests.unit_match.settings_fixtures import tmp_settings  # noqa: F401
+from tests.settings_fixtures import tmp_settings  # noqa: F401
 # [AGENT EDIT END]
 
 
@@ -22,7 +22,7 @@ def _sites(units):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the example is a Curation controller over one 4-unit track; the ledger tests are removed (run-curation Task 5) | date: 2026-10-05]
 @pytest.fixture
 def example(tmp_path):
-    from nems_lbhb.unit_match import curation
+    from multiphy import curation
     units = ['a-01', 'b-01', 'c-01', 'd-01']
     pairs = pd.DataFrame({'cellid_a': units[:3], 'cellid_b': units[1:],
                           'p_global': [.99, .98, .97]})
@@ -35,8 +35,8 @@ def example(tmp_path):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the cluster tests build the viewer's ClusterPanel over DictData with an Actions of fakes over the same Curation fixture (viewer-split Task 6) | date: 2026-10-06]
 def _viewer_state(units, pairs, arrays=None):
     """A viewer ``PairState`` holding the units and pairs as a ``DictData`` run."""
-    from nems_lbhb.unit_match.viewer.state import PairState
-    from tests.unit_match.viewer_fakes import DictData
+    from multiphy.viewer.state import PairState
+    from tests.viewer_fakes import DictData
     state = PairState()
     state.set_data(DictData(units, arrays or {}, {}, _sites(units), pairs))
     return state
@@ -44,7 +44,7 @@ def _viewer_state(units, pairs, arrays=None):
 
 def _actions(controller, pairs):
     """An ``Actions`` of fakes over the ``Curation`` controller."""
-    from nems_lbhb.unit_match.viewer.state import Actions
+    from multiphy.viewer.state import Actions
     lookup = cl.posterior_lookup(pairs)
     return Actions(select_pair=lambda a, b: None, set_verdict=lambda v: None, curation=lambda: controller,
                    track_state=lambda: controller.state, take_over=lambda: None, update_controls=lambda: None,
@@ -61,7 +61,7 @@ def qt():
     # [AGENT EDIT END]
     app = widgets.QApplication.instance() or widgets.QApplication([])
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's Qt binding module stands in for gui (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer import qt as gui
+    from multiphy.viewer import qt as gui
     # [AGENT EDIT END]
     yield app, gui
 
@@ -69,10 +69,10 @@ def qt():
 def test_refresh_split_drop_merge_and_selection_update(qt, example):
     app, gui = qt
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's ClusterPanel, waveform and evidence panels over DictData and an Actions of fakes (viewer-split Task 6) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer import registry
-    from nems_lbhb.unit_match.viewer.modes import same_day
-    from nems_lbhb.unit_match.viewer.panels import plots  # noqa: F401  (registers the plot panels)
-    from nems_lbhb.unit_match.viewer.panels.tables import ClusterPanel, EvidencePanel
+    from multiphy.viewer import registry
+    from multiphy.viewer.modes import same_day
+    from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
+    from multiphy.viewer.panels.tables import ClusterPanel, EvidencePanel
     root, units, pairs, controller = example
     state = _viewer_state(units, pairs, {unit: {'wf': np.array([0., -1., .5])} for unit in units})
     actions = _actions(controller, pairs)
@@ -123,8 +123,8 @@ def test_refresh_split_drop_merge_and_selection_update(qt, example):
 def test_two_and_one_selected_member_clear_stale_pair(qt, example):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's ClusterPanel over DictData and an Actions of fakes (viewer-split Task 6) | date: 2026-10-06]
     app, gui = qt
-    from nems_lbhb.unit_match.viewer.modes import same_day
-    from nems_lbhb.unit_match.viewer.panels.tables import ClusterPanel
+    from multiphy.viewer.modes import same_day
+    from multiphy.viewer.panels.tables import ClusterPanel
     root, units, pairs, controller = example
     state = _viewer_state(units, pairs)
     panel = ClusterPanel(state, _actions(controller, pairs), same_day.WORDS)
@@ -153,9 +153,9 @@ def test_two_and_one_selected_member_clear_stale_pair(qt, example):
 def test_result_keeps_native_scores_and_base_window_imports_nothing(qt, tmp_path, monkeypatch):
 # [AGENT EDIT END]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the App window over the fake mode, its layout file under tmp_path (viewer-split Task 7) | date: 2026-10-06]
-    from nems_lbhb.unit_match import backends
-    from nems_lbhb.unit_match.viewer.app import App
-    from tests.unit_match.viewer_fakes import FAKE_MODE, DictData
+    from multiphy import backends
+    from multiphy.viewer.app import App
+    from tests.viewer_fakes import FAKE_MODE, DictData
     # [AGENT EDIT END]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: curation calls pass each unit's siteid (Plan B Task 4) | date: 2026-09-28]
     units = pd.DataFrame({'cellid': ['a-01', 'b-01'], 'su_type': ['SU', 'SU'],
@@ -221,7 +221,7 @@ def test_native_backend_without_confidence_does_not_use_cached_probability():
 
 def test_zero_height_fixed_aspect_canvas_defers_and_resumes_render(qt):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the canvas is the viewer's panels.plots.base.SafeCanvas (viewer-split Task 4) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer.panels.plots import base
+    from multiphy.viewer.panels.plots import base
     figure = base.Figure(figsize=(1, 1))
     canvas = base.SafeCanvas(figure)
     # [AGENT EDIT END]
@@ -262,7 +262,7 @@ def test_zero_height_fixed_aspect_canvas_defers_and_resumes_render(qt):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the unassigned view shows measured features and no cached matching scores (Task 3 fix round 1) | date: 2026-09-27]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stream labels come from the Qt-free display module and are asserted literally (viewer-split Task 2) | date: 2026-10-06]
 def test_result_input_label_names_the_stream(tmp_path):
-    from nems_lbhb.unit_match.viewer import display
+    from multiphy.viewer import display
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the D30 stream labels; a result without saved weight_stim names its combined stream physiology + waveform (event-optional Task 12) | date: 2026-10-10]
     stream_labels = {'combined': 'Functional likelihood: Physiology + waveform',
                      'stimulus': 'Functional likelihood: Event response only',
@@ -270,7 +270,7 @@ def test_result_input_label_names_the_stream(tmp_path):
     # [AGENT EDIT END]
 # [AGENT EDIT END]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: new tests use tmp_path; the label is read from a saved and reloaded result (Task 3 review r3) | date: 2026-09-27]
-    from nems_lbhb.unit_match.backends import load_result, result_from_pairs, save_result
+    from multiphy.backends import load_result, result_from_pairs, save_result
     # [AGENT EDIT END]
     units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
     pairs = pd.DataFrame({'cellid_a': ['A-1'], 'cellid_b': ['B-1'], 'p_global': [.95]})
@@ -299,7 +299,7 @@ def test_result_input_label_names_the_stream(tmp_path):
 
 def test_gui_refuses_backend_argument(qt, tmp_path, monkeypatch, capsys):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer's main refuses --backend (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer import app
+    from multiphy.viewer import app
     with pytest.raises(SystemExit) as exc:
         app.main(['--run', 'x', '--backend', 'x'])
     # [AGENT EDIT END]
@@ -312,7 +312,7 @@ def test_gui_refuses_backend_argument(qt, tmp_path, monkeypatch, capsys):
 def test_settings_live_in_a_fresh_tmp_folder():
     import re
     from pathlib import Path
-    from nems_lbhb.unit_match.viewer import theme
+    from multiphy.viewer import theme
     p = Path(theme.settings().fileName())
     assert p.name == 'multiphy.ini'
     assert p.parent.name == 'multiphy'

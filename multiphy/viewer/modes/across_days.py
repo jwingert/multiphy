@@ -10,10 +10,10 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match import clusters
-from nems_lbhb.unit_match.backends import MatchResult
-from nems_lbhb.unit_match.benchmark_pairs import _waveform_summary
-from nems_lbhb.unit_match.viewer.data import (Mode, RunData, UnitData, Words, apply_run_provenance,
+from multiphy import clusters
+from multiphy.backends import MatchResult
+from multiphy.benchmark_pairs import _waveform_summary
+from multiphy.viewer.data import (Mode, RunData, UnitData, Words, apply_run_provenance,
                                               complete_day_pairs, display_pairs)
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no pair words (native-same-day Task 10) | date: 2026-10-11]

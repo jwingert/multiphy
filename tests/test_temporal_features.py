@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.features import (
+from multiphy.features import (
     average_spike_waveforms, temporal_sample_windows, temporal_split_unit_features,
 )
 

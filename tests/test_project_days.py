@@ -20,12 +20,12 @@ import stat
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.identity import FileIdentity, sha256_file
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, read_day, register_reader
-from nems_lbhb.unit_match.sources import normalize
-from nems_lbhb.unit_match.sources.normalize import geometry_sha256, read_source, source_matches, write_source
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.project.identity import FileIdentity, sha256_file
+from multiphy.sources.base import clear_readers_for_tests, read_day, register_reader
+from multiphy.sources import normalize
+from multiphy.sources.normalize import geometry_sha256, read_source, source_matches, write_source
 
 from .synthetic_day import write_day, write_legacy_inputs
 

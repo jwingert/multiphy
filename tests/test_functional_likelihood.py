@@ -1,24 +1,20 @@
 # [AGENT EDIT START | agent: codex | user: wingertj | reason: test original alternating references, verified nominal trial timing, mixture scores and unmatched baseline behavior | date: 2026-09-18]
 import copy
-import hashlib
 from dataclasses import replace
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import evidence as ev
+from multiphy import evidence as ev
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the matcher is named by mechanism; baphy timing lives in prepare_baphy (Task 3) | date: 2026-09-27]
-from nems_lbhb.unit_match.backends.local import functional_likelihood as fl
+from multiphy.backends.local import functional_likelihood as fl
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: alternating_references lives in references.py (Task 4) | date: 2026-09-27]
-from nems_lbhb.unit_match.backends.local.references import alternating_references
+from multiphy.backends.local.references import alternating_references
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.contract.inputs import TrialTiming
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01]
-from nems_lbhb.unit_match_lbhb.prepare_baphy import recover_baphy_timing
+from multiphy.contract.inputs import TrialTiming
 # [AGENT EDIT END]
-# [AGENT EDIT END]
-from nems_lbhb.unit_match.features import _isi_acg
+from multiphy.features import _isi_acg
 
 
 def timing():
@@ -52,78 +48,6 @@ def test_references_alternate_whole_trials_and_preserve_real_intervals():  # [AG
     with pytest.raises(ValueError, match='cuts a complete trial'):
         alternating_references(dict(f, stop_sample=3750,  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: moved to references.py (Task 4) | date: 2026-09-27]
             spike_samples=f['spike_samples'][f['spike_samples'] < 3750]), timing(), min_repeats=2)
-
-
-def baphy_spec(tmp_path, *, stop=0.4):
-    parm = tmp_path / 'fixture.m'
-    lines = ["globalparams.SiteID = 'TESTa';"]
-    index = 0
-    for trial in range(1, 5):
-        for note, start, end in [('TRIALSTART', 2., 2.), ('PreStimSilence , sound:left:60 , Reference', 2., 2.1),
-                                 ('Stim , sound:left:60 , Reference', 2.1, 2.3), ('TRIALSTOP', 2.+stop, 2.+stop+.03)]:
-            index += 1
-            lines += [f"exptevents({index}).Note = '{note}';", f'exptevents({index}).StartTime = {start};',
-                      f'exptevents({index}).StopTime = {end};', f'exptevents({index}).Trial = {trial};']
-    parm.write_text('\n'.join(lines))
-    np.save(tmp_path / 'samples.npy', np.arange(4)*500 + 1000)
-    np.save(tmp_path / 'states.npy', np.ones(4, dtype=int))
-    sources = {name: {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-        for name, path in [('parmfile', parm), ('ap_ttl_samples', tmp_path/'samples.npy'), ('ap_ttl_states', tmp_path/'states.npy')]}
-    return dict(source_session='TESTa', sample_rate=1000., n_samples=2000, analysis_window=[0, 2000],
-        provenance=sources, clock_verification=dict(sample_index_origin='zero_based_voltage_row', job_onsets_verified=True,
-            first_sample_number=1000, stimulus_trial_verification={'policy':'strict_trial_count',
-                'annotated_trial_count':4, 'analysis_stop_sample':2000}),
-        stimuli=[dict(stimulus='sound:left:60', start=i+100, stop=i+300, trial=j+1) for j,i in enumerate(range(0,2000,500))],
-        baseline_windows=[[i,i+100] for i in range(0,2000,500)])
-
-
-def test_timing_uses_trialstop_start_not_stop_or_next_ttl_and_verifies_hashes(tmp_path):
-    spec = baphy_spec(tmp_path)
-    verified = recover_baphy_timing(spec)
-    np.testing.assert_array_equal(verified.trial_windows, [[0,400],[500,900],[1000,1400],[1500,1900]])
-    assert verified.source_session == 'TESTa'
-    older = copy.deepcopy(spec)
-    older['clock_verification'].pop('stimulus_trial_verification')
-    older.pop('analysis_window')
-    np.testing.assert_array_equal(recover_baphy_timing(older).trial_windows, verified.trial_windows)
-    (tmp_path/'fixture.m').write_text((tmp_path/'fixture.m').read_text()+'\n')
-    with pytest.raises(ValueError, match='hash changed'):
-        recover_baphy_timing(spec)
-
-
-def test_timing_rejects_ambiguous_overlap_and_altered_prepared_events(tmp_path):
-    spec = baphy_spec(tmp_path, stop=.6)
-    with pytest.raises(ValueError, match='TRIALSTOP escapes'):
-        recover_baphy_timing(spec)
-    spec = baphy_spec(tmp_path)
-    spec['stimuli'][0]['stop'] += 1
-    with pytest.raises(ValueError, match='stimulus/baseline intervals differ'):
-        recover_baphy_timing(spec)
-
-
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: BigNat timing recovery compares the written names the manifest holds (bignat-names Task 2) | date: 2026-10-11]
-def test_timing_recovery_reads_bignat_names(tmp_path):
-    spec = baphy_spec(tmp_path)
-    parm = tmp_path / 'fixture.m'
-    lines = parm.read_text().replace('sound:left:60', 'sound.wav').split('\n')
-    lines.insert(1, "exptparams(1).TrialObject(1).ReferenceClass = 'BigNat';")
-    parm.write_text('\n'.join(lines))
-    spec['provenance']['parmfile']['sha256'] = hashlib.sha256(parm.read_bytes()).hexdigest()
-    for stim in spec['stimuli']:
-        stim['stimulus'] = 'sound.wav:1+NULL:2'
-    spec['provenance']['reference_class'] = 'BigNat'
-    spec['provenance']['stimulus_names'] = {'sound.wav': 'sound.wav:1+NULL:2'}
-    assert [s['stimulus'] for s in recover_baphy_timing(spec).stimuli] == ['sound.wav:1+NULL:2'] * 4
-    recorded = copy.deepcopy(spec)
-    recorded['provenance'].pop('reference_class')
-    with pytest.raises(ValueError, match='stimulus/baseline intervals differ'):
-        recover_baphy_timing(recorded)
-    other = copy.deepcopy(spec)
-    other['provenance']['stimulus_names'] = {'sound.wav': 'sound.wav:2+NULL:1'}
-    with pytest.raises(ValueError) as caught:
-        recover_baphy_timing(other)
-    assert str(caught.value) == 'BigNat stimulus names differ from the prepared manifest'
-# [AGENT EDIT END]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the original per-day-pair ensemble and per-unit-maxima mixture are gone; one unit per day leaves no same-day neighbours for the project references (functional-likelihood Task 7) | date: 2026-09-27]

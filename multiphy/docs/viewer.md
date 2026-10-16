@@ -4,11 +4,11 @@
 One window opens any completed project run (see [project_folder.md](project_folder.md)):
 
 ```bash
-python -m nems_lbhb.unit_match.viewer --run DIR
+python -m multiphy.viewer --run DIR
 ```
 
 ```
-usage: python -m nems_lbhb.unit_match.viewer [-h] --run DIR
+usage: python -m multiphy.viewer [-h] --run DIR
 ```
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: runs also come from the launcher window, which opens them here (launcher-gui Task 11) | date: 2026-10-07] -->
@@ -21,7 +21,7 @@ here.
 
 ## Package map
 
-`nems_lbhb/unit_match/viewer/`:
+`multiphy/viewer/`:
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the display row names the colour tokens; the theme and menus rows (launcher-gui Task 11) | date: 2026-10-07] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift_frame row (drift-view Task 8) | date: 2026-10-08] -->
@@ -84,7 +84,7 @@ and named, a cleared key leaves its action unbound, `Reset defaults` restores th
 as `shortcuts/<action id>` in `multiphy.ini`, and the viewer rebinds at once.
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Help ▸ About multiphy and the window icon (logo) | date: 2026-10-13] -->
-`Help` ▸ `About multiphy` shows the logo, the version (`nems_lbhb.unit_match.__version__`, `0.0.0`
+`Help` ▸ `About multiphy` shows the logo, the version (`multiphy.__version__`, `0.0.0`
 until launch) and the logo's source unit. The logo is one unit's peak-channel waveform
 (`PRN067a-338-1`) tracked across three days; it is the icon of every viewer and launcher window,
 with heavier strokes at 64 px and below. `viewer/logo/make_logo.py` writes its SVGs.

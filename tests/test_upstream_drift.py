@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.backends._upstream import Call, recording
-from nems_lbhb.unit_match.backends.unitmatch import _unitmatch_registration
-from nems_lbhb.unit_match.contract.inputs import RawWaveformBundle
-from nems_lbhb.unit_match.run.runner import cache_runtime
-from nems_lbhb.unit_match.viewer.drift_frame import drift_frame, unit_depth
+from multiphy.backends._upstream import Call, recording
+from multiphy.backends.unitmatch import _unitmatch_registration
+from multiphy.contract.inputs import RawWaveformBundle
+from multiphy.run.runner import cache_runtime
+from multiphy.viewer.drift_frame import drift_frame, unit_depth
 
 from .synthetic_drift import make_drift_days
 
@@ -148,7 +148,7 @@ def test_real_unitmatch_offsets_match_truth(tmp_path):
     with cache_runtime(root=tmp_path):
         pytest.importorskip('UnitMatchPy.overlord')
         import UnitMatchPy.metric_functions as mf
-        from nems_lbhb.unit_match.backends.unitmatch import run_unitmatch
+        from multiphy.backends.unitmatch import run_unitmatch
         days, bundle = _drift_bundle()
         result = run_unitmatch(days.units, waveform_bundle=bundle, tracking='common_constrained',
                                run_id='real', provenance={'group': 'P'})
@@ -168,7 +168,7 @@ def test_real_unitmatch_offsets_match_truth(tmp_path):
 def test_real_unitmatch_per_shank(tmp_path):
     with cache_runtime(root=tmp_path):
         pytest.importorskip('UnitMatchPy.overlord')
-        from nems_lbhb.unit_match.backends.unitmatch import run_unitmatch
+        from multiphy.backends.unitmatch import run_unitmatch
         units, bundle = _two_shank_bundle()
         result = run_unitmatch(units, waveform_bundle=bundle, tracking='common_constrained',
                                run_id='real', provenance={'group': 'P'})
@@ -191,10 +191,10 @@ import copy
 import functools
 from types import SimpleNamespace
 
-from nems_lbhb.unit_match.backends._upstream import prepare_bundle
-from nems_lbhb.unit_match.backends.dant import _dant_registration, default_dant_settings, run_native_dant
-from nems_lbhb.unit_match.contract.errors import ContractViolation
-from nems_lbhb.unit_match.viewer.drift_frame import electrode_depths
+from multiphy.backends._upstream import prepare_bundle
+from multiphy.backends.dant import _dant_registration, default_dant_settings, run_native_dant
+from multiphy.contract.errors import ContractViolation
+from multiphy.viewer.drift_frame import electrode_depths
 
 DAYS = ['D1', 'D2', 'D3']
 
@@ -285,7 +285,7 @@ def test_dant_linear_unit_offsets():
 def _spy_dant(monkeypatch, linear_correction):
     """Real DANT on the drift bundle, with a spy keeping each applied motion and its call's locations."""
     import pyDANT.MotionEstimation as me
-    from nems_lbhb.unit_match.backends.dant import run_dant
+    from multiphy.backends.dant import run_dant
     original = me.computeWaveformFeatures
     seen = []
 
@@ -341,7 +341,7 @@ def test_real_dant_linear_offsets(tmp_path, monkeypatch):
 import contextlib
 import dataclasses
 
-from nems_lbhb.unit_match.backends.deepunitmatch import _drift_correct_pair, _pair_registration
+from multiphy.backends.deepunitmatch import _drift_correct_pair, _pair_registration
 
 
 def _fake_pair_mf(correct):
@@ -450,7 +450,7 @@ def _fake_deep_modules(neuron_of_position):
 def test_real_deepunitmatch_pair_drifts(tmp_path, monkeypatch):
     with cache_runtime(root=tmp_path):
         pytest.importorskip('UnitMatchPy.metric_functions')
-        from nems_lbhb.unit_match.backends import deepunitmatch
+        from multiphy.backends import deepunitmatch
         days, bundle = _deep_drift_bundle()
         eligible = prepare_bundle(days.units, bundle)[0]
         neuron = dict(zip(days.truth.cellid, days.truth.neuron))

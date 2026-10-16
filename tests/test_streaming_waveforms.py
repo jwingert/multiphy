@@ -6,12 +6,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match import extract_benchmark as extraction
-from nems_lbhb.unit_match.features import average_spike_waveforms, temporal_split_unit_features
-from nems_lbhb.unit_match.streaming_waveforms import (
+from multiphy import extract_benchmark as extraction
+from multiphy.features import average_spike_waveforms, temporal_split_unit_features
+from multiphy.streaming_waveforms import (
     StreamingWaveformSummaries, WaveformSummaryPlan, plan_waveform_summaries,
 )
-from nems_lbhb.unit_match.waveform_preprocessing import SharedWaveformPreprocessor
+from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
 
 
 def assert_summary_equal(actual, expected):

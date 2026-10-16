@@ -10,16 +10,16 @@ the files the day came from are unchanged, runs any registered matcher on its ex
 days, and exports the tracks a curator accepted. Five commands do all of this:
 
 ```bash
-python -m nems_lbhb.unit_match.launch [--root DIR] init    PROJECT (--from DIR | --day DAY --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]) [--uv-per-bit X] [--probe TYPE]
-python -m nems_lbhb.unit_match.launch [--root DIR] extract PROJECT [--day DAY ...] [--tier {raw,templates}] [--scratch DIR]
-python -m nems_lbhb.unit_match.launch [--root DIR] status  PROJECT [--verify]
-python -m nems_lbhb.unit_match.launch [--root DIR] run     PROJECT --backend ID [--day DAY | --days DAY DAY ...] [--python EXE] [backend options]
-python -m nems_lbhb.unit_match.launch [--root DIR] export  PROJECT --run RUN [--out PATH]
+python -m multiphy.launch [--root DIR] init    PROJECT (--from DIR | --day DAY --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]) [--uv-per-bit X] [--probe TYPE]
+python -m multiphy.launch [--root DIR] extract PROJECT [--day DAY ...] [--tier {raw,templates}] [--scratch DIR]
+python -m multiphy.launch [--root DIR] status  PROJECT [--verify]
+python -m multiphy.launch [--root DIR] run     PROJECT --backend ID [--day DAY | --days DAY DAY ...] [--python EXE] [backend options]
+python -m multiphy.launch [--root DIR] export  PROJECT --run RUN [--out PATH]
 ```
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the guide names the launcher window (launcher-gui Task 11) | date: 2026-10-07] -->
-`python -m nems_lbhb.unit_match.launch [--root DIR] gui [PROJECT]` opens a window that runs the
+`python -m multiphy.launch [--root DIR] gui [PROJECT]` opens a window that runs the
 same commands and opens runs (`### gui` in section 9).
 <!-- [AGENT EDIT END] -->
 
@@ -398,7 +398,7 @@ its notes. With `--from`, each note starts with its day, for example
 written (`project M1 probe is NP1; --probe says NP2`); one without `--probe` records nothing.
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy init M1 --from /data/incoming/M1 --uv-per-bit 0.195 --probe NP1
+$ python -m multiphy.launch --root /data/multiphy init M1 --from /data/incoming/M1 --uv-per-bit 0.195 --probe NP1
 ```
 <!-- [AGENT EDIT END] -->
 
@@ -411,7 +411,7 @@ command, and only its error is printed. The days extracted before it stay record
 `status` shows them.
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy extract M1
+$ python -m multiphy.launch --root /data/multiphy extract M1
 D1 · raw · halves 32067c0468cc · full 639a84c5b9e5
 D2 · raw · halves 2b8d89642d71 · full 38843d3eabe0
 ```
@@ -444,7 +444,7 @@ any other. It deletes an unrecorded `features/` just before it publishes its own
 Prints one line per day, then the number of runs across days:
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy status M1 --verify
+$ python -m multiphy.launch --root /data/multiphy status M1 --verify
 D1 · 2026-01-05 · raw · sources ok · features ok · runs 0
 D2 · 2026-01-06 · raw · sources ok · features ok · runs 0
 across days · runs 0
@@ -468,7 +468,7 @@ of a raw file that has none yet, with `sha256_from` `"verify"`.
 ### run
 
 `launch run` runs one registered backend on the project's extracted days and writes a new
-run folder. The backend ids come from `python -m nems_lbhb.unit_match.run list-backends`; each backend's own
+run folder. The backend ids come from `python -m multiphy.run list-backends`; each backend's own
 options follow `--backend ID`.
 
 - By default every extracted day is matched across days, sorted by date; this needs 2 or more
@@ -503,13 +503,13 @@ It prints one line: the run folder · the backend · the days · the number of u
 from the selection (ineligible units).
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy run M1 --backend functional_likelihood
+$ python -m multiphy.launch --root /data/multiphy run M1 --backend functional_likelihood
 /data/multiphy/M1/runs/20260928T120000Z_functional_likelihood_1a2b3c4d · functional_likelihood · D1,D2 · excluded 3
 ```
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days run is curated in curation/runs/<run>/history.csv; a same-day run is inspect-only (run-curation Task 10) | date: 2026-10-05] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one viewer command opens either kind of run (viewer-split Task 10) | date: 2026-10-07] -->
-Open a finished run of either kind with `python -m nems_lbhb.unit_match.viewer --run DIR`; it
+Open a finished run of either kind with `python -m multiphy.viewer --run DIR`; it
 opens in the mode the run's `selection.json` records (see [viewer.md](viewer.md)). The viewer
 runs no matcher. An
 <!-- [AGENT EDIT END] -->
@@ -536,7 +536,7 @@ new file. An existing file is never overwritten, and a failed write leaves no fi
 It prints one line: the CSV · the number of accepted tracks · the number of units.
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy export M1 --run 20260928T120000Z_functional_likelihood_1a2b3c4d
+$ python -m multiphy.launch --root /data/multiphy export M1 --run 20260928T120000Z_functional_likelihood_1a2b3c4d
 /data/multiphy/M1/curation/runs/20260928T120000Z_functional_likelihood_1a2b3c4d/exports/accepted_tracks_20261005-101500.csv · 12 tracks · 31 units
 ```
 
@@ -554,7 +554,7 @@ height, every time; its size is not remembered.
 <!-- [AGENT EDIT END] -->
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root /data/multiphy gui M1
+$ python -m multiphy.launch --root /data/multiphy gui M1
 ```
 
 **Left.** The project, its days tagged `· raw`, `· templates` or `· none`, and its runs:
@@ -583,7 +583,7 @@ integer of at least 2 shows one `error` tag instead and disables Run.
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->
 
-**Running, waiting.** Each command runs as `python -m nems_lbhb.unit_match.launch --root <root> …`
+**Running, waiting.** Each command runs as `python -m multiphy.launch --root <root> …`
 and logs its own line; the log pane shows `$ launch …`, the output and `exit <code>`. One
 command runs at a time. A Run pressed meanwhile waits, listed under the log pane with `×` to
 remove it and `Clear` to drop them all; a waiting command keeps the root, project and fields it

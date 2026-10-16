@@ -1,8 +1,8 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the chains and consistency text, from gui.py:1472-1508; fix round 2: the constructor declares state: PairState (viewer-split Task 6, fix round 2) | date: 2026-10-06]
 """Chains across days, and triangles that disagree."""
-from nems_lbhb.unit_match import store as st
-from nems_lbhb.unit_match.viewer.state import PairState
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy import store as st
+from multiphy.viewer.state import PairState
+from multiphy.viewer.qt import QtWidgets
 
 
 class ChainPanel(QtWidgets.QWidget):

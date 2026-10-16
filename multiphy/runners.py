@@ -2,9 +2,9 @@
 """Execute persisted benchmark inputs without writing data into the code tree.
 
 Examples (all output defaults to /auto/data/nems_db/unit_match):
-    python -m nems_lbhb.unit_match.runners run-backend --input DATASET --backend unitmatch
-    python -m nems_lbhb.unit_match.runners prepare-deep --input DATASET --source-checkout CHECKOUT
-    python -m nems_lbhb.unit_match.runners train-deep --prepared PREPARED_DIRECTORY
+    python -m multiphy.runners run-backend --input DATASET --backend unitmatch
+    python -m multiphy.runners prepare-deep --input DATASET --source-checkout CHECKOUT
+    python -m multiphy.runners train-deep --prepared PREPARED_DIRECTORY
 
 Imports of official numerical implementations remain lazy. These commands never
 install dependencies. Only the explicit train-deep command starts training.
@@ -56,7 +56,7 @@ def run_backend_dataset(input_path, backend, *, partition='test', output_dir=Non
     """Run one registered backend on a persisted benchmark through ``run.runner.run``.
 
     ``options`` are the backend's declared options (see ``--help`` of
-    ``python -m nems_lbhb.unit_match.run run-backend --backend ID``); ``None`` values are
+    ``python -m multiphy.run run-backend --backend ID``); ``None`` values are
     dropped and a name the backend does not declare raises ContractViolation.
     ``checkpoint``/``checkpoint_probe`` also become the input's CheckpointRef, which is what
     DeepUnitMatch reads.

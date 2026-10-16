@@ -2,9 +2,9 @@
 """What every table panel shares: a cell that sorts on its number, and a read-only sortable table."""
 import numpy as np
 
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy.viewer.qt import QtWidgets
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the theme's cell delegate (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT END]
 
 

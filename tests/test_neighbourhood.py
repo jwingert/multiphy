@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.backends.local.neighbourhood import unit_neighbourhood
+from multiphy.backends.local.neighbourhood import unit_neighbourhood
 
 T = np.arange(82)
 COLUMN = np.array([(0.0, 20.0 * k) for k in range(40)])  # one column, 20 µm pitch; channel k at depth 20·k
@@ -53,8 +53,8 @@ def test_peak_and_amplitudes_read_the_spike_window():
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: pair channel union of threshold masks, B moved into A's frame, hand-counted (threshold neighbourhood) | date: 2026-10-04]
-from nems_lbhb.unit_match.backends.local.examples import pair_properties  # noqa: E402
-from nems_lbhb.unit_match.backends.local.neighbourhood import pair_channels, spike_window  # noqa: E402
+from multiphy.backends.local.examples import pair_properties  # noqa: E402
+from multiphy.backends.local.neighbourhood import pair_channels, spike_window  # noqa: E402
 
 
 def _mask(channels) -> dict:

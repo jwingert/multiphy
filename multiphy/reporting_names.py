@@ -1,6 +1,6 @@
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: rewritten as a shim over contract/names.py NAMES table | date: 2026-09-22]
 """Moved to contract/names.py; these dicts are views on NAMES kept for old imports."""
-from nems_lbhb.unit_match.contract.names import NAMES, display as _display
+from multiphy.contract.names import NAMES, display as _display
 METRICS = {k: v.label for k, v in NAMES['metric'].items()}
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered backend names only; no pilot aliases (Task 1) | date: 2026-09-27]
 METHODS = {k: v.short for k, v in NAMES['backend'].items()}

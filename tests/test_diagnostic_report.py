@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import diagnostic_report as diagnostic
-from nems_lbhb.unit_match.backends import result_from_pairs
+from multiphy import diagnostic_report as diagnostic
+from multiphy.backends import result_from_pairs
 
 
 def fixture():

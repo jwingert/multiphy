@@ -11,8 +11,8 @@ a reset emits ``notifier().changed``, and every window of this process rebinds.
 Two processes saving shortcuts at once: the last save wins, a clash falls back on read, and only the saving
 process rebinds at once; the others rebind on their next start.
 """
-from nems_lbhb.unit_match.viewer import theme
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtGui
+from multiphy.viewer import theme
+from multiphy.viewer.qt import QtCore, QtGui
 
 # (id, label, default key, hover), in the order bindings() reads them and an earlier action wins a clash
 ACTIONS = (

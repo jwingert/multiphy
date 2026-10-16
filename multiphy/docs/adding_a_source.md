@@ -98,7 +98,7 @@ returns, so `read` must give the same answer for the same files.
 
 ### `DaySource`
 
-`DaySource` (in `nems_lbhb.unit_match.sources.base`) is a frozen dataclass. Every time in it
+`DaySource` (in `multiphy.sources.base`) is a frozen dataclass. Every time in it
 is a 0-based sample on the raw clock, that is, a row of the raw file.
 
 | Field | Holds |
@@ -198,7 +198,7 @@ launcher with `error: plugin <name>: <error>`.
 A plugin command's first argument is the project, as for the built-in commands:
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root <root> hello demo --word x
+$ python -m multiphy.launch --root <root> hello demo --word x
 ```
 
 Its outcome goes to the project's `logs/launcher.log` like any other command.
@@ -215,7 +215,7 @@ Its outcome goes to the project's `logs/launcher.log` like any other command.
 4. It adds the day with `add_day`.
 5. It extracts the day and returns what `extract_day` returns.
 
-The test `tests/unit_match/test_docs_project_folder.py` executes this block as written.
+The test `tests/test_docs_project_folder.py` executes this block as written.
 Its first and last lines are this repository's `AGENT EDIT` audit tags; a copy can drop
 them.
 
@@ -226,10 +226,10 @@ from typing import Optional
 
 import numpy as np
 
-from nems_lbhb.unit_match.extract.pipeline import extract_day
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.sources.base import DaySource, register_reader
+from multiphy.extract.pipeline import extract_day
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.sources.base import DaySource, register_reader
 
 
 class NpzSortReader:
@@ -325,7 +325,7 @@ from the command line even without the reader, since it reads only the recorded 
 and features:
 
 ```
-$ python -m nems_lbhb.unit_match.launch --root <root>/lab status demo
+$ python -m multiphy.launch --root <root>/lab status demo
 D1 · 2026-01-05 · raw · sources ok · features ok · runs 0
 across days · runs 0
 ```

@@ -3,12 +3,12 @@ import argparse
 import json
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import BackendSpec, Option, Provides
-from nems_lbhb.unit_match.contract.errors import ContractViolation
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.contract.results import ScoreKind, TrackKind
-from nems_lbhb.unit_match.run import options as opt
+from multiphy.contract import registry
+from multiphy.contract.backend import BackendSpec, Option, Provides
+from multiphy.contract.errors import ContractViolation
+from multiphy.contract.inputs import Input
+from multiphy.contract.results import ScoreKind, TrackKind
+from multiphy.run import options as opt
 
 SPEC = BackendSpec('t', '1', frozenset({Input.UNITS}), frozenset(),
                    Provides(frozenset({ScoreKind.NONE}), frozenset({TrackKind.COMMON})),

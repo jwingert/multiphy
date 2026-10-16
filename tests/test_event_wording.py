@@ -9,22 +9,22 @@ import pytest
 from PySide6 import QtWidgets
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the streams test builds its result with saved weights (event-optional Task 12) | date: 2026-10-10]
-from nems_lbhb.unit_match import backends
+from multiphy import backends
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.contract import names
-from nems_lbhb.unit_match.contract.names import backend_label
-from nems_lbhb.unit_match.viewer import display
-from nems_lbhb.unit_match.viewer.app import App
-from nems_lbhb.unit_match.viewer.display import headline_probability, probability
-from nems_lbhb.unit_match.viewer.panels.plots.fingerprint import FingerprintPanel
-from nems_lbhb.unit_match.viewer.panels.plots.mixture import MixturePanel
+from multiphy.contract import names
+from multiphy.contract.names import backend_label
+from multiphy.viewer import display
+from multiphy.viewer.app import App
+from multiphy.viewer.display import headline_probability, probability
+from multiphy.viewer.panels.plots.fingerprint import FingerprintPanel
+from multiphy.viewer.panels.plots.mixture import MixturePanel
 
 from .viewer_fakes import FAKE_MODE, DictData
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the label names firing, waveform and optional event-response likelihood ratios (event-optional Task 13, D38) | date: 2026-10-10]
 LABEL = 'Functional likelihood — firing, waveform and optional event-response likelihood ratios'
 # [AGENT EDIT END]
-PKG = Path(__file__).resolve().parents[2] / 'nems_lbhb' / 'unit_match'
+PKG = Path(__file__).resolve().parents[1] / 'multiphy'
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table's text is checked too (native-same-day Task 9) | date: 2026-10-11]
 GENERIC = ['contract/names.py', 'viewer/display.py', 'viewer/app.py',
            'viewer/panels/plots/mixture.py', 'viewer/panels/plots/fingerprint.py',

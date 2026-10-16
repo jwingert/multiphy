@@ -5,15 +5,15 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match import backends
+from multiphy import backends
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the contract types day_table_data builds its result from (native-same-day Task 8) | date: 2026-10-11]
-from nems_lbhb.unit_match.contract.provenance import Provenance
-from nems_lbhb.unit_match.contract.results import MatchResult, ScoreBlock, ScoreKind, TrackKind
+from multiphy.contract.provenance import Provenance
+from multiphy.contract.results import MatchResult, ScoreBlock, ScoreKind, TrackKind
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: FAKE_MODE builds on the viewer's Mode (viewer-split Task 7) | date: 2026-10-06]
-from nems_lbhb.unit_match.viewer.data import Mode, PARTS, RunData, UnitData, complete_day_pairs, display_pairs
+from multiphy.viewer.data import Mode, PARTS, RunData, UnitData, complete_day_pairs, display_pairs
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.modes import same_day
+from multiphy.viewer.modes import same_day
 
 # the old per-unit array keys and the UnitData fields they become
 ARRAY_FIELDS = {'wf': 'waveform', 'ptp': 'ptp', 'patch': 'patch', 'fingerprints': 'fingerprints',

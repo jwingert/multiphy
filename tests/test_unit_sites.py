@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match import store as st
+from multiphy import clusters as cl
+from multiphy import store as st
 
 
 @pytest.fixture(scope='module')
@@ -20,7 +20,7 @@ def gui():
     # [AGENT EDIT END]
     widgets.QApplication.instance() or widgets.QApplication([])
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the fixture imports the viewer App module; the gui module is deleted (viewer-split Task 9) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer import app as module
+    from multiphy.viewer import app as module
     # [AGENT EDIT END]
     return module
 
@@ -114,8 +114,8 @@ def viewer():
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     import PySide6.QtWidgets as widgets
     widgets.QApplication.instance() or widgets.QApplication([])
-    from nems_lbhb.unit_match.viewer import registry, state
-    from nems_lbhb.unit_match.viewer.panels import plots  # noqa: F401  (registers the plot panels)
+    from multiphy.viewer import registry, state
+    from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
     return SimpleNamespace(PANELS=registry.PANELS, PairState=state.PairState, QApplication=widgets.QApplication)
 
 
@@ -174,8 +174,8 @@ def test_unit_sites_refuses_missing_siteid():
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the pair table is prepared by the Qt-free data.display_pairs (viewer-split Task 2) | date: 2026-10-06]
 def test_display_pairs_needs_every_site():
-    from nems_lbhb.unit_match import backends
-    from nems_lbhb.unit_match.viewer import data
+    from multiphy import backends
+    from multiphy.viewer import data
     units = pd.DataFrame({'cellid': ['a-01', 'b-01'], 'su_type': ['SU', 'SU']})
     pairs = pd.DataFrame({'cellid_a': ['a-01'], 'cellid_b': ['b-01'], 'p_global': [.99]})
     result = backends.result_from_pairs('unitmatch', '1', units, pairs, score_column='p_global', run_id='r1')
@@ -186,8 +186,8 @@ def test_display_pairs_needs_every_site():
 
 
 def test_display_pairs_fills_missing_pair_sites():
-    from nems_lbhb.unit_match import backends
-    from nems_lbhb.unit_match.viewer import data
+    from multiphy import backends
+    from multiphy.viewer import data
     units = pd.DataFrame({'cellid': ['a-01', 'b-01', 'c-01'], 'su_type': ['SU', 'SU', 'SU']})
     pairs = pd.DataFrame({'cellid_a': ['a-01', 'a-01'], 'cellid_b': ['b-01', 'c-01'], 'p_global': [.99, .98]})
     evidence = pd.DataFrame({'cellid_a': ['a-01', 'a-01'], 'cellid_b': ['b-01', 'c-01'],
@@ -208,7 +208,7 @@ def test_display_pairs_fills_missing_pair_sites():
 def test_curation_signatures(gui):
     assert 'sites' in inspect.signature(cl.describe).parameters
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the window is the viewer's App; its setter takes one RunData, whose units carry their siteids (viewer-split Task 7) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer.app import App
+    from multiphy.viewer.app import App
     assert not hasattr(cl, 'site_of')
     assert not hasattr(cl, 'export')
     assert not hasattr(App, 'open_pair_anywhere')

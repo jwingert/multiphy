@@ -4,7 +4,7 @@ import typing
 
 import pytest
 
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 
 
 @pytest.fixture(autouse=True)

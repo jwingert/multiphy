@@ -8,12 +8,12 @@ from typing import Optional
 
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import Availability
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.launch import forms
-from nems_lbhb.unit_match.launch.forms import backend_refusal
-from nems_lbhb.unit_match.project.folder import Project
+from multiphy.contract import registry
+from multiphy.contract.backend import Availability
+from multiphy.contract.inputs import Input
+from multiphy.launch import forms
+from multiphy.launch.forms import backend_refusal
+from multiphy.project.folder import Project
 
 from .synthetic_day import extracted_project
 

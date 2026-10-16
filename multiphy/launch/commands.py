@@ -471,7 +471,7 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
                              'exists; pass --python EXE')
         program, argv = build_selection_command(opened.path, days, backend, options, output=output,
                                                 interpreter=interpreter)
-        repo = Path(__file__).resolve().parents[3]
+        repo = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=_pythonpath(repo), PYTHONDONTWRITEBYTECODE='1')
         proc = subprocess.run([program, *argv], capture_output=True, text=True, cwd=repo, env=env)
         if proc.returncode != 0:

@@ -21,18 +21,18 @@ from PySide6.QtTest import QSignalSpy
 from PySide6.QtTest import QTest
 # [AGENT EDIT END]
 
-from nems_lbhb.unit_match.launch import window as window_module
-from nems_lbhb.unit_match.launch.plugins import load_plugins
-from nems_lbhb.unit_match.launch.window import LauncherWindow, log_tone, run_window
-from nems_lbhb.unit_match.viewer import display, menus, theme
+from multiphy.launch import window as window_module
+from multiphy.launch.plugins import load_plugins
+from multiphy.launch.window import LauncherWindow, log_tone, run_window
+from multiphy.viewer import display, menus, theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the saved keys module (day-table-keys Task 4) | date: 2026-10-14]
-from nems_lbhb.unit_match.viewer import keys
+from multiphy.viewer import keys
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Unit colours tests read the active palette (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.app import App
-from nems_lbhb.unit_match.viewer.menus import DOCS, GuideWindow, install_menus, open_guide
+from multiphy.viewer.app import App
+from multiphy.viewer.menus import DOCS, GuideWindow, install_menus, open_guide
 
 from .launch_window_fixtures import FakeProcess, qt, runs  # noqa: F401 (fixtures by name)
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
@@ -243,7 +243,7 @@ def test_guide_window_renders_doc(qt, theme_env):
     path = DOCS / 'project_folder.md'
     guide = open_guide('Launcher guide', path)
     assert 'The project folder' in guide.guide_view.toPlainText()
-    start = 'python -m nems_lbhb.unit_match.launch [--root DIR] init'
+    start = 'python -m multiphy.launch [--root DIR] init'
     fmt = _code_block(guide, start).blockFormat()
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert fmt.background().color().name() == '#1f232a'
@@ -264,12 +264,12 @@ def test_guide_link_keeps_code_style(qt, theme_env):
     view = guide.guide_view
     view.setSource(view.source().resolved(QtCore.QUrl('viewer.md#theme')))  # what a link click calls
     assert 'One window opens any completed project run' in view.toPlainText()
-    fmt = _code_block(guide, 'python -m nems_lbhb.unit_match.viewer --run DIR').blockFormat()
+    fmt = _code_block(guide, 'python -m multiphy.viewer --run DIR').blockFormat()
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default theme is graphite (graphite-palettes Task 2) | date: 2026-10-11]
     assert fmt.background().color().name() == '#1f232a'
     assert fmt.nonBreakableLines()
     view.backward()
-    start = 'python -m nems_lbhb.unit_match.launch [--root DIR] init'
+    start = 'python -m multiphy.launch [--root DIR] init'
     assert _code_block(guide, start).blockFormat().background().color().name() == '#1f232a'
     # [AGENT EDIT END]
     guide.close()

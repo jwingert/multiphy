@@ -2,13 +2,13 @@
 """The probe as it was recorded, with each selected unit filled in on its electrodes."""
 import numpy as np
 
-from nems_lbhb.unit_match.features import probe_geometry
+from multiphy.features import probe_geometry
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the theme's colour tokens (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import display
+from multiphy.viewer import display
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.qt import QtWidgets
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

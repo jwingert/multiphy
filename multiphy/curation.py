@@ -21,8 +21,8 @@ import json
 import time
 from typing import Optional, Sequence
 
-from nems_lbhb.unit_match import store
-from nems_lbhb.unit_match.clusters import cluster_id
+from multiphy import store
+from multiphy.clusters import cluster_id
 
 COLUMNS = ('op_id', 'at', 'curator', 'operation', 'cluster_id', 'parent_ids', 'members',
            'target_op', 'cellid_a', 'cellid_b', 'verdict', 'notes')
@@ -260,7 +260,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from nems_lbhb.unit_match.contract.results import MatchResult
+    from multiphy.contract.results import MatchResult
 
 HISTORY = 'history.csv'
 LOCK = 'history.lock'
@@ -646,9 +646,9 @@ def write_export(state: CurationState, sites: dict, curation_dir: Path, out: Opt
 
 def export_run(project_path: Path, run: str, out: Optional[Path] = None) -> Path:
     """Export the accepted tracks of the project's across-day run ``run``; the history is read without the lock."""
-    from nems_lbhb.unit_match import backends  # imported here: it loads every backend
-    from nems_lbhb.unit_match.project.folder import RUNS_DIR
-    from nems_lbhb.unit_match.run import catalog
+    from multiphy import backends  # imported here: it loads every backend
+    from multiphy.project.folder import RUNS_DIR
+    from multiphy.run import catalog
 
     if '/' in run or '\\' in run or run in ('', '.', '..'):
         raise ValueError('RUN is a run folder name')
@@ -657,7 +657,7 @@ def export_run(project_path: Path, run: str, out: Optional[Path] = None) -> Path
     if entry is None:
         raise ValueError(f'{run} is not a completed run')
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a run placed in the project's runs/ by hand (output_dir) is refused unless its saved selection is across-day (run-curation Task 3, D41) | date: 2026-10-04]
-    from nems_lbhb.unit_match.run.run_dir import read_json_object
+    from multiphy.run.run_dir import read_json_object
     try:
         mode = read_json_object(project_path / RUNS_DIR / run / 'selection.json').get('mode')
     except Exception as error:

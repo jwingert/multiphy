@@ -6,12 +6,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.benchmark import load_dataset, save_dataset
-from nems_lbhb.unit_match.extract_benchmark import extract_manifest
-from nems_lbhb.unit_match.features import temporal_split_unit_features
+from multiphy.benchmark import load_dataset, save_dataset
+from multiphy.extract_benchmark import extract_manifest
+from multiphy.features import temporal_split_unit_features
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: multiday.py is retired; no multiday import (Plan B Task 8) | date: 2026-09-28]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.multiday_reuse import reuse_day_summary
+from multiphy.multiday_reuse import reuse_day_summary
 
 
 def source(tmp_path, session='DAY001a', windows=None):
@@ -133,7 +133,7 @@ def test_crossing_stimulus_trial_is_rejected_instead_of_silently_dropped(tmp_pat
         reused(archive, manifest, spec, options)
 @pytest.mark.parametrize('n_trials', [9, 10])
 def test_reused_trial_halves_and_reliability_match_fresh_with_unequal_outer_counts(tmp_path, n_trials):
-    from nems_lbhb.unit_match.benchmark_pairs import _reliability
+    from multiphy.benchmark_pairs import _reliability
     manifest, spec, options, voltage, spikes = source(tmp_path, windows=[[0, 300], [300, 1000]])
     options['bin_seconds'] = .01
     # Deliberately vary response shape over chronological trials, so an outer-
@@ -159,7 +159,7 @@ def test_reused_trial_halves_and_reliability_match_fresh_with_unequal_outer_coun
     assert f['waveform_half_windows'] == [[0, 300], [300, 1000]]
     assert 'independent of waveform outer windows' in f['summary_reuse']['fingerprint_half_definition']
 def test_pooled_moments_weight_unequal_retained_spike_counts():
-    from nems_lbhb.unit_match.multiday_reuse import _pool_waveforms
+    from multiphy.multiday_reuse import _pool_waveforms
     rng = np.random.default_rng(12)
     snippets = [rng.normal(-3, .5, (3, 5, 2)), rng.normal(8, 2, (7, 5, 2))]
     rows = [dict(n_waveform_spikes=len(x), waveform=x.mean(axis=0).astype(np.float32),

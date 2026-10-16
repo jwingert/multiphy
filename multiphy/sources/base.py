@@ -24,8 +24,8 @@ import numpy as np
 from ..project.manifest import ROLES
 
 ENTRY_POINT_GROUP = 'multiphy.sources'
-_BUILTIN_MODULES = ('nems_lbhb.unit_match.sources.events_csv', 'nems_lbhb.unit_match.sources.phy',
-                    'nems_lbhb.unit_match.sources.binary')
+_BUILTIN_MODULES = ('multiphy.sources.events_csv', 'multiphy.sources.phy',
+                    'multiphy.sources.binary')
 _RUN_ORDER = ('sort', 'raw', 'events')  # the sort reader starts the day; events may extend its sample count
 
 _READERS: dict = {}

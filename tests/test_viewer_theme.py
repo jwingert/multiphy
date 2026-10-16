@@ -12,15 +12,15 @@ import pandas as pd
 import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from nems_lbhb.unit_match.viewer import app as viewer_app
-from nems_lbhb.unit_match.viewer import display, theme
+from multiphy.viewer import app as viewer_app
+from multiphy.viewer import display, theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.app import App
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel, PlotTools
-from nems_lbhb.unit_match.viewer.panels.tables.base import _table
-from nems_lbhb.unit_match.viewer.qt import Figure
+from multiphy.viewer.app import App
+from multiphy.viewer.panels.plots.base import PlotPanel, PlotTools
+from multiphy.viewer.panels.tables.base import _table
+from multiphy.viewer.qt import Figure
 
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
 from .viewer_fakes import FAKE_MODE, DictData

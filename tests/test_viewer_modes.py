@@ -9,20 +9,20 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.project.selection import selection_of_run
-from nems_lbhb.unit_match.run.run_dir import load_result
-from nems_lbhb.unit_match.viewer import data
-from nems_lbhb.unit_match.viewer.modes import MODES, across_days, same_day
+from multiphy.project.selection import selection_of_run
+from multiphy.run.run_dir import load_result
+from multiphy.viewer import data
+from multiphy.viewer.modes import MODES, across_days, same_day
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days run of D1, D2, D3 and a same-day run of D1, from extracted_project and run_selection; the old viewers and their harness are gone (viewer-split Task 9) | date: 2026-10-07]
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 
 from .synthetic_day import extracted_project
 # [AGENT EDIT END]
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days run of D1, D2, D3 and a same-day run of D1, from extracted_project and run_selection (viewer-split Task 9) | date: 2026-10-07]
@@ -100,7 +100,7 @@ def test_same_day_load_checks_selection_hash(runs):
 
 def test_modes_import_no_qt():
     code = ('import sys\n'
-            'import nems_lbhb.unit_match.viewer.modes\n'
+            'import multiphy.viewer.modes\n'
             "print(sorted(m for m in sys.modules if m.startswith(('PySide6', 'PyQt5', "
             "'matplotlib.backends.backend_qt'))))\n")
     proc = subprocess.run([sys.executable, '-c', code], cwd=REPO, capture_output=True, text=True,

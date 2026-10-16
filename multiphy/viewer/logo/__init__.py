@@ -3,8 +3,8 @@
 next to this file. Qt comes only from ``..qt``."""
 from pathlib import Path
 
-from nems_lbhb.unit_match.viewer.logo.make_logo import HERE, LOGO, WEIGHTS
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtGui, QtSvg
+from multiphy.viewer.logo.make_logo import HERE, LOGO, WEIGHTS
+from multiphy.viewer.qt import QtCore, QtGui, QtSvg
 
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256)
 

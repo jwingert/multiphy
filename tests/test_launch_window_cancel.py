@@ -12,10 +12,10 @@ import pytest
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtTest import QTest
 
-from nems_lbhb.unit_match.launch import window as window_module
-from nems_lbhb.unit_match.launch.plugins import PluginApi, load_plugins
-from nems_lbhb.unit_match.launch.window import ACROSS_DAYS, CommandProcess, LauncherWindow
-from nems_lbhb.unit_match.project.folder import Project
+from multiphy.launch import window as window_module
+from multiphy.launch.plugins import PluginApi, load_plugins
+from multiphy.launch.window import ACROSS_DAYS, CommandProcess, LauncherWindow
+from multiphy.project.folder import Project
 
 from .launch_window_fixtures import FakeProcess, qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import write_day
@@ -244,7 +244,7 @@ def test_close_idle_leaves_viewers(qt, runs):
 def test_real_cancel_logs_cancelled(qt, tmp_path):
     root = tmp_path / 'lab'
     root.mkdir()
-    (root / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.unit_match.wait_plugin']}), encoding='utf-8')
+    (root / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.wait_plugin']}), encoding='utf-8')
     Project.ensure(root, 'P')
     window = _window(root, 'P', plugins=load_plugins(root), factory=CommandProcess)
     try:

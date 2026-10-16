@@ -9,14 +9,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.backends.local.references import (
+from multiphy.backends.local.references import (
     alternating_references, trial_splits, unit_halves, unit_observation)
-from nems_lbhb.unit_match.contract.inputs import TrialTiming
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.identity import FileIdentity
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, read_day
-from nems_lbhb.unit_match.sources.normalize import read_source, write_source
+from multiphy.contract.inputs import TrialTiming
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.project.identity import FileIdentity
+from multiphy.sources.base import clear_readers_for_tests, read_day
+from multiphy.sources.normalize import read_source, write_source
 
 from .synthetic_day import write_day
 from .synthetic_drift import make_drift_days

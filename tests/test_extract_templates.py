@@ -15,14 +15,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.extract import pipeline
-from nems_lbhb.unit_match.extract.full_day import load_full_day
-from nems_lbhb.unit_match.extract.pipeline import extract_day
-from nems_lbhb.unit_match.extract.templates import template_full_rows
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests
-from nems_lbhb.unit_match.sources.normalize import read_source
+from multiphy.extract import pipeline
+from multiphy.extract.full_day import load_full_day
+from multiphy.extract.pipeline import extract_day
+from multiphy.extract.templates import template_full_rows
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.sources.base import clear_readers_for_tests
+from multiphy.sources.normalize import read_source
 
 from .synthetic_day import write_day
 

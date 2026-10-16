@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.contract import errors
-from nems_lbhb.unit_match.contract.provenance import Provenance, json_safe, payload_digest
+from multiphy.contract import errors
+from multiphy.contract.provenance import Provenance, json_safe, payload_digest
 
 
 def test_json_safe_normalizes_numpy_and_rejects_executables():

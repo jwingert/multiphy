@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from nems_lbhb.unit_match.benchmark import build_dataset, load_dataset, save_dataset
-from nems_lbhb.unit_match.evaluation import _labels
-from tests.test_unit_match_benchmark import source
+from multiphy.benchmark import build_dataset, load_dataset, save_dataset
+from multiphy.evaluation import _labels
+from tests.test_benchmark import source
 
 
 def _build(recordings):

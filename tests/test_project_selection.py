@@ -14,20 +14,20 @@ from typing import Optional, Union
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import benchmark
-from nems_lbhb.unit_match.benchmark import BenchmarkDataset, fingerprint_matrix
-from nems_lbhb.unit_match.contract.inputs import RawWaveformBundle
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.project import folder
-from nems_lbhb.unit_match.project.folder import RUNS_DIR, Project
+from multiphy import benchmark
+from multiphy.benchmark import BenchmarkDataset, fingerprint_matrix
+from multiphy.contract.inputs import RawWaveformBundle
+from multiphy.launch import commands
+from multiphy.project import folder
+from multiphy.project.folder import RUNS_DIR, Project
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selection_inputs, read_source_entry and the runner they are checked against (launcher-gui Task 1) | date: 2026-10-07]
 import numpy as np
 
-from nems_lbhb.unit_match.contract.inputs import Input
-from nems_lbhb.unit_match.project.selection import (AcrossDaysDataset, Selection, default_days,
+from multiphy.contract.inputs import Input
+from multiphy.project.selection import (AcrossDaysDataset, Selection, default_days,
                                                      selection_inputs, selection_of_run)
-from nems_lbhb.unit_match.run import runner
-from nems_lbhb.unit_match.sources.normalize import read_source, read_source_entry
+from multiphy.run import runner
+from multiphy.sources.normalize import read_source, read_source_entry
 
 from .synthetic_day import SyntheticDay, extracted_project, write_day, write_legacy_inputs
 # [AGENT EDIT END]
@@ -143,7 +143,7 @@ def test_dataset_hash_and_metadata_come_from_one_project_read(weak, monkeypatch)
 
 
 def test_same_day_timing_does_not_depend_on_eligible_units(weak, monkeypatch):
-    from nems_lbhb.unit_match.project import selection as selection_module
+    from multiphy.project import selection as selection_module
 
     def refuse(*args, **kwargs):
         raise AssertionError('timing must not read the halves units')
@@ -163,7 +163,7 @@ def test_across_days_bundle_shape_and_timing(weak):
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: an across-days bundle names each day's source manifest hash as raw_source, so UnitMatch, DANT and DeepUnitMatch accept it (e2e fix) | date: 2026-10-11]
 def test_across_days_bundle_passes_upstream_check(weak):
-    from nems_lbhb.unit_match.backends._upstream import prepare_bundle
+    from multiphy.backends._upstream import prepare_bundle
 
     dataset = Selection(weak, ('D1', 'D2')).dataset()
     bundle = dataset.waveform_bundle()

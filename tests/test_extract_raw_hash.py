@@ -20,15 +20,15 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.extract import pipeline
-from nems_lbhb.unit_match.extract.pipeline import extract_day
-from nems_lbhb.unit_match.extract.raw_pass import FilteredSnippetReader, HashingReader, plan_snippets
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.identity import SourceChanged, sha256_file
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, register_reader
-from nems_lbhb.unit_match.sources.phy import PhyReader
-from nems_lbhb.unit_match.waveform_preprocessing import SharedWaveformPreprocessor
+from multiphy.extract import pipeline
+from multiphy.extract.pipeline import extract_day
+from multiphy.extract.raw_pass import FilteredSnippetReader, HashingReader, plan_snippets
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.project.identity import SourceChanged, sha256_file
+from multiphy.sources.base import clear_readers_for_tests, register_reader
+from multiphy.sources.phy import PhyReader
+from multiphy.waveform_preprocessing import SharedWaveformPreprocessor
 
 from .synthetic_day import N_CHANNELS, OPTIONS, SAMPLE_RATE, write_day
 

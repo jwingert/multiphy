@@ -3,12 +3,12 @@
 import json
 import sys
 
-from nems_lbhb.unit_match.launch import plugins
-from nems_lbhb.unit_match.launch.__main__ import main
-from nems_lbhb.unit_match.launch.plugins import load_plugins
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, get_reader
+from multiphy.launch import plugins
+from multiphy.launch.__main__ import main
+from multiphy.launch.plugins import load_plugins
+from multiphy.sources.base import clear_readers_for_tests, get_reader
 
-EXAMPLE = 'tests.unit_match.example_plugin'
+EXAMPLE = 'tests.example_plugin'
 
 
 def _write_config(root):

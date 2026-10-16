@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import RunContext
-from nems_lbhb.unit_match.contract.inputs import CheckpointRef, Input, MatchingInput, RawWaveformBundle
-from nems_lbhb.unit_match.contract.results import single_units
+from multiphy.contract import registry
+from multiphy.contract.backend import RunContext
+from multiphy.contract.inputs import CheckpointRef, Input, MatchingInput, RawWaveformBundle
+from multiphy.contract.results import single_units
 
 
 def synthetic_input(spec, tmp_path, n_per_session=3, sessions=('A', 'B')):
@@ -54,7 +54,7 @@ def test_backend_conforms(spec, tmp_path):
     if not avail.ok:
         pytest.skip(f'{spec.id} unavailable: {avail.reason}')
     if Input.FEATURES in spec.requires or Input.TIMING in spec.requires:
-        pytest.skip(f'{spec.id} needs archived features; covered by tests/test_unit_match_functional_likelihood.py')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: renamed test module (Task 3) | date: 2026-09-27]
+        pytest.skip(f'{spec.id} needs archived features; covered by tests/test_functional_likelihood.py')  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: renamed test module (Task 3) | date: 2026-09-27]
     _assert_conforms(backend, tmp_path)
 
 
@@ -88,7 +88,7 @@ def test_no_backend_ids_outside_backends_package():
     """
     # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: multiday_runner no longer compares an id (Task 2) | date: 2026-09-27]
     pattern = r"== ?'(dant|unitmatch|deepunitmatch|functional_likelihood)'|in \('(dant|unitmatch|deepunitmatch|functional_likelihood)'"  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: the registered ids (Task 3) | date: 2026-09-27]
-    out = subprocess.run(['grep', '-rnE', pattern, 'nems_lbhb/unit_match', '--include=*.py',
+    out = subprocess.run(['grep', '-rnE', pattern, 'multiphy', '--include=*.py',
                           '--exclude-dir=backends'],
                          capture_output=True, text=True)
     assert out.stdout == '', out.stdout

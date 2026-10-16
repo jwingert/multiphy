@@ -8,16 +8,16 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.backends import result_from_pairs
-from nems_lbhb.unit_match.contract.provenance import Provenance
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.viewer import data
+from multiphy.backends import result_from_pairs
+from multiphy.contract.provenance import Provenance
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.viewer import data
 
 from .synthetic_day import extracted_project
 from .test_run_provenance_panels import _group_run
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[1]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Words has four fields, no pair words (native-same-day Task 10) | date: 2026-10-11]
@@ -39,10 +39,10 @@ def _run_data(**overrides):
 
 def test_qt_free_modules_import_no_qt():
     code = ('import sys\n'
-            'import nems_lbhb.unit_match.viewer.display\n'
-            'import nems_lbhb.unit_match.viewer.data\n'
+            'import multiphy.viewer.display\n'
+            'import multiphy.viewer.data\n'
             # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift frame reader imports no Qt either (drift-view Task 1) | date: 2026-10-08]
-            'import nems_lbhb.unit_match.viewer.drift_frame\n'
+            'import multiphy.viewer.drift_frame\n'
             # [AGENT EDIT END]
             "print(sorted(m for m in sys.modules if m.startswith(('PySide6', 'PyQt5', "
             "'matplotlib.backends.backend_qt'))))\n")

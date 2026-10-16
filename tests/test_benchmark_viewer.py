@@ -6,20 +6,20 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.benchmark import SourceRecording, build_dataset
-from nems_lbhb.unit_match import backends
+from multiphy.benchmark import SourceRecording, build_dataset
+from multiphy import backends
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the load and validate tests read the same-day mode (viewer-split Task 3) | date: 2026-10-06]
-from nems_lbhb.unit_match.viewer.modes import same_day
-from nems_lbhb.unit_match.viewer.modes.same_day import validate_benchmark_result
+from multiphy.viewer.modes import same_day
+from multiphy.viewer.modes.same_day import validate_benchmark_result
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: every test reads settings from a fresh folder under the pytest base temp (day-table-keys Task 6) | date: 2026-10-14]
-from tests.unit_match.settings_fixtures import tmp_settings  # noqa: F401
+from tests.settings_fixtures import tmp_settings  # noqa: F401
 # [AGENT EDIT END]
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no registered backend tracks cached pair scores; fabricate results with the common tracker under a real id (Task 3) | date: 2026-09-27]
 def track(units, pairs, **kwargs):
-    from nems_lbhb.unit_match.backends import result_from_pairs
+    from multiphy.backends import result_from_pairs
     return result_from_pairs('unitmatch', '1', units, pairs, score_column='p_global', **kwargs)
 # [AGENT EDIT END]
 
@@ -105,7 +105,7 @@ def qt():
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: restore the validate_benchmark_result recording-identity test Task 4 does not retire (run-curation Task 4 fix round 1) | date: 2026-10-05]
 def test_import_cannot_cross_original_recordings_or_change_group_identity():
-    from test_unit_match_benchmark import source
+    from tests.test_benchmark import source
     dataset = build_dataset([source(), source(well='animal:2', session='source2')],
         dataset_id='independent-recordings', extraction_options={'before': 2, 'after': 3})
     result = track(dataset.units, dataset.pairs.assign(p_global=0.),
@@ -137,10 +137,10 @@ FL = 'functional_likelihood'
 @pytest.fixture(scope='module')
 def halves_project(tmp_path_factory):
     """A project of D1 and D2 with a functional_likelihood run of D1 alone."""
-    from nems_lbhb.unit_match.project.folder import Project
-    from nems_lbhb.unit_match.project.selection import Selection
-    from nems_lbhb.unit_match.run.project_run import run_selection
-    from tests.unit_match.synthetic_day import extracted_project
+    from multiphy.project.folder import Project
+    from multiphy.project.selection import Selection
+    from multiphy.run.project_run import run_selection
+    from tests.synthetic_day import extracted_project
     folder = extracted_project(tmp_path_factory.mktemp('project'))
     project = Project.open(folder.parent, folder.name)
     selection = Selection(project, ('D1',))
@@ -149,7 +149,7 @@ def halves_project(tmp_path_factory):
 
 def test_halves_open_run_uses_project_curation(qt, halves_project):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer opens the run (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer.app import open_run
+    from multiphy.viewer.app import open_run
     # [AGENT EDIT END]
     window = open_run(halves_project['run'])
     curation = halves_project['project'].path / 'curation'
@@ -181,7 +181,7 @@ def test_halves_result_checked_against_selection(qt, halves_project):
 def test_benchmark_viewer_main_modes(qt, halves_project, tmp_path, capsys, monkeypatch):
     from PySide6 import QtWidgets
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer command (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer import app as viewer_app
+    from multiphy.viewer import app as viewer_app
     # [AGENT EDIT END]
     run = str(halves_project['run'])
     monkeypatch.setattr(QtWidgets.QApplication, 'exec', lambda self: 0)
@@ -217,12 +217,12 @@ def test_benchmark_viewer_main_modes(qt, halves_project, tmp_path, capsys, monke
 def test_halves_import_only_from_selection_runs(qt, tmp_path):
     import shutil
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer opens the run (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer.app import open_run
+    from multiphy.viewer.app import open_run
     # [AGENT EDIT END]
-    from nems_lbhb.unit_match.project.folder import Project
-    from nems_lbhb.unit_match.project.selection import Selection
-    from nems_lbhb.unit_match.run.project_run import run_selection
-    from tests.unit_match.synthetic_day import extracted_project
+    from multiphy.project.folder import Project
+    from multiphy.project.selection import Selection
+    from multiphy.run.project_run import run_selection
+    from tests.synthetic_day import extracted_project
     folder = extracted_project(tmp_path / 'p')
     project = Project.open(folder.parent, folder.name)
     selection = Selection(project, ('D1',))
@@ -248,7 +248,7 @@ def test_halves_import_only_from_selection_runs(qt, tmp_path):
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-day run is inspect-only: no controller, mutation controls disabled, one tag (run-curation Task 5, D22) | date: 2026-10-05]
 def test_halves_run_is_inspect_only(qt, halves_project):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the one viewer opens the run (viewer-split Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer.app import open_run
+    from multiphy.viewer.app import open_run
     # [AGENT EDIT END]
     window = open_run(halves_project['run'])
     assert window.curation is None
@@ -263,7 +263,7 @@ def test_halves_run_is_inspect_only(qt, halves_project):
 def test_settings_live_in_a_fresh_tmp_folder():
     import re
     from pathlib import Path
-    from nems_lbhb.unit_match.viewer import theme
+    from multiphy.viewer import theme
     p = Path(theme.settings().fileName())
     assert p.name == 'multiphy.ini'
     assert p.parent.name == 'multiphy'

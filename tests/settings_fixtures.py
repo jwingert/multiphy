@@ -7,7 +7,7 @@ teardown, at that folder's ``after``. It is autouse wherever it is imported by n
 before requested ones, so ``theme_env`` points the path at ``tmp_path`` on top in the tests that take it.
 
 Only ``pytest`` and ``PySide6.QtCore`` are imported: ``theme``, ``display`` and the other viewer modules load
-``nems_lbhb/unit_match/viewer/qt.py``, which sets the matplotlib backend."""
+``multiphy/viewer/qt.py``, which sets the matplotlib backend."""
 import pytest
 from PySide6 import QtCore
 

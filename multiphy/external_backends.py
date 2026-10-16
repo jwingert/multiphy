@@ -3,7 +3,7 @@
 
 The code lives in ``backends/unitmatch.py``, ``backends/dant.py``, ``backends/deepunitmatch.py``
 and ``backends/_upstream.py``; the three backends register as built-ins on import of
-``nems_lbhb.unit_match.backends``. This module keeps the old names importable.
+``multiphy.backends``. This module keeps the old names importable.
 """
 from .contract.inputs import RawWaveformBundle  # noqa: F401
 from .backends._upstream import (  # noqa: F401

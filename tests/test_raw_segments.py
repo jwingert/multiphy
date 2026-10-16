@@ -16,10 +16,10 @@ from typing import Optional
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.extract.raw_pass import FilteredSnippetReader, SnippetReader
-from nems_lbhb.unit_match.project.days import add_day
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.sources.base import clear_readers_for_tests, register_reader
+from multiphy.extract.raw_pass import FilteredSnippetReader, SnippetReader
+from multiphy.project.days import add_day
+from multiphy.project.folder import Project
+from multiphy.sources.base import clear_readers_for_tests, register_reader
 
 N_CHANNELS = 4
 SPIKES = np.array([200, 1300], dtype=np.int64)

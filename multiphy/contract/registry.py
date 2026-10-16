@@ -2,7 +2,7 @@
 # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: docstring states when entry points load and what a failure does (whole-branch review fix 2) | date: 2026-09-23]
 """Where backends are found.
 
-Built-ins register on import of ``nems_lbhb.unit_match.backends``. Third-party packages
+Built-ins register on import of ``multiphy.backends``. Third-party packages
 declare ``[project.entry-points."multiphy.backends"] name = "pkg.module:factory"`` where
 ``factory()`` returns a Backend. Entry points are loaded once, on the first listing or
 the first miss; one that fails to load is recorded in ``ENTRY_POINT_ERRORS`` and skipped.
@@ -61,7 +61,7 @@ def _ensure_builtins():
     if _BUILTINS_LOADED:
         return
     _BUILTINS_LOADED = True
-    import nems_lbhb.unit_match.backends as builtins  # registers on first import
+    import multiphy.backends as builtins  # registers on first import
     builtins.register_builtins()  # re-registers after clear_for_tests(); skips ids already present
 
 

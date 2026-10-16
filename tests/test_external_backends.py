@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match import external_backends as ext
-from nems_lbhb.unit_match.backends import BackendUnavailable
+from multiphy import external_backends as ext
+from multiphy.backends import BackendUnavailable
 
 
 def inputs():
@@ -83,7 +83,7 @@ def test_directional_probabilities_not_averaged_into_a_match():
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a same-day native group keeps one unit per day and proposes the rest (native-same-day Task 3) | date: 2026-10-11]
 def _um_same_day(monkeypatch, prob, tracking, n_spikes=(100., 50., 80.)):
     """``_um_result`` on units a (day 0), b and c (day 1), the native tracker grouping all three."""
-    from nems_lbhb.unit_match.backends import unitmatch as um_adapter
+    from multiphy.backends import unitmatch as um_adapter
     monkeypatch.setattr(um_adapter, '_module', {'UnitMatchPy.assign_unique_id': SimpleNamespace(
         assign_unique_id=lambda p, prm, i: [np.array([0, 0, 0])] * 4)}.__getitem__)
     monkeypatch.setattr(um_adapter, '_source_info', lambda module: {'synthetic_api_mock': True})
@@ -154,7 +154,7 @@ def test_unitmatch_calls_official_scoring_and_native_tracker(monkeypatch):
         # [AGENT EDIT END]
     }
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: patch the defining adapter module; format-2 provenance and score block (Task 9) | date: 2026-09-22]
-    from nems_lbhb.unit_match.backends import unitmatch as um_adapter
+    from multiphy.backends import unitmatch as um_adapter
     monkeypatch.setattr(um_adapter, '_module', modules.__getitem__)
     monkeypatch.setattr(um_adapter, '_source_info', lambda module: {'synthetic_api_mock': True})
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the stub param carries the shank keys the drift capture reads (drift-view Task 5 fix round 2) | date: 2026-10-08]
@@ -214,7 +214,7 @@ def test_dant_exports_milliseconds_and_aligned_peth_then_preserves_native_tracks
         np.savez(output / 'Output.npz', {'IdxCluster': np.array([1, 1, -1]),
                                         'SimilarityMatrix': np.ones((3, 3)) * 4})
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: patch the defining adapter module (Task 9) | date: 2026-09-22]
-    from nems_lbhb.unit_match.backends import dant as dant_adapter
+    from multiphy.backends import dant as dant_adapter
     monkeypatch.setattr(dant_adapter, '_source_info', lambda _: {'synthetic_api_mock': True})
     # [AGENT EDIT END]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _module also returns the fake motion module (drift-view Task 6) | date: 2026-10-08]
@@ -247,7 +247,7 @@ def test_dant_same_session_group_keeps_best_similarity(monkeypatch, tmp_path):
         output.mkdir()
         np.savez(output / 'Output.npz', {'IdxCluster': np.array([1, 1, 1]),
                                         'SimilarityMatrix': np.array([[0, 5, 3], [5, 0, 1], [3, 1, 0]])})
-    from nems_lbhb.unit_match.backends import dant as dant_adapter
+    from multiphy.backends import dant as dant_adapter
     monkeypatch.setattr(dant_adapter, '_module', _fake_dant_lookup(run, motion_module))
     monkeypatch.setattr(dant_adapter, '_source_info', lambda _: {'synthetic_api_mock': True})
     result = ext.run_dant(units, waveform_bundle=bundle,

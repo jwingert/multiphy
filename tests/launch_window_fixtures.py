@@ -21,10 +21,10 @@ from PySide6 import QtCore
 # [AGENT EDIT END]
 from PySide6.QtTest import QTest
 
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
+from multiphy.launch import commands
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
 
 from .synthetic_day import extracted_project, write_day
 

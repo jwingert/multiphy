@@ -65,7 +65,7 @@ _ENTRY_ROLE = QtCore.Qt.UserRole
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the command tabs' labels, the repo children run from, and the commands that need a readable project (launcher-gui Task 6) | date: 2026-10-07]
 TAB_LABELS = {'init': 'Initialization', 'extract': 'Extract features', 'run': 'Run matching',
               'export': 'Export tracks', 'status': 'Status'}
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[2]
 _BUILTIN_TABS = ('init', 'extract', 'run', 'export', 'status')
 _NEEDS_PROJECT = ('extract', 'run', 'status', 'export')  # disabled while project_ok is False (D38)
 _UNSET = object()
@@ -102,7 +102,7 @@ def log_tone(line: str) -> str:
 def child_command(root: Path, argv: list) -> tuple:
     """``(program, arguments)`` of the CLI child that runs ``argv`` under ``root``; ``--root`` is always
     passed, so an inherited ``MULTIPHY_CACHE_ROOT`` cannot redirect it."""
-    return sys.executable, ['-m', 'nems_lbhb.unit_match.launch', '--root', str(root), *argv]
+    return sys.executable, ['-m', 'multiphy.launch', '--root', str(root), *argv]
 
 
 def _child_env() -> dict:

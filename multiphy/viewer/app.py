@@ -21,47 +21,47 @@ from typing import Optional
 
 import pandas as pd
 
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match import curation
-from nems_lbhb.unit_match import store as st
-from nems_lbhb.unit_match.contract import names
+from multiphy import clusters as cl
+from multiphy import curation
+from multiphy import store as st
+from multiphy.contract import names
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: import_match_result declares its MatchResult return (viewer-split Task 8 fix round 1) | date: 2026-10-07]
-from nems_lbhb.unit_match.contract.results import MatchResult
+from multiphy.contract.results import MatchResult
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: a project run's selection, result, run list, layout path and mode (viewer-split Task 8) | date: 2026-10-06]
-from nems_lbhb.unit_match import backends, paths
-from nems_lbhb.unit_match.project.selection import SELECTION_FILE, Selection, selection_of_run
-from nems_lbhb.unit_match.run.project_run import selection_runs
-from nems_lbhb.unit_match.viewer.modes import MODES
+from multiphy import backends, paths
+from multiphy.project.selection import SELECTION_FILE, Selection, selection_of_run
+from multiphy.run.project_run import selection_runs
+from multiphy.viewer.modes import MODES
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import catalog
-from nems_lbhb.unit_match.run.catalog import RunEntry
-from nems_lbhb.unit_match.viewer import display
-from nems_lbhb.unit_match.viewer.data import Mode, RunData
+from multiphy.run import catalog
+from multiphy.run.catalog import RunEntry
+from multiphy.viewer import display
+from multiphy.viewer.data import Mode, RunData
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: cells carry theme tokens; the window restyles its plots and tables on a theme switch (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the saved unit palette (graphite-palettes Task 4) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.panels.plots.base import PlotPanel
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the Settings and Help menus (launcher-gui Task 9) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import menus
+from multiphy.viewer import menus
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: main sets the logo icon (logo) | date: 2026-10-13]
-from nems_lbhb.unit_match.viewer import logo
+from multiphy.viewer import logo
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one saved key per action (day-table-keys Task 4) | date: 2026-10-14]
-from nems_lbhb.unit_match.viewer import keys
+from multiphy.viewer import keys
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels import plots  # noqa: F401  (registers the plot panels)
+from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the day table replaces the candidates table, so no candidate cells are built here (native-same-day Task 10) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer.panels.tables import (BrowsePanel, ChainPanel, ClusterPanel, DayTablePanel,
+from multiphy.viewer.panels.tables import (BrowsePanel, ChainPanel, ClusterPanel, DayTablePanel,
                                                        EvidencePanel, RivalPanel)
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtGui, QtWidgets
-from nems_lbhb.unit_match.viewer.registry import PANELS
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
+from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
+from multiphy.viewer.registry import PANELS
+from multiphy.viewer.state import Actions, PairState
 
 # the panel ids the default layout places; any other registered plot is tabbed with the fingerprint
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the default layout places the drift panel in its own dock (drift-view Task 4) | date: 2026-10-08]
@@ -869,7 +869,7 @@ class App(QtWidgets.QMainWindow):
 # [AGENT EDIT END]
 
 
-# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open any completed project run in its selection's mode, and the python -m nems_lbhb.unit_match.viewer command, from multiday_viewer.py:431-455 and benchmark_viewer.py:395-424 (viewer-split Task 8) | date: 2026-10-06]
+# [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: open any completed project run in its selection's mode, and the python -m multiphy.viewer command, from multiday_viewer.py:431-455 and benchmark_viewer.py:395-424 (viewer-split Task 8) | date: 2026-10-06]
 def _canonical_runs(runs) -> list:
     """``runs`` (catalog entries) with resolved result paths, read before the run box is filled."""
     return [dataclasses.replace(e, result_path=e.result_path.resolve()) for e in runs]
@@ -910,7 +910,7 @@ def open_run(run_dir) -> App:
 
 def main(argv: Optional[list] = None) -> int:
     """Open ``--run DIR`` in its viewer and run the Qt event loop."""
-    parser = argparse.ArgumentParser(prog='python -m nems_lbhb.unit_match.viewer', allow_abbrev=False,
+    parser = argparse.ArgumentParser(prog='python -m multiphy.viewer', allow_abbrev=False,
                                      description='Open a completed project run in the unit-match viewer.')
     parser.add_argument('--run', required=True, metavar='DIR', help='a completed project run folder')
     args = parser.parse_args(argv)

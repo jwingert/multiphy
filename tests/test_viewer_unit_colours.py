@@ -9,9 +9,9 @@ import pandas as pd
 import pytest
 from PySide6 import QtWidgets
 
-from nems_lbhb.unit_match.viewer import display, unit_palettes
-from nems_lbhb.unit_match.viewer.panels.plots.waveform import WaveformPanel
-from nems_lbhb.unit_match.viewer.state import PairState
+from multiphy.viewer import display, unit_palettes
+from multiphy.viewer.panels.plots.waveform import WaveformPanel
+from multiphy.viewer.state import PairState
 
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
 from .viewer_fakes import DictData

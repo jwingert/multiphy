@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.dant_compat import run_native_dant
-from nems_lbhb.unit_match.dant_settings import default_dant_settings
+from multiphy.dant_compat import run_native_dant
+from multiphy.dant_settings import default_dant_settings
 
 
 class Motion:

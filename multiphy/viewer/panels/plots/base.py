@@ -3,17 +3,17 @@
 wheel zoom, and the selected units read from the state's ``RunData``."""
 import numpy as np
 
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match.viewer import display
+from multiphy import clusters as cl
+from multiphy.viewer import display
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: plots draw in the theme's matplotlib settings and restyle on a switch (launcher-gui Task 8) | date: 2026-10-07]
 import matplotlib
 
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: selected() reads the Day ramp (graphite-palettes Task 5) | date: 2026-10-11]
-from nems_lbhb.unit_match.viewer import unit_palettes
+from multiphy.viewer import unit_palettes
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.qt import (Figure, FigureCanvasQTAgg, NavigationToolbar2QT, QtCore,
+from multiphy.viewer.qt import (Figure, FigureCanvasQTAgg, NavigationToolbar2QT, QtCore,
                                             QtWidgets)
 
 

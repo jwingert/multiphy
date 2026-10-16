@@ -86,14 +86,14 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match import clusters as cl
-from nems_lbhb.unit_match.viewer import theme
+from multiphy import clusters as cl
+from multiphy.viewer import theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the 2D registered distance the pick key sorts by (browse-same-day Task 2) | date: 2026-10-12]
-from nems_lbhb.unit_match.viewer.drift_frame import registered_positions, unit_distance
+from multiphy.viewer.drift_frame import registered_positions, unit_distance
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.tables.base import _table
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtWidgets
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
+from multiphy.viewer.panels.tables.base import _table
+from multiphy.viewer.qt import QtCore, QtWidgets
+from multiphy.viewer.state import Actions, PairState
 
 STATUS_ORDER = {'unmatched': 0, 'track': 1, 'accepted': 2}
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: one-letter status, short headers, the narrowest column widths and the five-day fit (day-table widths) | date: 2026-10-13]

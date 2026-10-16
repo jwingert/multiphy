@@ -13,16 +13,16 @@ import pytest
 from PySide6 import QtCore, QtWidgets
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the greyed-backend test makes dant unavailable (event-optional Task 4) | date: 2026-10-09]
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import Availability
+from multiphy.contract import registry
+from multiphy.contract.backend import Availability
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.launch import forms
-from nems_lbhb.unit_match.launch.plugins import PluginApi, load_plugins
-from nems_lbhb.unit_match.launch.window import REPO, CommandProcess, LauncherWindow, child_command
-from nems_lbhb.unit_match.project.folder import Project
+from multiphy.launch import commands
+from multiphy.launch import forms
+from multiphy.launch.plugins import PluginApi, load_plugins
+from multiphy.launch.window import REPO, CommandProcess, LauncherWindow, child_command
+from multiphy.project.folder import Project
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the tag tests compare the shown tags with the selection's own reasons (event-optional Task 11) | date: 2026-10-10]
-from nems_lbhb.unit_match.project.selection import Selection
+from multiphy.project.selection import Selection
 # [AGENT EDIT END]
 
 from .launch_window_fixtures import FakeProcess, qt, runs, wait_until  # noqa: F401 (fixtures by name)
@@ -107,7 +107,7 @@ def test_run_tab_argv_and_header(qt, runs):
     window.run_command('run')
     program, arguments, env, cwd = window.process.calls[0]
     assert program == sys.executable
-    assert arguments == ['-m', 'nems_lbhb.unit_match.launch', '--root', str(root), 'run', 'P', '--backend',
+    assert arguments == ['-m', 'multiphy.launch', '--root', str(root), 'run', 'P', '--backend',
                          'functional_likelihood', '--days', 'D1', 'D2', '--threshold', '0.8']
     assert env['PYTHONPATH'].startswith(str(REPO))
     assert env['PYTHONIOENCODING'] == 'utf-8'
@@ -465,7 +465,7 @@ def test_project_field_prefill_and_new_project(qt, tmp_path):
     assert window.form_widgets['init']['project'].text() == 'P'
     _close(window)
 
-    plugin_root = _plugin_root(tmp_path / 'plugin_lab', 'tests.unit_match.example_plugin')
+    plugin_root = _plugin_root(tmp_path / 'plugin_lab', 'tests.example_plugin')
     Project.ensure(plugin_root, 'P')
     window = _window(plugin_root, 'NEW', plugins=load_plugins(plugin_root))
     assert window.form_widgets['init']['project'].text() == 'NEW'
@@ -494,7 +494,7 @@ def test_labels_hover_placeholders(qt, runs, tmp_path):
     assert registration.placeholderText() == 'matches'
     _close(window)
 
-    root = _plugin_root(tmp_path / 'plugin_lab', 'tests.unit_match.example_plugin')
+    root = _plugin_root(tmp_path / 'plugin_lab', 'tests.example_plugin')
     window = _window(root, plugins=load_plugins(root))
     assert window.tabs.tabText(5) == 'hello'
     assert window.tabs.tabToolTip(5) == 'launch hello'

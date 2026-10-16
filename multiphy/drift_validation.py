@@ -11,7 +11,7 @@ writes, once, into a new folder: per-run results, ``summary.csv``, ``calibration
 figures with legends, ``METHODS.md`` and ``manifest.json``. A backend's ``ValueError`` becomes a
 ``refused`` row with its reason; the loop continues. Datasets are never pooled.
 
-CLI: ``python -m nems_lbhb.unit_match.drift_validation --benchmark PATH [--benchmark PATH ...]
+CLI: ``python -m multiphy.drift_validation --benchmark PATH [--benchmark PATH ...]
 --output DIR [--radius-um 80] [--seed 0]``.
 """
 from __future__ import annotations
@@ -490,7 +490,7 @@ A `ValueError` from a run is recorded as `status = refused` with its message in 
 - `drift_recovery.png` ← summary.csv (see `drift_recovery_legend.md`).
 - `calibration.png` ← calibration.csv at shift 0 with `matches` (see `calibration_legend.md`).
 
-Code: `nems_lbhb/unit_match/drift_validation.py` at commit `{commit}`.
+Code: `multiphy/drift_validation.py` at commit `{commit}`.
 '''
 
 
@@ -603,7 +603,7 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(prog='python -m nems_lbhb.unit_match.drift_validation',
+    parser = argparse.ArgumentParser(prog='python -m multiphy.drift_validation',
                                      description='Inject known shifts into benchmark days and measure drift '
                                                  'registration and score calibration.')
     parser.add_argument('--benchmark', action='append', required=True, type=Path,

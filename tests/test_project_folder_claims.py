@@ -8,13 +8,13 @@ import os
 import re
 from pathlib import Path
 
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
+from multiphy.launch import commands
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
 
 from .synthetic_day import extracted_project, write_day
 
-DOCS = Path(__file__).resolve().parents[2] / 'nems_lbhb' / 'unit_match' / 'docs'
+DOCS = Path(__file__).resolve().parents[1] / 'multiphy' / 'docs'
 
 
 def test_condition_labels_are_stripped(tmp_path):

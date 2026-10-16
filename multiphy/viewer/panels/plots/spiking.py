@@ -4,12 +4,12 @@
 (``AutocorrelogramPanel``), one plot per panel."""
 import numpy as np
 
-from nems_lbhb.unit_match.extract.unit_features import ISI_BINS
+from multiphy.extract.unit_features import ISI_BINS
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: colours come from the active theme's tokens (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer.display import colors
+from multiphy.viewer.display import colors
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.registry import register_panel
 
 
 @register_panel

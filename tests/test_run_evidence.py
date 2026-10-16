@@ -7,7 +7,7 @@ import inspect
 import numpy as np
 import pytest
 
-from nems_lbhb.unit_match.contract.inputs import (
+from multiphy.contract.inputs import (
     NO_EVENTS_TAG, WHOLE_RECORDING_TAG, RunEvidence, TrialTiming, evidence_tags, run_evidence)
 
 PROVENANCE = {'sample_index_origin': 'zero_based_voltage_row', 'method': 'test'}

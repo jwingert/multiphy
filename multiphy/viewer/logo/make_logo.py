@@ -13,14 +13,14 @@ that no longer match.
 
 ``logo.svg`` (strokes at weight 1) is the README header, the About picture and the 128 and 256 px icons;
 ``icon_<px>.svg`` draws the same mark with heavier strokes for the smaller icons (``WEIGHTS``). Run
-``python nems_lbhb/unit_match/viewer/logo/make_logo.py`` after changing anything here (it needs no Qt); a test
+``python multiphy/viewer/logo/make_logo.py`` after changing anything here (it needs no Qt); a test
 checks that the committed SVGs equal what ``build`` returns.
 """
 from pathlib import Path
 
 import numpy as np
 
-from nems_lbhb.unit_match.viewer import display, unit_palettes
+from multiphy.viewer import display, unit_palettes
 
 HERE = Path(__file__).resolve().parent
 # PRN067a-338-1, channel index 337: the stored samples from 12 before the trough to the end, rounded to 0.01

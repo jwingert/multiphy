@@ -7,31 +7,31 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.viewer.drift_frame import (Column, DriftFrame, drawn_group, drift_frame,
+from multiphy.viewer.drift_frame import (Column, DriftFrame, drawn_group, drift_frame,
                                                      electrode_depths, group_label, group_sessions,
                                                      group_units, unit_depth)
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: registered unit positions and distances under test (browse-same-day Task 1) | date: 2026-10-12]
 import math
 
-from nems_lbhb.unit_match.viewer.drift_frame import registered_positions, unit_distance
+from multiphy.viewer.drift_frame import registered_positions, unit_distance
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the drift panel tests build a PairState over DictData and open a project run (drift-view Task 4) | date: 2026-10-08]
 import os
 
-from nems_lbhb.unit_match import backends
-from nems_lbhb.unit_match.backends.local import functional_likelihood as fl
-from nems_lbhb.unit_match.contract import registry as contract_registry
-from nems_lbhb.unit_match.project.folder import Project
-from nems_lbhb.unit_match.project.selection import Selection
-from nems_lbhb.unit_match.run.project_run import run_selection
-from nems_lbhb.unit_match.viewer import display, registry
-from nems_lbhb.unit_match.viewer.app import open_run
-from nems_lbhb.unit_match.viewer.panels import plots  # noqa: F401  (registers the plot panels)
+from multiphy import backends
+from multiphy.backends.local import functional_likelihood as fl
+from multiphy.contract import registry as contract_registry
+from multiphy.project.folder import Project
+from multiphy.project.selection import Selection
+from multiphy.run.project_run import run_selection
+from multiphy.viewer import display, registry
+from multiphy.viewer.app import open_run
+from multiphy.viewer.panels import plots  # noqa: F401  (registers the plot panels)
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: Qt through viewer/qt.py, the binding pin (drift-view Task 4, fix round 1) | date: 2026-10-08]
-from nems_lbhb.unit_match.viewer.qt import QtWidgets
+from multiphy.viewer.qt import QtWidgets
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.state import PairState
+from multiphy.viewer.state import PairState
 
 from .synthetic_day import extracted_project
 from .viewer_fakes import DictData
@@ -213,8 +213,8 @@ def test_produced_signatures():
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: backends that save a registration declare day_offsets in their spec (drift-view Task 2); pair_logistic saves one too (drift-view post-run fix) | date: 2026-10-08]
 def test_backends_declare_day_offsets():
-    from nems_lbhb.unit_match.contract import registry
-    from nems_lbhb.unit_match.contract.backend import Provides
+    from multiphy.contract import registry
+    from multiphy.contract.backend import Provides
     ids = ('functional_likelihood', 'unitmatch', 'dant', 'deepunitmatch', 'pair_logistic')
     assert [registry.get(b).spec.provides.day_offsets for b in ids] == [True, True, True, True, True]
     assert Provides(frozenset(), frozenset()).day_offsets is False
@@ -451,7 +451,7 @@ def test_drift_click_emits_unit(qt):
 
     from matplotlib.backend_bases import MouseButton, MouseEvent
 
-    from nems_lbhb.unit_match.viewer.panels.plots.drift import DriftPanel
+    from multiphy.viewer.panels.plots.drift import DriftPanel
 
     panel = _drift_panel(qt)
     clicked = []
@@ -519,7 +519,7 @@ def _press(panel, x, y, **kwargs):
 def test_drift_click_waits_out_double_click(qt):
     from PySide6 import QtTest
 
-    from nems_lbhb.unit_match.viewer.qt import QtCore
+    from multiphy.viewer.qt import QtCore
 
     panel = _drift_panel(qt)
     assert panel._click_timer.timerType() == QtCore.Qt.PreciseTimer   # a coarse timer can fire ~5% early

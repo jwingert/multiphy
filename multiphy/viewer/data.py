@@ -9,7 +9,7 @@ from typing import Callable, Mapping, Optional
 
 import pandas as pd
 
-from nems_lbhb.unit_match.viewer import display
+from multiphy.viewer import display
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: offsets is no longer a part; RunData.day_offset is deleted (drift-view Task 3) | date: 2026-10-08]
 PARTS = frozenset({'isi', 'acg', 'tuning'})

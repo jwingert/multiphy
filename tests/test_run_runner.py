@@ -4,13 +4,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.contract.backend import Availability, BackendSpec, Option, Provides
-from nems_lbhb.unit_match.contract.errors import MissingInputs, ContractViolation
-from nems_lbhb.unit_match.contract.inputs import Input, RawWaveformBundle
-from nems_lbhb.unit_match.contract.provenance import Provenance
-from nems_lbhb.unit_match.contract.results import MatchResult, ScoreBlock, ScoreKind, TrackKind
-from nems_lbhb.unit_match.run import runner, run_dir
+from multiphy.contract import registry
+from multiphy.contract.backend import Availability, BackendSpec, Option, Provides
+from multiphy.contract.errors import MissingInputs, ContractViolation
+from multiphy.contract.inputs import Input, RawWaveformBundle
+from multiphy.contract.provenance import Provenance
+from multiphy.contract.results import MatchResult, ScoreBlock, ScoreKind, TrackKind
+from multiphy.run import runner, run_dir
 
 
 class Dataset:
@@ -124,7 +124,7 @@ def test_one_bin_archive_fingerprint_is_withheld_not_fatal(fake, tmp_path, monke
 
 
 def test_cli_list_and_run(fake, tmp_path, capsys):
-    from nems_lbhb.unit_match.run.__main__ import main
+    from multiphy.run.__main__ import main
     assert main(['list-backends']) == 0
     assert 'fake' in capsys.readouterr().out
 # [AGENT EDIT END]
@@ -141,7 +141,7 @@ class FakeUnitsBackend(FakeBackend):
 
 
 def test_cli_benchmark_defaults_to_test_partition(fake, tmp_path, monkeypatch):
-    from nems_lbhb.unit_match.run import __main__ as cli
+    from multiphy.run import __main__ as cli
     registry.register(FakeUnitsBackend())
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: _load_dataset returns the dataset alone (Plan B Task 8) | date: 2026-09-28]
     monkeypatch.setattr(cli, '_load_dataset', lambda path: Dataset())
@@ -188,7 +188,7 @@ def test_missing_inputs_without_a_bundle_error_keep_the_plain_message(fake, tmp_
 # [AGENT EDIT END]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the run CLI has no --model flag (Task 2); the refusal is argparse's unknown-argument error (fix round 1) | date: 2026-09-27]
 def test_run_cli_refuses_model_flag(tmp_path, capsys):
-    from nems_lbhb.unit_match.run.__main__ import main
+    from multiphy.run.__main__ import main
     with pytest.raises(SystemExit) as exc:
         main(['run-backend', '--input', str(tmp_path), '--backend', 'unitmatch', '--model', 'x.json'])  # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: constrained is no longer an id (Task 3) | date: 2026-09-27]
     assert exc.value.code == 2

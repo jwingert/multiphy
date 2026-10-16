@@ -3,15 +3,15 @@ import json
 from pathlib import Path
 import numpy as np
 import pytest
-from test_unit_match_benchmark import source
-from nems_lbhb.unit_match.benchmark import build_dataset, save_dataset, load_dataset
-from nems_lbhb.unit_match.benchmark_collection import create_collection, missing_counterpart_ids
-from nems_lbhb.unit_match.benchmark_pairs import build_benchmark_pairs
+from tests.test_benchmark import source
+from multiphy.benchmark import build_dataset, save_dataset, load_dataset
+from multiphy.benchmark_collection import create_collection, missing_counterpart_ids
+from multiphy.benchmark_pairs import build_benchmark_pairs
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no registered backend tracks cached pair scores; fabricate results with the common tracker under a real id (Task 3) | date: 2026-09-27]
 def track(units, pairs, **kwargs):
-    from nems_lbhb.unit_match.backends import result_from_pairs
+    from multiphy.backends import result_from_pairs
     return result_from_pairs('unitmatch', '1', units, pairs, score_column='p_global', **kwargs)
 # [AGENT EDIT END]
 
@@ -58,7 +58,7 @@ def test_missing_counterpart_view_is_reproducible_and_has_no_new_waveforms(tmp_p
 def test_collection_result_opens_shared_display_and_legacy_ids_remain_stable(tmp_path):
     # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: results come from the module track helper (Task 3) | date: 2026-09-27]
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the same-day mode builds the run's RunData (viewer-split Task 3) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer.modes import same_day
+    from multiphy.viewer.modes import same_day
     # [AGENT EDIT END]
     a = archive(tmp_path, 'a', 'animal:1', 'test')
     b = archive(tmp_path, 'b', 'animal:2', 'test')
@@ -201,7 +201,7 @@ def test_bad_override_is_rejected_before_inputs_or_outputs_are_touched(tmp_path,
 
 
 def test_override_keeps_cache_containment_and_cli_wiring(tmp_path, monkeypatch, capsys):
-    from nems_lbhb.unit_match import benchmark_collection as collection
+    from multiphy import benchmark_collection as collection
     with pytest.raises(ValueError, match='must stay under'):
         create_collection([], tmp_path.parent / 'outside_cache', dataset_id='outside',
                           pair_options={'min_repeats': 1}, root=tmp_path)

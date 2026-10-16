@@ -11,9 +11,9 @@ import pytest
 import dataclasses
 import json
 
-from nems_lbhb.unit_match import drift_validation as dv
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.run.run_dir import load_result
+from multiphy import drift_validation as dv
+from multiphy.contract import registry
+from multiphy.run.run_dir import load_result
 # [AGENT EDIT END]
 
 from .synthetic_drift import ground_truth, make_drift_days
@@ -180,7 +180,7 @@ def test_refusal_recorded(tmp_path):
 
 def test_refusal_does_not_stop_later_runs(tmp_path, monkeypatch):
     """A matcher refusal and an evaluation refusal each give one refused row; the other runs still score."""
-    import nems_lbhb.unit_match.evaluation as evaluation
+    import multiphy.evaluation as evaluation
     real_evaluate, evaluated = evaluation.evaluate_result, []
 
     def refuse_first(call):
@@ -225,65 +225,6 @@ def test_sessions_follow_matcher_day_order():
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fix round 2 - timing is bound to the dataset's own source provenance; a refused non-finite shift still completes the manifest | date: 2026-09-28]
-def _fake_benchmark(tmp_path, monkeypatch, recording_changes=None):
-    """A benchmark folder whose dataset loader and timing reader are stubs; returns (path, timing calls)."""
-    import copy
-    import types
-    import nems_lbhb.unit_match.benchmark as benchmark
-    # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: prepare_baphy moved to nems_lbhb.unit_match_lbhb (Plan C Task 3) | date: 2026-10-01]
-    import nems_lbhb.unit_match_lbhb.prepare_baphy as prepare_baphy
-    # [AGENT EDIT END]
-
-    provenance = {'parmfile': {'path': '/p/PRN050a12.m', 'sha256': 'a' * 64},
-                  'ap_ttl_samples': {'path': '/p/sample_numbers.npy', 'sha256': 'b' * 64},
-                  'ap_ttl_states': {'path': '/p/states.npy', 'sha256': 'c' * 64}}
-    clock = {'sample_index_origin': 'zero_based_voltage_row', 'first_sample_number': 7, 'job_onsets_verified': True}
-    units = pd.DataFrame({'cellid': ['u0', 'u1'], 'session_id': ['s0', 's1']})
-    labels = pd.DataFrame({'cellid': ['u0', 'u1'], 'source_unit_id': ['1', '1'], 'source_session': ['PRN050a12'] * 2,
-                           'well': ['2', '2'], 'partition': ['test', 'test']})
-    metadata = {'dataset_id': 'fake', 'sources': [dict(source_session='PRN050a12', well='2', provenance=dict(
-        copy.deepcopy(provenance), spikes_sha256='d' * 64, clock_verification=copy.deepcopy(clock),
-        n_samples=1000))]}
-    dataset = types.SimpleNamespace(units=units, labels=labels, metadata=metadata,
-                                    features={c: {'sample_rate': 30000.0} for c in units.cellid},
-                                    geometry={s: np.zeros((2, 2)) for s in ('s0', 's1')})
-    recording = dict(source_session='PRN050a12', well=2, sample_rate=30000.0, n_samples=1000,
-                     clock_verification=copy.deepcopy(clock), provenance=copy.deepcopy(provenance))
-    (recording_changes or (lambda r: None))(recording)
-    folder = tmp_path / 'bench'
-    (folder / 'dataset').mkdir(parents=True)
-    # written with other formatting than the original, as extract_manifest re-serializes: bytes are not compared
-    (folder / 'dataset' / 'extraction_manifest.json').write_text(json.dumps({'recordings': [recording]}))
-    calls = []
-    monkeypatch.setattr(benchmark, 'load_dataset', lambda path: dataset)
-    monkeypatch.setattr(prepare_baphy, 'recover_baphy_timing', lambda spec: calls.append(spec) or 'timing')
-    return folder, calls
-
-
-def test_load_benchmark_takes_timing_from_the_extracted_preparation(tmp_path, monkeypatch):
-    folder, calls = _fake_benchmark(tmp_path, monkeypatch)
-    loaded = dv.load_benchmark(folder)
-    assert len(calls) == 1 and loaded.timing == {'s0': 'timing', 's1': 'timing'}
-    assert loaded.truth_offsets == {'s0': 0.0, 's1': 0.0} and 'partition' not in loaded.ground_truth
-
-
-@pytest.mark.parametrize('change, field', [
-    (lambda r: r['provenance']['ap_ttl_samples'].update(sha256='e' * 64), 'provenance.ap_ttl_samples'),
-    (lambda r: r['provenance']['parmfile'].update(path='/q/PRN050a12.m'), 'provenance.parmfile'),
-    (lambda r: r['provenance'].pop('ap_ttl_states'), 'provenance.ap_ttl_states'),
-    (lambda r: r['clock_verification'].update(first_sample_number=8), 'clock_verification'),
-    (lambda r: r.update(n_samples=999), 'n_samples'),
-    (lambda r: r.update(sample_rate=25000.0), 'sample_rate'),
-    (lambda r: r.update(well=3), 'well'),
-])
-def test_load_benchmark_refuses_a_different_preparation(tmp_path, monkeypatch, change, field):
-    folder, calls = _fake_benchmark(tmp_path, monkeypatch, change)
-    with pytest.raises(ValueError, match='differs from the hash-verified dataset') as refused:
-        dv.load_benchmark(folder)
-    assert f"'{field}'" in str(refused.value)
-    assert calls == []
-
-
 def test_non_finite_shift_refused_and_manifest_written(tmp_path, monkeypatch):
     calls = _capturing(monkeypatch)
     output = tmp_path / 'out'

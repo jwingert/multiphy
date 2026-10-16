@@ -1,10 +1,10 @@
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the docs name the one viewer command and no deleted viewer; docs/viewer.md names the command, registry and modes (viewer-split Task 10) | date: 2026-10-07]
-"""The package docs point to ``python -m nems_lbhb.unit_match.viewer --run DIR`` and name no deleted viewer."""
+"""The package docs point to ``python -m multiphy.viewer --run DIR`` and name no deleted viewer."""
 from pathlib import Path
 import re
 
-PACKAGE = Path(__file__).resolve().parents[2] / 'nems_lbhb' / 'unit_match'
-OLD = ('gui --run', 'multiday_viewer', 'benchmark_viewer', 'unit_match.gui')
+PACKAGE = Path(__file__).resolve().parents[1] / 'multiphy'
+OLD = ('gui --run', 'multiday_viewer', 'benchmark_viewer', 'multiphy.gui')
 
 
 def test_docs_name_no_old_viewer():
@@ -18,7 +18,7 @@ def test_docs_name_no_old_viewer():
 
 def test_viewer_doc_names_command_and_modes():
     text = (PACKAGE / 'docs' / 'viewer.md').read_text(encoding='utf-8')
-    for word in ('python -m nems_lbhb.unit_match.viewer --run DIR', 'register_panel', 'across_days', 'same_day',
+    for word in ('python -m multiphy.viewer --run DIR', 'register_panel', 'across_days', 'same_day',
                  'mixture: not fitted'):
         assert word in text, word
 # [AGENT EDIT END]

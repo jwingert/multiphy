@@ -13,14 +13,14 @@ from typing import Optional
 import pandas as pd
 import pytest
 
-from nems_lbhb.unit_match.contract import registry
-from nems_lbhb.unit_match.launch import commands
-from nems_lbhb.unit_match.launch.__main__ import main
-from nems_lbhb.unit_match.project.folder import RUNS_DIR, Project
+from multiphy.contract import registry
+from multiphy.launch import commands
+from multiphy.launch.__main__ import main
+from multiphy.project.folder import RUNS_DIR, Project
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the refusal test relabels a day's units through Selection.dataset (event-optional Task 14) | date: 2026-10-10]
-from nems_lbhb.unit_match.project.selection import Selection
+from multiphy.project.selection import Selection
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import subprocess as sp
+from multiphy.run import subprocess as sp
 
 from .synthetic_day import extracted_project, write_day
 
@@ -120,11 +120,11 @@ def test_unavailable_backend_runs_in_lab_interpreter(clean, unavailable, monkeyp
     result = commands.run(clean.root, 'P', backend=FL, options={'seed': 7})
     assert unavailable.interpreter == [((), {})]
     ((command, kwargs),) = unavailable.run
-    assert command[:17] == ['/lab/python', '-u', '-m', 'nems_lbhb.unit_match.run', 'run-backend',
+    assert command[:17] == ['/lab/python', '-u', '-m', 'multiphy.run', 'run-backend',
                             '--project', str(clean.path), '--days', 'D1', 'D2', '--backend', FL,
                             '--output', str(result['run']), '--min-repeats', '5', '--min-spikes']
     assert command[command.index('--seed') + 1] == '7'
-    repo = Path(commands.__file__).resolve().parents[3]
+    repo = Path(commands.__file__).resolve().parents[2]
     assert (kwargs['cwd'], kwargs['capture_output'], kwargs['text']) == (repo, True, True)
     assert kwargs['env']['PYTHONPATH'] == f'{repo}:/existing/path'
     assert kwargs['env']['PYTHONDONTWRITEBYTECODE'] == '1'

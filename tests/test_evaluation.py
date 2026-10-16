@@ -4,12 +4,12 @@ import pandas as pd
 import pytest
 
 # [AGENT EDIT | agent: claude-opus-5-5 | user: wingertj | reason: results come from the track helper below (Task 3) | date: 2026-09-27]
-from nems_lbhb.unit_match.evaluation import compare_results, evaluate_result, validate_partitions
+from multiphy.evaluation import compare_results, evaluate_result, validate_partitions
 
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: no registered backend tracks cached pair scores; fabricate results with the common tracker under a real id (Task 3) | date: 2026-09-27]
 def track(units, pairs, **kwargs):
-    from nems_lbhb.unit_match.backends import result_from_pairs
+    from multiphy.backends import result_from_pairs
     return result_from_pairs('unitmatch', '1', units, pairs, score_column='p_global', **kwargs)
 # [AGENT EDIT END]
 
@@ -175,7 +175,7 @@ def test_probability_reliability_uses_all_known_scored_candidates():
     # [AGENT EDIT END]
                          make_pairs(('early-1', 'late-1', .99), ('early-1', 'late-2', .01)))
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: the score kind and calibration reference live on result.score, not a score_kind column or provenance (Task 12) | date: 2026-09-22]
-    from nems_lbhb.unit_match.contract.results import ScoreBlock, ScoreKind
+    from multiphy.contract.results import ScoreBlock, ScoreKind
     result.score = ScoreBlock(ScoreKind.CALIBRATED_PROBABILITY, 'match_score',
                               calibration_reference='separate calibration dataset fixture')
     # [AGENT EDIT END]
@@ -197,7 +197,7 @@ def test_native_dant_similarity_counts_for_coverage_without_becoming_probability
     result.pairs['match_score'] = np.nan
     result.pairs['dant_similarity'] = [-8.5, unmeasured]
     # [AGENT EDIT START | agent: claude-fable-5-1 | user: wingertj | reason: DANT's native similarity is now declared on the score block, not inferred from backend_id (Task 12) | date: 2026-09-22]
-    from nems_lbhb.unit_match.contract.results import ScoreBlock, ScoreKind
+    from multiphy.contract.results import ScoreBlock, ScoreKind
     result.score = ScoreBlock(ScoreKind.NONE, None, 'dant_similarity')
     # [AGENT EDIT END]
     metrics = evaluate_result(result, labels)

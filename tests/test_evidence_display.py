@@ -12,13 +12,13 @@ def qt():
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     from PySide6 import QtWidgets as widgets
     app = widgets.QApplication.instance() or widgets.QApplication([])
-    from nems_lbhb.unit_match.viewer import display
+    from multiphy.viewer import display
     return app, display
 
 
 def _actions():
     """An ``Actions`` whose every call does nothing."""
-    from nems_lbhb.unit_match.viewer.state import Actions
+    from multiphy.viewer.state import Actions
     return Actions(select_pair=lambda a, b: None, set_verdict=lambda _: None, curation=lambda: None,
                    track_state=lambda: None, take_over=lambda: None, update_controls=lambda: None,
                    cluster_lookup=lambda: {}, review_threshold=lambda: .9, merge_refusal=lambda members: None)
@@ -35,8 +35,8 @@ def _actions():
 ])
 def test_gate_display_preserves_saved_failures_and_does_not_invent_missing_ones(qt, saved, expected):
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the viewer's EvidencePanel over an Actions of no-ops; colours from viewer.display (viewer-split Task 6) | date: 2026-10-06]
-    from nems_lbhb.unit_match.viewer.panels.tables import EvidencePanel
-    from nems_lbhb.unit_match.viewer.state import PairState
+    from multiphy.viewer.panels.tables import EvidencePanel
+    from multiphy.viewer.state import PairState
     _, display = qt
     state = PairState()
     state.row = dict(cellid_a='a-1', cellid_b='b-1', depth_delta_um=5., d_log_spont=.02,
@@ -45,7 +45,7 @@ def test_gate_display_preserves_saved_failures_and_does_not_invent_missing_ones(
     panel.refresh()
     assert [panel.table.item(i, 2).text() for i in range(4)] == expected
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: each gate cell carries the theme token of its outcome (launcher-gui Task 8) | date: 2026-10-07]
-    from nems_lbhb.unit_match.viewer import theme
+    from multiphy.viewer import theme
     for i, outcome in enumerate(expected):
         assert panel.table.item(i, 2).data(theme.TONE_ROLE) == (
             'muted' if outcome == 'not evaluated' else 'accept' if outcome == 'pass' else 'reject')
@@ -56,7 +56,7 @@ def test_gate_display_preserves_saved_failures_and_does_not_invent_missing_ones(
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the input labels come from the Qt-free display module; the test needs no Qt (viewer-split Task 2) | date: 2026-10-06]
 def test_method_inputs_distinguish_dant_motion_from_clustering_and_local_model():
-    from nems_lbhb.unit_match.viewer import display
+    from multiphy.viewer import display
     result = SimpleNamespace(backend_id='dant', provenance={'parameters': {
         'clustering': {'features': ['Waveform', 'AutoCorr']},
         'motionEstimation': {'features': [['AutoCorr', 'PETH']]}}})
@@ -69,7 +69,7 @@ def test_method_inputs_distinguish_dant_motion_from_clustering_and_local_model()
     assert display.result_input_label(result) == 'Learned waveform features'
     # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: former constrained fixture is a unitmatch result built by result_from_pairs; saved calibrated-model properties do not override its declared inputs; functional_likelihood labelled from its stream provenance (Task 3 fix round 1) | date: 2026-09-27]
     import pandas as pd
-    from nems_lbhb.unit_match.backends import result_from_pairs
+    from multiphy.backends import result_from_pairs
     units = pd.DataFrame({'cellid': ['A-1', 'B-1'], 'session_id': ['A', 'B'], 'su_type': ['SU', 'SU']})
     pairs = pd.DataFrame({'cellid_a': ['A-1'], 'cellid_b': ['B-1'], 'match_score': [.95]})
     saved = result_from_pairs('unitmatch', '1', units, pairs, run_id='saved-model',
@@ -85,7 +85,7 @@ def test_method_inputs_distinguish_dant_motion_from_clustering_and_local_model()
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the evidence table names the peak-channel waveform and footprint correlations and the all-channel footprint correlation (event-optional Task 1) | date: 2026-10-09]
 def test_evidence_rows_name_waveform_and_footprint():
-    from nems_lbhb.unit_match.viewer.display import EVIDENCE_FIELDS
+    from multiphy.viewer.display import EVIDENCE_FIELDS
     rows = [('waveform_r_local', 'waveform correlation, peak channels', None),
             ('footprint_r_local', 'footprint correlation, peak channels', None),
             ('footprint_r', 'footprint correlation, all channels', None)]

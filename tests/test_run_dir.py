@@ -5,10 +5,10 @@ import pandas as pd
 import pytest
 
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: fixture built with result_from_pairs (Task 3 Do 10) | date: 2026-09-27]
-from nems_lbhb.unit_match.backends import result_from_pairs
-from nems_lbhb.unit_match.contract.results import TrackKind
+from multiphy.backends import result_from_pairs
+from multiphy.contract.results import TrackKind
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.run import config, run_dir
+from multiphy.run import config, run_dir
 
 
 def test_cache_root_reads_environment(monkeypatch, tmp_path):

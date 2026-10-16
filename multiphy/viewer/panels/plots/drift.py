@@ -20,17 +20,17 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nems_lbhb.unit_match.viewer import display
-from nems_lbhb.unit_match.viewer.drift_frame import (drawn_group, drift_frame, electrode_depths, group_label,
+from multiphy.viewer import display
+from multiphy.viewer.drift_frame import (drawn_group, drift_frame, electrode_depths, group_label,
                                                      group_sessions, group_units, unit_depth)
-from nems_lbhb.unit_match.viewer.panels.plots import probe
-from nems_lbhb.unit_match.viewer.panels.plots.base import PlotPanel
+from multiphy.viewer.panels.plots import probe
+from multiphy.viewer.panels.plots.base import PlotPanel
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: QtCore for the unit_clicked signal (browse-same-day Task 4) | date: 2026-10-12]
 from matplotlib.backend_bases import MouseButton
 
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtGui, QtWidgets
+from multiphy.viewer.qt import QtCore, QtGui, QtWidgets
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.registry import register_panel
+from multiphy.viewer.registry import register_panel
 
 POINT_COLUMNS = ('cellid', 'session', 'x', 'y', 'shift', 'filled', 'muted')
 HOVER_PIXELS = 6.0          # a unit's hover text shows within this many display pixels of its dot

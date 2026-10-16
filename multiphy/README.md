@@ -93,20 +93,20 @@ separate. DANT cluster membership is displayed without inventing a probability.
 Real recording days live in a **project** (see
 [docs/project_folder.md](docs/project_folder.md)): `launch init` adds each day once,
 `launch extract` extracts its features once, and `launch run` runs any registered
-backend on a selection of extracted days. `python -m nems_lbhb.unit_match.run
+backend on a selection of extracted days. `python -m multiphy.run
 list-backends` names every registered backend and whether this interpreter can run
 it; one that cannot runs in `--python EXE` or the verified lab interpreter.
 
 ```bash
 # every extracted day of project M1, matched across days
-python -m nems_lbhb.unit_match.launch run M1 --backend functional_likelihood
+python -m multiphy.launch run M1 --backend functional_likelihood
 # chosen days, or one day's two temporal halves
-python -m nems_lbhb.unit_match.launch run M1 --backend unitmatch --days D1 D2
-python -m nems_lbhb.unit_match.launch run M1 --backend dant --day D1
+python -m multiphy.launch run M1 --backend unitmatch --days D1 D2
+python -m multiphy.launch run M1 --backend dant --day D1
 ```
 
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the launcher window runs the same commands (launcher-gui Task 11) | date: 2026-10-07] -->
-`python -m nems_lbhb.unit_match.launch gui` runs the same commands from one window and
+`python -m multiphy.launch gui` runs the same commands from one window and
 opens runs (see `docs/project_folder.md`).
 <!-- [AGENT EDIT END] -->
 
@@ -122,8 +122,8 @@ The viewer opens completed project runs and starts none; one command opens eithe
 (see [docs/viewer.md](docs/viewer.md)):
 
 ```bash
-python -m nems_lbhb.unit_match.viewer --run /path/to/M1/runs/<run>            # across days
-python -m nems_lbhb.unit_match.viewer --run /path/to/M1/days/D1/runs/<run>    # one day's halves
+python -m multiphy.viewer --run /path/to/M1/runs/<run>            # across days
+python -m multiphy.viewer --run /path/to/M1/days/D1/runs/<run>    # one day's halves
 ```
 <!-- [AGENT EDIT END] -->
 
@@ -172,17 +172,17 @@ same well, for a re-sort or a test: a day is written once, so a changed day need
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the LBHB example opens its run with the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the LBHB example names the launcher window as an alternative (launcher-gui Task 11) | date: 2026-10-07] -->
 ```bash
-python -m nems_lbhb.unit_match.launch lbhb-init Prince_w16_BNT
-python -m nems_lbhb.unit_match.launch extract Prince_w16_BNT --tier raw
-python -m nems_lbhb.unit_match.launch run Prince_w16_BNT --backend functional_likelihood
-python -m nems_lbhb.unit_match.viewer --run DIR
+python -m multiphy.launch lbhb-init Prince_w16_BNT
+python -m multiphy.launch extract Prince_w16_BNT --tier raw
+python -m multiphy.launch run Prince_w16_BNT --backend functional_likelihood
+python -m multiphy.viewer --run DIR
 # or all of it from one window:
-# python -m nems_lbhb.unit_match.launch gui Prince_w16_BNT
+# python -m multiphy.launch gui Prince_w16_BNT
 ```
 <!-- [AGENT EDIT END] -->
 
 `lbhb-init` skips days already in the project, so a rerun completes a failed one.
-`python -m nems_lbhb.unit_match.viewer --run DIR` opens any project run in its mode.
+`python -m multiphy.viewer --run DIR` opens any project run in its mode.
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->
 
@@ -251,7 +251,7 @@ the science is testable without a display and the viewer is replaceable.
 <!-- [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: curation opens through the viewer package (viewer-split Task 10) | date: 2026-10-07] -->
 ```bash
 # curate a completed project run
-python -m nems_lbhb.unit_match.viewer --run DIR
+python -m multiphy.viewer --run DIR
 ```
 <!-- [AGENT EDIT END] -->
 
@@ -274,7 +274,7 @@ one line per curator action, undo and redo included; the file is replaced whole
 on each write. Export the accepted tracks with:
 
 ```bash
-python -m nems_lbhb.unit_match.launch export PROJECT --run RUN [--out PATH]
+python -m multiphy.launch export PROJECT --run RUN [--out PATH]
 ```
 <!-- [AGENT EDIT END] -->
 <!-- [AGENT EDIT END] -->

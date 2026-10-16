@@ -2,17 +2,17 @@
 """Every neuron inside the proximity gate, with the reason each was rejected."""
 import numpy as np
 
-from nems_lbhb.unit_match import clusters as cl
+from multiphy import clusters as cl
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: cells carry theme tokens instead of colours (launcher-gui Task 8) | date: 2026-10-07]
-from nems_lbhb.unit_match.viewer import theme
+from multiphy.viewer import theme
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: P_SOUND renamed P_EVENT (launcher-gui Task 10) | date: 2026-10-07]
 # [AGENT EDIT START | agent: claude-opus-5-5 | user: wingertj | reason: the wave column reads P_WAVE (event-optional Task 12) | date: 2026-10-10]
-from nems_lbhb.unit_match.viewer.display import P_PHYS, P_EVENT, P_WAVE, headline_probability, pct, probability
+from multiphy.viewer.display import P_PHYS, P_EVENT, P_WAVE, headline_probability, pct, probability
 # [AGENT EDIT END]
 # [AGENT EDIT END]
-from nems_lbhb.unit_match.viewer.panels.tables.base import NumericItem, _table
-from nems_lbhb.unit_match.viewer.state import Actions, PairState
-from nems_lbhb.unit_match.viewer.qt import QtCore, QtWidgets
+from multiphy.viewer.panels.tables.base import NumericItem, _table
+from multiphy.viewer.state import Actions, PairState
+from multiphy.viewer.qt import QtCore, QtWidgets
 # [AGENT EDIT END]
 
 

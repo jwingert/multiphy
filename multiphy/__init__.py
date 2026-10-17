@@ -19,5 +19,5 @@ option schema and CLI shared by every one of them. Adding a method is
 
 """
 
-__all__ = ['features', 'evidence', 'store']
+__all__ = ['features', 'store']
 __version__ = '0.0.0'

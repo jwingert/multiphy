@@ -68,7 +68,8 @@ class WaveformMapPanel(PlotPanel):
             ax.text(.5, .5, 'no template patch', ha='center', va='center',
                     transform=ax.transAxes, fontsize=8)
             return
-        if any(self.geometry_for(c, len(u.ptp)) is None for c, u, _ in sel):
+        if any(self.geometry_for(c, len(u.ptp)) is None
+               for c, u, _ in self.selected() if u.ptp is not None):
             ax.text(.5, .5, 'no measured geometry', ha='center', va='center',
                     transform=ax.transAxes, fontsize=8)
             return

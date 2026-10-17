@@ -83,6 +83,20 @@ def test_geometry_panels_without_measured_geometry(qt):
         panel.close()
 
 
+def test_wfmap_refuses_selection_with_a_unit_without_measured_geometry(qt):
+    """A unit with ``ptp`` but no patch and no measured geometry still stops the waveform map from drawing."""
+    state = PairState()
+    state.set_data(DictData(['u:0', 'v:0'],
+                            {'u:0': {'ptp': np.ones(4), 'patch': np.ones((4, 5))}, 'v:0': {'ptp': np.ones(4)}},
+                            {'geometry': {'dayA': np.c_[np.zeros(4), np.arange(4) * 20.]}},
+                            {'u:0': 'dayA', 'v:0': 'dayB'}))
+    panel = registry.PANELS['wfmap'](state)
+    state.set_selection(['u:0', 'v:0'])
+    qt.processEvents()          # the idle redraw runs while the panel lives
+    assert [t.get_text() for t in panel.axes[0].texts] == ['no measured geometry']
+    panel.close()
+
+
 def test_probe_has_no_registered_box(qt, runs):
     state = _state(runs['same_day'])
     panel = registry.PANELS['probe'](state)

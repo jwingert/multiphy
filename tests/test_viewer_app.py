@@ -24,8 +24,11 @@ from multiphy.viewer import keys
 from .theme_fixtures import theme_env  # noqa: F401
 from multiphy.viewer import theme
 
+import concurrent.futures
 import copy
+import dataclasses
 import shutil
+import typing
 
 from multiphy.project.selection import Selection
 from multiphy.run.project_run import run_selection
@@ -286,6 +289,57 @@ def test_failed_first_open_releases_lock(qt, runs, clean_curation, monkeypatch):
         viewer_app.open_run(runs['across_days'])
     QtWidgets.QApplication.processEvents()
     assert not (clean_curation / 'runs' / runs['across_days'].name / 'history.lock').exists()
+
+
+def test_prepare_run_builds_no_window(qt, runs, clean_curation, monkeypatch):
+    def no_app(*args, **kwargs):
+        raise AssertionError('App built')
+    monkeypatch.setattr(viewer_app, 'App', no_app)
+    messages = []
+
+    def record(mode, context, message):
+        messages.append(message)
+    before = list(QtWidgets.QApplication.topLevelWidgets())
+    previous = QtCore.qInstallMessageHandler(record)
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            prepared = pool.submit(viewer_app.prepare_run, runs['across_days']).result(timeout=120)
+    finally:
+        QtCore.qInstallMessageHandler(previous)
+    assert prepared.mode.id == 'across_days'
+    assert prepared.run_dir == runs['across_days']
+    assert prepared.curation_dir == clean_curation / 'runs' / runs['across_days'].name
+    assert (clean_curation / 'runs' / runs['across_days'].name / 'history.lock').exists() is False
+    assert messages == []
+    assert [w for w in QtWidgets.QApplication.topLevelWidgets() if w not in before] == []
+
+
+def test_open_prepared_reuses_the_read(qt, runs, clean_curation, monkeypatch):
+    prepared = viewer_app.prepare_run(runs['across_days'])
+    calls = []
+    original = Selection.dataset
+
+    def counted(self, *args, **kwargs):
+        calls.append(self)
+        return original(self, *args, **kwargs)
+    monkeypatch.setattr(Selection, 'dataset', counted)
+    window = viewer_app.open_prepared(prepared)
+    try:
+        assert window.state.data is prepared.data
+        assert (clean_curation / 'runs' / runs['across_days'].name / 'history.lock').exists() is True
+        window.import_match_result(runs['second'] / 'result.json')
+        assert len(calls) == 0
+    finally:
+        _close(window)
+
+
+def test_prepared_run_signatures():
+    assert typing.get_type_hints(viewer_app.prepare_run) == {'run_dir': Path,
+                                                             'return': viewer_app.PreparedRun}
+    assert typing.get_type_hints(viewer_app.open_prepared) == {'prepared': viewer_app.PreparedRun,
+                                                               'return': viewer_app.App}
+    assert [f.name for f in dataclasses.fields(viewer_app.PreparedRun)] == [
+        'selection', 'mode', 'run_dir', 'layout_file', 'inputs', 'data', 'runs', 'curation_dir']
 
 
 def test_main_requires_run(qt, capsys):

@@ -410,11 +410,8 @@ class App(QtWidgets.QMainWindow):
         The run data and the run list are built before ``set_data`` switches controllers, so a failure there
         leaves the shown run, its controller and its lock in place.
         """
-        dataset, extras = self._selection_inputs()
-        data = self.mode.load(self.selection, dataset, result, extras)
-        runs = _canonical_runs(selection_runs(self.selection))
-        curation_dir = (self.selection.project.path / 'curation' / 'runs' / Path(run_dir).name
-                        if self.mode.curates else None)
+        data, runs, curation_dir = _result_view(self.selection, self.mode, self._selection_inputs(),
+                                                result, run_dir)
         self.set_data(data, curation_dir=curation_dir)
         self.refresh_runs(runs)
 
@@ -760,17 +757,46 @@ class App(QtWidgets.QMainWindow):
         self.days.step(d)
 
 
+@dataclasses.dataclass(frozen=True)
+class PreparedRun:
+    """A completed run read for its viewer, with no window built and no lock taken.
+
+    ``inputs`` is ``(dataset, day extras)``; ``runs`` are the catalog entries with resolved result
+    paths. The match result travels inside ``data`` (``data.result``, as ``set_data`` reads it).
+    """
+    selection: Selection
+    mode: Mode
+    run_dir: Path
+    layout_file: Path
+    inputs: tuple
+    data: RunData
+    runs: list
+    curation_dir: Optional[Path]
+
+
 def _canonical_runs(runs) -> list:
     """``runs`` (catalog entries) with resolved result paths, read before the run box is filled."""
     return [dataclasses.replace(e, result_path=e.result_path.resolve()) for e in runs]
 
 
-def open_run(run_dir) -> App:
-    """The viewer window on the completed project run in ``run_dir``, in the mode its selection records.
+def _result_view(selection, mode, inputs: tuple, result, run_dir) -> tuple:
+    """``(data, runs, curation_dir)`` for ``result`` of the selection's run in ``run_dir``: the run data,
+    the selection's runs with resolved result paths, and the project's ``curation/runs/<run folder name>``
+    when the mode curates (else ``None``). Builds no widget."""
+    dataset, extras = inputs
+    data = mode.load(selection, dataset, result, extras)
+    runs = _canonical_runs(selection_runs(selection))
+    curation_dir = (selection.project.path / 'curation' / 'runs' / Path(run_dir).name
+                    if mode.curates else None)
+    return data, runs, curation_dir
 
-    The result is read first; a run with mixture references but no valid ``run_evidence`` is refused
-    (``display.require_run_evidence``) before any window is built. A failure after the window is built
-    closes it, releasing any lock it took, and re-raises.
+
+def prepare_run(run_dir: Path) -> PreparedRun:
+    """Read the completed project run in ``run_dir`` for its viewer, in the mode its selection records.
+
+    Builds no widget and takes no lock, so it may run on a worker thread. It refuses an incomplete run,
+    and a run whose evidence ``display.require_run_evidence`` refuses (mixture references without valid
+    run evidence), before any window exists.
     """
     selection = selection_of_run(run_dir)
     entry = catalog.read_run(run_dir)
@@ -779,10 +805,26 @@ def open_run(run_dir) -> App:
     result = backends.load_result(entry.result_path)
     display.require_run_evidence(result.provenance)
     mode = MODES[selection.mode]
-    window = App(mode, layout_file=resolve_cache_path(mode.layout_name, root=selection.project.root),
-                 selection=selection)
+    inputs = (selection.dataset(), selection.day_extras())
+    data, runs, curation_dir = _result_view(selection, mode, inputs, result, entry.result_path.parent)
+    layout_file = resolve_cache_path(mode.layout_name, root=selection.project.root)
+    return PreparedRun(selection=selection, mode=mode, run_dir=entry.result_path.parent,
+                       layout_file=layout_file, inputs=inputs, data=data, runs=runs,
+                       curation_dir=curation_dir)
+
+
+def open_prepared(prepared: PreparedRun) -> App:
+    """The viewer window filled with ``prepared``; GUI thread only. The window is returned unshown and
+    its caller shows it.
+
+    The window keeps ``prepared.inputs``, so a later import or run switch reuses the read. A failure after
+    the window is built closes it, releasing any lock it took, and re-raises.
+    """
+    window = App(prepared.mode, layout_file=prepared.layout_file, selection=prepared.selection)
     try:
-        window.open_result(result, entry.result_path.parent)
+        window._inputs = prepared.inputs
+        window.set_data(prepared.data, curation_dir=prepared.curation_dir)
+        window.refresh_runs(prepared.runs)
     except BaseException as exc:
         try:
             window.close()
@@ -790,6 +832,16 @@ def open_run(run_dir) -> App:
             raise exc from close_exc
         raise
     return window
+
+
+def open_run(run_dir) -> App:
+    """The viewer window on the completed project run in ``run_dir``, in the mode its selection records.
+
+    The result is read and refused (``prepare_run``: an incomplete run, or mixture references without
+    valid ``run_evidence``) before any window is built. A failure after the window is built closes it,
+    releasing any lock it took, and re-raises. The window is returned unshown.
+    """
+    return open_prepared(prepare_run(run_dir))
 
 
 def main(argv: Optional[list] = None) -> int:

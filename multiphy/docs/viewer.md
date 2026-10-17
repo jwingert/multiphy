@@ -22,7 +22,7 @@ here.
 
 | module | role | Qt |
 |---|---|---|
-| `app.py` | `App`, the window; `open_run(run_dir)`; `main()` behind `python -m` | yes |
+| `app.py` | `App`, the window; `prepare_run(run_dir)` reads a run with no window or lock, safe off the GUI thread; `open_prepared` builds and fills its window on the GUI thread; `open_run(run_dir)` does both; the caller shows the window; `main()` behind `python -m` | yes |
 | `state.py` | `PairState`: the shown `RunData`, day pair, the pair on screen and selected units; `Actions`, the only way a table reaches the window | yes |
 | `data.py` | `UnitData`, `Words`, `RunData`, `Mode`, and the Qt-free pair preparation | no |
 | `display.py` | score labels, header texts, gate outcomes, evidence fields; the theme's colour tokens (`PALETTES`, `colors()`, `unit_colors`, `uses_unit_palette`) | no |

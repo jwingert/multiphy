@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from multiphy.evidence import CalibratedPairModel
+from multiphy.backends.local.calibrated import CalibratedPairModel
 
 
 def population(seed, n=160):

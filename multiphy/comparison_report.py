@@ -19,7 +19,7 @@ import numpy as np
 from .backends import load_result
 from .benchmark import load_dataset
 from .evaluation import evaluate_result
-from .paths import resolve_cache_path
+from .run.config import resolve_cache_path
 from .reporting_names import FEATURES, METHODS, METRICS, TRACKING, DEFINITIONS, count_range, display
 from .contract import names, registry
 from .contract.inputs import Input
@@ -62,7 +62,7 @@ def method_name(result):
     spec = _spec(result.backend_id)
     option_names = {o.name for o in spec.options} if spec is not None else set()
     if 'preset' in option_names:
-        from .dant_settings import PRESETS
+        from .backends.dant import PRESETS
         labels = {PRESETS[p['parameters']['_nems_preset']['name']]
                   if '_nems_preset' in p.get('parameters', {}) else
                   'Explicit custom settings: ' + ', '.join(display(f, FEATURES)

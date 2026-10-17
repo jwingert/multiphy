@@ -17,7 +17,7 @@ import pandas as pd
 from .backends import MatchResult, _json_safe, load_result, result_digest, result_from_pairs, save_result
 from .benchmark import load_dataset
 from .evaluation import evaluate_result, validate_partitions
-from .paths import new_run_path, resolve_cache_path
+from .run.config import new_run_path, resolve_cache_path
 from .contract import registry
 from .contract.inputs import Input
 from .contract.provenance import Provenance

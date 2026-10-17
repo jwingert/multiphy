@@ -21,7 +21,7 @@ import pandas as pd
 from .benchmark import SourceRecording, build_dataset, save_dataset
 from .extract.raw_pass import FilteredSnippetReader, SnippetReader, _voltage_stream, plan_snippets
 from .extract.raw_pass import raw_segments
-from .paths import extraction_scratch_root, resolve_cache_path
+from .run.config import extraction_scratch_root, resolve_cache_path
 from .evaluation import validate_partitions
 
 

@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import sys
 
-from .paths import resolve_cache_path
+from .run.config import resolve_cache_path
 
 DEFAULT_DIRECTORY = 'dependencies/inference-v2'
 UNITMATCH_REVISION = '95b6fed5db84d12f67487b92d07f0a2664a6122f'
@@ -92,7 +92,8 @@ def _overlay_files(overlay, package, version):
 
 _SMOKE = '''import importlib, importlib.metadata, json, pathlib, sys
 import UnitMatchPy, pyDANT.Runner, hdbscan, mat73
-from multiphy.external_backends import _deep_module, create_deepunitmatch_model
+from multiphy.backends._upstream import deep_module as _deep_module
+from multiphy.backends.deepunitmatch import create_deepunitmatch_model
 _deep_module('testing.test')
 model = create_deepunitmatch_model(device='cpu')
 packages = ('numpy','scipy','pandas','scikit-learn','torch','hdbscan','mat73','PySide6')

@@ -15,7 +15,7 @@ import hashlib
 
 import pandas as pd
 
-from multiphy import evidence as ev
+from multiphy.backends.local import evidence as ev
 
 VERDICTS = ('accept', 'reject', 'unsure')
 # the per-animal table API (STORE_ROOT, store_path, load, record, upsert,

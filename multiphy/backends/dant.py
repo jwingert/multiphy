@@ -2,10 +2,10 @@
 
 Verified upstream API: jiumao2/pyDANT revision 741240511e6a4ed9315b2c80d71ab5cfe4c588eb.
 DANT keeps its native cluster membership and emits an unbounded similarity, never a match
-probability. Also holds the named settings presets (was ``dant_settings.py``: adaptations of
-the upstream settings.json example, not parameters optimized against benchmark labels) and
-the narrow empty drift-reference guard (was ``dant_compat.py``: hold the current motion
-estimate when no pair passes native selection; no cluster or match labels are changed).
+probability. Also holds the named settings presets (adaptations of the upstream
+settings.json example, not parameters optimized against benchmark labels) and the narrow
+empty drift-reference guard (hold the current motion estimate when no pair passes native
+selection; no cluster or match labels are changed).
 """
 from __future__ import annotations
 from pathlib import Path
@@ -244,7 +244,7 @@ def run_dant(units, pairs=None, *, waveform_bundle=None, settings=None,
     """Run official DANT in a disposable directory and preserve native clusters.
 
     settings is a complete upstream settings mapping; omission selects the
-    documented waveform/autocorrelogram preset from dant_settings.py.
+    documented waveform/autocorrelogram preset from default_dant_settings().
     PETH uses an explicitly
     aligned (unit, stimulus-time-bin) array with unique stimulus/time bin keys.
     """

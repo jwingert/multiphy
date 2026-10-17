@@ -1,8 +1,7 @@
 """The calibrated pair classifier.
 
-``CalibratedPairModel`` (moved verbatim from ``evidence.py``, originally by codex,
-2026-09-17) is a regularized feature classifier with an independent calibration
-partition.
+``CalibratedPairModel`` is a regularized feature classifier with an independent
+calibration partition.
 """
 from __future__ import annotations
 

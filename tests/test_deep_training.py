@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from multiphy import external_backends as ext
+from multiphy.backends import deepunitmatch
+from multiphy.contract.inputs import RawWaveformBundle
 
 
 def synthetic_np1010():
@@ -25,7 +26,7 @@ def synthetic_np1010():
         spatial = np.exp(-np.sum((geometry - position) ** 2, axis=1) / (2 * 35. ** 2))
         temporal = -np.exp(-((np.arange(82) - 41) / (2 + (i % 7) * .15)) ** 2)
         waves[i] += (30 + i % 32) * temporal[:, None, None] * spatial[None, :, None]
-    bundle = ext.RawWaveformBundle(ids, waves, tuple(sessions),
+    bundle = RawWaveformBundle(ids, waves, tuple(sessions),
         {s: geometry for s in set(sessions)}, provenance={
             'raw_source': 'synthetic test only; not a scientific training dataset',
             'split_method': 'independent synthetic perturbations', 'probe_type': 'NP1010',
@@ -37,13 +38,13 @@ def synthetic_np1010():
 def test_np1010_uses_measured_four_column_preprocessing():
     _, bundle = synthetic_np1010()
     geometry = list(bundle.channel_positions.values())
-    params = ext._deep_preprocessing(bundle.waveforms, geometry, 'NP1010')
+    params = deepunitmatch._deep_preprocessing(bundle.waveforms, geometry, 'NP1010')
     assert params['n_xchannelpos'] == 4
     assert params['RnChannels'] == 30 and params['RnTime'] == 60
     with pytest.raises(ValueError, match='conflicts'):
-        ext._deep_preprocessing(bundle.waveforms, geometry, 'NP1010', {'n_xchannelpos': 2})
+        deepunitmatch._deep_preprocessing(bundle.waveforms, geometry, 'NP1010', {'n_xchannelpos': 2})
     with pytest.raises(ValueError, match='probe_type'):
-        ext._deep_preprocessing(bundle.waveforms, geometry, None)
+        deepunitmatch._deep_preprocessing(bundle.waveforms, geometry, None)
 
 
 def test_training_refuses_missing_rate_and_fractional_epochs_before_output(tmp_path):
@@ -53,9 +54,9 @@ def test_training_refuses_missing_rate_and_fractional_epochs_before_output(tmp_p
     provenance = dict(bundle.provenance)
     provenance.pop('sample_rate')
     with pytest.raises(ValueError, match='sample_rate'):
-        ext.prepare_deepunitmatch_training(units, replace(bundle, provenance=provenance), **kwargs)
+        deepunitmatch.prepare_deepunitmatch_training(units, replace(bundle, provenance=provenance), **kwargs)
     with pytest.raises(ValueError, match='integers'):
-        ext.prepare_deepunitmatch_training(units, bundle, autoencoder_epochs=1.5, **kwargs)
+        deepunitmatch.prepare_deepunitmatch_training(units, bundle, autoencoder_epochs=1.5, **kwargs)
     assert not (tmp_path / 'out').exists()
 
 
@@ -66,11 +67,11 @@ def test_shared_voltage_signature_excludes_heldout_sources_but_rejects_mixed_tra
                dict(well='heldout_well', provenance={'waveform_preprocessing':
                {'profile': 'raw_no_filter'}})]
     bundle = replace(bundle, provenance=dict(bundle.provenance, sources=sources))
-    assert ext._deep_input_signature(bundle)['shared_voltage_preprocessing']['highpass_hz'] == 150
+    assert deepunitmatch._deep_input_signature(bundle)['shared_voltage_preprocessing']['highpass_hz'] == 150
     sources.append(dict(well='training_well', provenance={'waveform_preprocessing':
                         {'profile': 'shared_unwhitened_v1', 'highpass_hz': 300}}))
     with pytest.raises(ValueError, match='inconsistent voltage'):
-        ext._deep_input_signature(bundle)
+        deepunitmatch._deep_input_signature(bundle)
 
 
 def test_checkpoint_signature_ignores_storage_only_and_detects_padding_scaling_and_unknown_transforms():
@@ -82,39 +83,39 @@ def test_checkpoint_signature_ignores_storage_only_and_detects_padding_scaling_a
             padding_seconds=.05, chunk_seconds=1., output_dtype='float32',
             storage='temporary snippets')))
     bundle = replace(bundle, provenance=dict(bundle.provenance, sources=[source]))
-    expected = ext._deep_input_signature(bundle)
+    expected = deepunitmatch._deep_input_signature(bundle)
     changed = copy.deepcopy(source)
     changed['provenance']['waveform_preprocessing']['storage'] = 'streaming summaries'
     candidate = replace(bundle, provenance=dict(bundle.provenance, sources=[source, changed]))
-    assert ext._deep_input_signature(candidate) == expected
+    assert deepunitmatch._deep_input_signature(candidate) == expected
     for key, value in (('padding_seconds', .1), ('output_dtype', 'float64'), ('new_filter', 'changed')):
         altered = copy.deepcopy(changed)
         altered['provenance']['waveform_preprocessing'][key] = value
         candidate = replace(bundle, provenance=dict(bundle.provenance, sources=[source, altered]))
         with pytest.raises(ValueError, match='inconsistent voltage'):
-            ext._deep_input_signature(candidate)
+            deepunitmatch._deep_input_signature(candidate)
     changed['provenance']['voltage_scale'] = 1.
     candidate = replace(bundle, provenance=dict(bundle.provenance, sources=[source, changed]))
     with pytest.raises(ValueError, match='inconsistent voltage'):
-        ext._deep_input_signature(candidate)
+        deepunitmatch._deep_input_signature(candidate)
 
 
 @pytest.mark.skipif(not os.environ.get('UNITMATCH_SOURCE_CHECKOUT'),
                     reason='requires optional official source checkout and training dependencies')
 def test_official_two_stage_synthetic_training_and_checkpoint_inference(tmp_path):
     units, bundle = synthetic_np1010()
-    prepared = ext.prepare_deepunitmatch_training(units, bundle,
+    prepared = deepunitmatch.prepare_deepunitmatch_training(units, bundle,
         source_checkout=os.environ['UNITMATCH_SOURCE_CHECKOUT'], output_dir=tmp_path / 'synthetic',
         training_groups=['training_well'], evaluation_groups=['independent_evaluation_well'],
         autoencoder_epochs=2, contrastive_epochs=2, cpu_threads=1,
         seed=13)
-    result = ext.train_deepunitmatch(prepared)
+    result = deepunitmatch.train_deepunitmatch(prepared)
     assert result['status'] == 'completed'
     assert Path(result['checkpoint']).is_file()
     import torch
     torch.set_num_threads(1)
     # Load the architecture actually trained by the official subprocess.
-    model = ext.load_deepunitmatch_checkpoint(result['checkpoint'])
+    model = deepunitmatch.load_deepunitmatch_checkpoint(result['checkpoint'])
     checkpoint = torch.load(result['checkpoint'], map_location='cpu', weights_only=True)
     model.load_state_dict(checkpoint['model'], strict=True)
     model.eval()
@@ -138,11 +139,11 @@ def test_official_two_stage_synthetic_training_and_checkpoint_inference(tmp_path
     assert [p.name for p in ae_path.parent.iterdir()] == ['ckpt_epoch_1']
     assert [p.name for p in Path(result['checkpoint']).parent.iterdir()] == ['ckpt_epoch_1']
     with pytest.raises(ValueError, match='overlap'):
-        ext._deep_training_metadata(result['checkpoint'], bundle, result['preprocessing'])
+        deepunitmatch._deep_training_metadata(result['checkpoint'], bundle, result['preprocessing'])
     inference_bundle = replace(bundle, provenance=dict(bundle.provenance,
         source_groups={s: 'independent_evaluation_well' for s in bundle.session_ids}))
     # Integration exercise only: synthetic training/inference reuse is not an accuracy benchmark.
-    matched = ext.run_deepunitmatch(units, waveform_bundle=inference_bundle,
+    matched = deepunitmatch.run_deepunitmatch(units, waveform_bundle=inference_bundle,
         checkpoint=result['checkpoint'], checkpoint_probe='NP1010')
     assert len(matched.units) == 64
     assert np.isfinite(matched.pairs.match_score).all()

@@ -9,7 +9,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from multiphy import external_backends as ext
+from multiphy.backends._upstream import prepare_bundle
+from multiphy.backends.dant import run_dant
+from multiphy.backends.deepunitmatch import prepare_deepunitmatch_training, run_deepunitmatch
+from multiphy.backends.unitmatch import _matrix_pairs, _um_result, run_unitmatch
+from multiphy.contract.inputs import RawWaveformBundle
 from multiphy.backends import BackendUnavailable
 
 
@@ -18,7 +22,7 @@ def inputs():
                           'session_id': ['s1', 's2', 's2', 's1'],
                           'su_type': ['SU', 'SU', 'SU', 'MU']})
     rng = np.random.default_rng(5)
-    bundle = ext.RawWaveformBundle(tuple(units.cellid), rng.normal(size=(4, 82, 4, 2)),
+    bundle = RawWaveformBundle(tuple(units.cellid), rng.normal(size=(4, 82, 4, 2)),
         tuple(units.session_id), {'s1': np.zeros((4, 2)), 's2': np.zeros((4, 2))},
         tuple(np.array([.01, .02, .04]) for _ in range(4)),
         {'raw_source': 'synthetic-test', 'split_method': 'independent temporal groups'},
@@ -29,29 +33,29 @@ def inputs():
 def test_absent_raw_halves_never_fall_back_to_templates():
     units, bundle = inputs()
     with pytest.raises(BackendUnavailable, match='RawWaveformBundle'):
-        ext.run_unitmatch(units)
+        run_unitmatch(units)
     with pytest.raises(ValueError, match='shape'):
-        ext.run_unitmatch(units, waveform_bundle=replace(bundle, waveforms=bundle.waveforms[..., 0]))
+        run_unitmatch(units, waveform_bundle=replace(bundle, waveforms=bundle.waveforms[..., 0]))
     with pytest.raises(ValueError, match='provenance'):
-        ext.run_unitmatch(units, waveform_bundle=replace(bundle, provenance={}))
+        run_unitmatch(units, waveform_bundle=replace(bundle, provenance={}))
 
 
 def test_bundle_filters_single_units_and_checks_session_mapping():
     units, bundle = inputs()
-    eligible, excluded, order, waves, _, sid, switch = ext._prepare_bundle(units, bundle)
+    eligible, excluded, order, waves, _, sid, switch = prepare_bundle(units, bundle)
     assert list(eligible.cellid) == ['a', 'b', 'c']
     assert excluded == ('noise',)
     assert waves.shape == (3, 82, 4, 2)
     assert list(sid) == [0, 1, 1]
     assert list(switch) == [0, 1, 3]
     with pytest.raises(ValueError, match='session disagrees'):
-        ext._prepare_bundle(units, replace(bundle, session_ids=('s2', 's2', 's2', 's1')))
+        prepare_bundle(units, replace(bundle, session_ids=('s2', 's2', 's2', 's1')))
 
 
 def test_real_dates_order_native_sessions_without_relabeling_units_or_waveforms():
     units, bundle = inputs()
     units['session_date'] = ['2026-01-02', '2026-01-01', '2026-01-01', '2026-01-02']
-    eligible, _, order, waves, _, sid, switch = ext._prepare_bundle(units, bundle)
+    eligible, _, order, waves, _, sid, switch = prepare_bundle(units, bundle)
     assert list(eligible.cellid) == ['b', 'c', 'a']
     assert list(eligible.session_id) == ['s2', 's2', 's1']
     assert order.tolist() == [1, 2, 0]
@@ -59,14 +63,14 @@ def test_real_dates_order_native_sessions_without_relabeling_units_or_waveforms(
     assert sid.tolist() == [0, 0, 1] and switch.tolist() == [0, 2, 3]
     units.loc[2, 'session_date'] = '2026-01-03'
     with pytest.raises(ValueError, match='one explicit recording date'):
-        ext._prepare_bundle(units, bundle)
+        prepare_bundle(units, bundle)
 
 
 def test_directional_probabilities_not_averaged_into_a_match():
     units, bundle = inputs()
-    eligible = ext._prepare_bundle(units, bundle)[0]
+    eligible = prepare_bundle(units, bundle)[0]
     matrix = np.array([[1, .99, .2], [.15, 1, .1], [.3, .1, 1]])
-    pairs = ext._matrix_pairs(eligible, matrix)
+    pairs = _matrix_pairs(eligible, matrix)
     assert pairs.match_score.tolist() == [.15, .2, .1]
     assert pairs.official_probability_ab.tolist() == [.99, .2, .1]
 
@@ -78,9 +82,9 @@ def _um_same_day(monkeypatch, prob, tracking, n_spikes=(100., 50., 80.)):
         assign_unique_id=lambda p, prm, i: [np.array([0, 0, 0])] * 4)}.__getitem__)
     monkeypatch.setattr(um_adapter, '_source_info', lambda module: {'synthetic_api_mock': True})
     units, bundle = inputs()
-    eligible = ext._prepare_bundle(units, bundle)[0]
+    eligible = prepare_bundle(units, bundle)[0]
     eligible = eligible.assign(n_spikes=list(n_spikes))
-    return ext._um_result('unitmatch', units, eligible, np.array(prob), np.array([0, 1, 1]),
+    return _um_result('unitmatch', units, eligible, np.array(prob), np.array([0, 1, 1]),
                           {}, {}, tracking, {}, {})
 
 
@@ -144,7 +148,7 @@ def test_unitmatch_calls_official_scoring_and_native_tracker(monkeypatch):
     monkeypatch.setattr(um_adapter, '_um_setup', lambda w, g, sid, sw, p:
         ({'n_units': len(w), 'no_shanks': 1, 'shank_dist': 0.0}, {'session_id': sid},
          (sid[:, None] != sid).astype(int)))
-    result = ext.run_unitmatch(units, waveform_bundle=bundle, threshold=.9)
+    result = run_unitmatch(units, waveform_bundle=bundle, threshold=.9)
     assert calls == ['extract', 'metrics', 'native']
     assert result.tracks == (('a', 'b'),)
     assert result.unmatched == ('c',)
@@ -191,7 +195,7 @@ def test_dant_exports_milliseconds_and_aligned_peth_then_preserves_native_tracks
     from multiphy.backends import dant as dant_adapter
     monkeypatch.setattr(dant_adapter, '_source_info', lambda _: {'synthetic_api_mock': True})
     monkeypatch.setattr(dant_adapter, '_module', _fake_dant_lookup(run, motion_module))
-    result = ext.run_dant(units, waveform_bundle=bundle, settings=settings)
+    result = run_dant(units, waveform_bundle=bundle, settings=settings)
     assert result.tracks == (('a', 'b'),)
     assert result.unmatched == ('c',)
     assert result.pairs.match_score.isna().all()
@@ -203,7 +207,7 @@ def test_dant_exports_milliseconds_and_aligned_peth_then_preserves_native_tracks
 def test_dant_missing_stimulus_data_does_not_fabricate_peth():
     units, bundle = inputs()
     with pytest.raises(ValueError, match='PETH requires'):
-        ext.run_dant(units, waveform_bundle=bundle,
+        run_dant(units, waveform_bundle=bundle,
             settings={'clustering': {'features': ['PETH']}, 'motionEstimation': {'features': []}})
 
 
@@ -220,7 +224,7 @@ def test_dant_same_session_group_keeps_best_similarity(monkeypatch, tmp_path):
     from multiphy.backends import dant as dant_adapter
     monkeypatch.setattr(dant_adapter, '_module', _fake_dant_lookup(run, motion_module))
     monkeypatch.setattr(dant_adapter, '_source_info', lambda _: {'synthetic_api_mock': True})
-    result = ext.run_dant(units, waveform_bundle=bundle,
+    result = run_dant(units, waveform_bundle=bundle,
         settings={'clustering': {'features': ['Waveform']}, 'motionEstimation': {'features': []}})
     assert result.tracks == (('a', 'b'),)
     assert result.unmatched == ('c',)
@@ -234,17 +238,17 @@ def test_dant_same_session_group_keeps_best_similarity(monkeypatch, tmp_path):
 def test_deepunitmatch_requires_explicit_probe_compatible_checkpoint(tmp_path):
     units, bundle = inputs()
     with pytest.raises(BackendUnavailable, match='explicit trained checkpoint'):
-        ext.run_deepunitmatch(units, waveform_bundle=bundle)
+        run_deepunitmatch(units, waveform_bundle=bundle)
     checkpoint = tmp_path / 'checkpoint'
     checkpoint.write_bytes(b'test: never loaded')
     with pytest.raises(ValueError, match='probe type'):
-        ext.run_deepunitmatch(units, waveform_bundle=bundle,
+        run_deepunitmatch(units, waveform_bundle=bundle,
                               checkpoint=checkpoint, checkpoint_probe='NP2')
 
 
 def test_training_requires_heldout_groups_before_creating_files(tmp_path):
     units, bundle = inputs()
     with pytest.raises(ValueError, match='disjoint'):
-        ext.prepare_deepunitmatch_training(units, bundle, source_checkout=tmp_path,
+        prepare_deepunitmatch_training(units, bundle, source_checkout=tmp_path,
             output_dir=tmp_path / 'out', training_groups=['s1'], evaluation_groups=['s1'])
     assert not (tmp_path / 'out').exists()

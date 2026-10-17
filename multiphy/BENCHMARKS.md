@@ -125,7 +125,7 @@ remaining eligible population, including observations with no counterpart.
 Install the appropriate official implementation in the environment used to
 launch the command. The runners never silently install a package or replace
 an unavailable method. The API revisions are recorded in
-`external_backends.py`; current upstream DeepUnitMatch training is distinct
+`backends/_upstream.py`; current upstream DeepUnitMatch training is distinct
 from exact reproduction of its original preprint.
 
 ```bash

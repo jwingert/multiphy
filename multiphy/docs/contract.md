@@ -379,8 +379,8 @@ namespace (`'backend'`, `'tracking'`, `'evidence'`, `'metric'`, `'feature'`,
 returns the label and raises `KeyError` for anything not in the table, so an
 unexplained internal code can never reach a figure or the viewer. Backend ids are
 the one exception: any installed backend may lack an entry, so every place that names
-a backend (the viewer's method list and hint, `backends.list_backends()`, the
-`names.py` shim, `comparison_report.method_name`, and the CLI through
+a backend (the viewer's method list and hint, `backends.list_backends()`,
+`comparison_report.method_name`, and the CLI through
 `runner.backend_label`) calls `backend_label(id)`, `backend_short(id)` or
 `backend_help(id)`, which return the `NAMES['backend']` entry when there is one and
 otherwise the id itself (an empty string for help). Add a display string for a new

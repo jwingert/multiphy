@@ -2,7 +2,7 @@
 
 The voltage reader and all input times must already share a verified raw sample
 clock. This module does not guess a mapping from trial-relative spike times.
-Generated datasets belong beneath paths.CACHE_ROOT, never beside this source.
+Generated datasets belong beneath run/config.py:CACHE_ROOT, never beside this source.
 """
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -18,8 +18,8 @@ import numpy as np
 import pandas as pd
 
 from .evaluation import validate_partitions
-from .external_backends import RawWaveformBundle
-from .paths import resolve_cache_path
+from .contract.inputs import RawWaveformBundle
+from .run.config import resolve_cache_path
 
 
 @dataclass

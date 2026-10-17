@@ -16,7 +16,7 @@ import select
 import sys
 import time
 
-from . import paths
+from .run.config import new_run_path, resolve_cache_path
 
 
 def _load_dataset(path):
@@ -90,10 +90,10 @@ def prepare_deep_dataset(input_path, *, source_checkout, output_dir=None,
         raise ValueError('Benchmark source_groups must identify the original well for every session') from exc
     if training_groups & evaluation_groups:
         raise ValueError('Training and evaluation share original source groups; temporal pieces cannot cross holdouts')
-    output = (paths.new_run_path(dataset.metadata['dataset_id'], kind='training', root=root)
-              if output_dir is None else paths.resolve_cache_path(output_dir, root=root))
+    output = (new_run_path(dataset.metadata['dataset_id'], kind='training', root=root)
+              if output_dir is None else resolve_cache_path(output_dir, root=root))
     with _cache_runtime(root):
-        from .external_backends import prepare_deepunitmatch_training
+        from .backends.deepunitmatch import prepare_deepunitmatch_training
         return prepare_deepunitmatch_training(training.units, bundle,
             source_checkout=source_checkout, output_dir=output,
             training_groups=training_groups, evaluation_groups=evaluation_groups,
@@ -103,11 +103,11 @@ def prepare_deep_dataset(input_path, *, source_checkout, output_dir=None,
 
 def train_prepared(prepared_dir, *, python_executable=None, root=None):
     """Only this explicit command executes a previously prepared training run."""
-    prepared = paths.resolve_cache_path(prepared_dir, root=root)
+    prepared = resolve_cache_path(prepared_dir, root=root)
     if not (prepared / 'training_manifest.json').is_file():
         raise ValueError('Prepared directory has no training_manifest.json')
     with _cache_runtime(root):
-        from .external_backends import train_deepunitmatch
+        from .backends.deepunitmatch import train_deepunitmatch
         return train_deepunitmatch(prepared, python_executable=python_executable)
 
 
@@ -193,7 +193,7 @@ def main(argv=None):
             if args.wait_for_pid is not None:
                 # Fail before a long dependency wait if the requested official
                 # implementation cannot import in this interpreter.
-                from .external_backends import _module
+                from .backends._upstream import module as _module
                 _module({'unitmatch': 'UnitMatchPy.overlord', 'dant': 'pyDANT.Runner',
                          'deepunitmatch': 'UnitMatchPy.overlord'}[args.backend])
                 wait_for_extraction(args.wait_for_pid, args.input)

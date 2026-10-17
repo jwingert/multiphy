@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from multiphy import evidence as ev
+from multiphy.backends.local import evidence as ev
 from multiphy.backends.local import functional_likelihood as fl
 from multiphy.backends.local.references import alternating_references
 from multiphy.contract.inputs import TrialTiming

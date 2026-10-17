@@ -45,7 +45,7 @@ run has its own history, `curation/runs/<run>/history.csv`, so switching runs
 does not touch another run's curation.
 
 `backends.MatchResult` provides the common units, pair evidence, tracks,
-unmatched units, and provenance contract. `external_backends` calls genuine
+unmatched units, and provenance contract. The `backends/` adapters call genuine
 optional UnitMatch, DANT, and DeepUnitMatch implementations; missing packages,
 raw waveforms, or checkpoints produce explicit errors rather than substitutions.
 Published algorithm outputs must state whether native tracking or the common
@@ -170,7 +170,7 @@ on shared inputs, rather than reproducing each author's extraction recipe.
 
 The contract is documented in `docs/contract.md`; adding a method is `docs/adding_a_backend.md`.
 
-`evidence.py` and `store.py` import no UI toolkit and no recording loader, so
+`backends/local/evidence.py` and `store.py` import no UI toolkit and no recording loader, so
 the science is testable without a display and the viewer is replaceable.
 
 ## Use

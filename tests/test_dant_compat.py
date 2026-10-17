@@ -3,8 +3,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from multiphy.dant_compat import run_native_dant
-from multiphy.dant_settings import default_dant_settings
+from multiphy.backends.dant import run_native_dant, default_dant_settings
 
 
 class Motion:

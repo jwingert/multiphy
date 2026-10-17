@@ -31,7 +31,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from multiphy import evidence as ev
+from multiphy.backends.local import evidence as ev
 
 DEFAULT_THRESHOLD = 0.90
 # the ledger API (LEDGER_ROOT, ledger_path, load_ledger, append, current,

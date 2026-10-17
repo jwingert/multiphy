@@ -60,15 +60,15 @@ matching. A matching method may leave any unit unmatched.
   autocorrelation histograms, acoustic-condition-specific fingerprints, trial
   counts, and separate waveform halves inside each pseudo-session. Unusable
   splits carry an exclusion reason; missing waveforms are never duplicated.
-- `evidence.py:CalibratedPairModel`: regularized feature classification and
+- `backends/local/calibrated.py:CalibratedPairModel`: regularized feature classification and
   separate source-group calibration, explicit missing-feature indicators,
   JSON-compatible model state. No runner fits or loads it.
 - `evaluation.py`: source-group partition validation and held-out evaluation
   against source-cluster reference identities. Across unrelated source
   recordings, cell identity is unknown rather than automatically negative.
-- `external_backends.py`: optional upstream adapters and explicit DeepUnitMatch
+- the `backends/` adapters: optional upstream adapters and explicit DeepUnitMatch
   model/training preparation. Input and dependency checks fail explicitly.
-- `paths.py`: shared cache root and generated-output containment.
+- `run/config.py`: shared cache root and generated-output containment.
 - `waveform_preprocessing.py`: shared filtered, median-referenced, unwhitened
   voltage representation; 150-Hz third-order forward/backward Butterworth with
   buffered context before cropping. All matchers use one compact waveform archive.

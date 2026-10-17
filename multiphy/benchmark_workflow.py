@@ -14,7 +14,7 @@ from pathlib import Path
 import socket
 import uuid
 
-from .paths import resolve_cache_path
+from .run.config import resolve_cache_path
 
 
 def _digest(path):
@@ -142,7 +142,7 @@ def run_workflow(training, calibration, test, missing_test, output, *, source_ch
 def _run_workflow_locked(flow, paths, *, source_checkout, training_pid, calibration_pid, root):
     from .benchmark import load_dataset
     from .benchmark_collection import create_collection
-    from .dant_settings import default_dant_settings
+    from .backends.dant import default_dant_settings
     from .runners import wait_for_extraction, prepare_deep_dataset, train_prepared, run_backend_dataset
     training, calibration, test, missing_test = paths
     config = flow.state['config']

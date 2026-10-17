@@ -1,7 +1,7 @@
 """How each probability is formed, for the day pair on screen: the fitted mixture of every stream."""
 import numpy as np
 
-from multiphy import evidence as ev
+from multiphy.backends.local import evidence as ev
 import matplotlib
 
 from multiphy.viewer import theme

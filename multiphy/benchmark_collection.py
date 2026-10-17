@@ -11,7 +11,7 @@ import tempfile
 
 import pandas as pd
 
-from .paths import resolve_cache_path
+from .run.config import resolve_cache_path
 
 
 def _digest(path):

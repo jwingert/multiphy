@@ -54,7 +54,7 @@ class CheckpointRef:
     sha256: str | None = None
 
 
-# --- RawWaveformBundle: moved verbatim from external_backends.py ---
+# --- RawWaveformBundle ---
 @dataclass(frozen=True)
 class RawWaveformBundle:
     """Independently extracted raw means, never duplicated sorting templates.

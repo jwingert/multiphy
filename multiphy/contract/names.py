@@ -28,7 +28,7 @@ NAMES = {
         'dant': Name('DANT — waveform, spike timing, optional stimulus response', 'DANT'),
         'deepunitmatch': Name('DeepUnitMatch — learned waveform features', 'DeepUnitMatch'),
     },
-    'tracking': {  # move TRACKING_NAMES + TRACKING_HELP from names.py and TRACKING from reporting_names.py here
+    'tracking': {
         'native_intermediate': Name('Published rule: intermediate grouping', 'native intermediate tracking',
                                     'Intermediate: for each proposed link, both observations must also match members of the other track in the same or adjacent temporal parts.'),
         'native_conservative': Name('Published rule: conservative grouping', 'native conservative tracking',
@@ -70,7 +70,7 @@ NAMES = {
         'PETH': Name('Stimulus response fingerprint'),
         'ISI': Name('Interspike interval distribution'),
     },
-    'dant_preset': {  # names.DANT_PRESET_NAMES
+    'dant_preset': {
         'waveform_acg': Name('Waveform + spike timing'),
         'waveform_acg_stimulus': Name('Waveform + spike timing + stimulus fingerprint'),
         'upstream_example': Name('Published example: fingerprint for motion estimation only'),

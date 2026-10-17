@@ -1,6 +1,6 @@
 """Helpers shared by the UnitMatch, DANT and DeepUnitMatch adapters.
 
-Moved from ``external_backends.py``: package import with a BackendUnavailable on failure,
+Package import with a BackendUnavailable on failure,
 installed version, source hashing, raw-waveform bundle preparation and the isolated
 DeepUnitMatch import. ``availability`` probes a package with ``find_spec`` only, so listing
 backends never imports an upstream numerical stack.

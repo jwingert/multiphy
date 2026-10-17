@@ -10,7 +10,7 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from . import evidence as ev
+from .backends.local import evidence as ev
 from .backends import single_units
 
 

@@ -8,7 +8,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from multiphy import paths, runners, external_backends
+from multiphy import runners
+from multiphy.backends import deepunitmatch
+from multiphy.contract.inputs import RawWaveformBundle
+from multiphy.run import config
 from multiphy.backends import BackendUnavailable, load_result, result_from_pairs
 from multiphy.backends import unitmatch as unitmatch_backend
 from multiphy.contract.backend import Availability
@@ -36,7 +39,7 @@ class Dataset:
         return Dataset(tuple(ids), self.source_groups)
 
     def waveform_bundle(self):
-        return external_backends.RawWaveformBundle(tuple(self.units.cellid),
+        return RawWaveformBundle(tuple(self.units.cellid),
             np.zeros((len(self.units), 82, 4, 2)), tuple(self.units.session_id),
             {s: np.zeros((4, 2)) for s in self.units.session_id},
             provenance={'source_groups': self.source_groups})
@@ -49,10 +52,10 @@ def test_cache_paths_reject_traversal_and_symlink_escape(tmp_path):
     outside.mkdir()
     (root / 'escape').symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError, match='stay under'):
-        paths.resolve_cache_path('escape/result', root=root)
+        config.resolve_cache_path('escape/result', root=root)
     with pytest.raises(ValueError, match='directory name'):
-        paths.new_run_path('../repo', root=root)
-    first, second = paths.new_run_path('dataset', root=root), paths.new_run_path('dataset', root=root)
+        config.new_run_path('../repo', root=root)
+    first, second = config.new_run_path('dataset', root=root), config.new_run_path('dataset', root=root)
     assert first != second
     assert first.parent == root / 'benchmarks/dataset/runs'
     assert not first.exists()
@@ -149,8 +152,8 @@ def test_prepare_selects_only_training_sources_and_does_not_train(tmp_path, monk
         assert units.cellid.tolist() == ['a', 'b']
         assert bundle.cellids == ('a', 'b')
         return kwargs['output_dir']
-    monkeypatch.setattr(external_backends, 'prepare_deepunitmatch_training', prepare)
-    monkeypatch.setattr(external_backends, 'train_deepunitmatch',
+    monkeypatch.setattr(deepunitmatch, 'prepare_deepunitmatch_training', prepare)
+    monkeypatch.setattr(deepunitmatch, 'train_deepunitmatch',
                         lambda *a, **k: pytest.fail('preparation must not launch training'))
     output = runners.prepare_deep_dataset(tmp_path / 'input', source_checkout=tmp_path / 'source', root=tmp_path)
     assert output.parent == tmp_path / 'benchmarks/example/training'

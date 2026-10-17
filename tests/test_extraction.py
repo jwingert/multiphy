@@ -107,7 +107,7 @@ def test_manifest_end_to_end_and_clock_refusal(tmp_path, monkeypatch, separate_s
 
 def test_scratch_location_rejects_relative_repository_and_symlink_escape(tmp_path):
     from pathlib import Path
-    from multiphy.paths import extraction_scratch_root
+    from multiphy.run.config import extraction_scratch_root
     with pytest.raises(ValueError, match='absolute'):
         extraction_scratch_root('local-scratch')
     repository = Path(__file__).resolve().parents[1]

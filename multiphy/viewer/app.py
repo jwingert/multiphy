@@ -23,7 +23,8 @@ from multiphy import curation
 from multiphy import store as st
 from multiphy.contract import names
 from multiphy.contract.results import MatchResult
-from multiphy import backends, paths
+from multiphy import backends
+from multiphy.run.config import resolve_cache_path
 from multiphy.project.selection import SELECTION_FILE, Selection, selection_of_run
 from multiphy.run.project_run import selection_runs
 from multiphy.viewer.modes import MODES
@@ -778,7 +779,7 @@ def open_run(run_dir) -> App:
     result = backends.load_result(entry.result_path)
     display.require_run_evidence(result.provenance)
     mode = MODES[selection.mode]
-    window = App(mode, layout_file=paths.resolve_cache_path(mode.layout_name, root=selection.project.root),
+    window = App(mode, layout_file=resolve_cache_path(mode.layout_name, root=selection.project.root),
                  selection=selection)
     try:
         window.open_result(result, entry.result_path.parent)

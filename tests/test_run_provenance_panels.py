@@ -68,7 +68,7 @@ def test_mixture_panel_draws_the_fitted_model(qt):
     """The drawn P(same) curve is the posterior of the Mixture the backend fits, bandwidth included."""
     import numpy as np
     import pandas as pd
-    from multiphy import evidence as ev
+    from multiphy.backends.local import evidence as ev
     rng = np.random.default_rng(0)
     same, diff = rng.normal(1.0, 0.4, 40), rng.normal(-0.5, 0.6, 60)
     model = ev.Mixture(same, diff).fit(np.concatenate([same[:10], diff[:30]]))

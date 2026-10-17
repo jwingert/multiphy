@@ -12,7 +12,7 @@ from .benchmark import load_dataset
 from .backends import load_result
 from .benchmark_pairs import _aligned_fingerprints
 from .evaluation import evaluate_result
-from .paths import resolve_cache_path
+from .run.config import resolve_cache_path
 from .reporting_names import DEFINITIONS, count_range
 
 
@@ -271,7 +271,7 @@ Check gross timing and reproducibility of extracted temporal waveforms, and desc
 ### Panels A onward: missed source-identity pair overlays
 - **Made by:** `_plot_misses()` in `multiphy/diagnostic_report.py`.
 - **Input:** compact waveform means for source-identity pairs absent from result tracks.
-- **Steps:** select one shared electrode by largest peak-to-peak amplitude of the two-observation mean; overlay each original mean without realignment or scaling; place zero at the exported timestamp using the measured sample rate. Plot titles show full multichannel Pearson correlations, not the displayed electrode alone. Internal reliability halves split each outer sample interval at its midpoint in features.py:temporal_split_unit_features(); the full-observation mean is sampled separately. UnitMatch directional comparisons and native tracking are defined in external_backends.py:_matrix_pairs() and _um_result(), using the pinned upstream metric_functions.py and assign_unique_id.py.
+- **Steps:** select one shared electrode by largest peak-to-peak amplitude of the two-observation mean; overlay each original mean without realignment or scaling; place zero at the exported timestamp using the measured sample rate. Plot titles show full multichannel Pearson correlations, not the displayed electrode alone. Internal reliability halves split each outer sample interval at its midpoint in features.py:temporal_split_unit_features(); the full-observation mean is sampled separately. UnitMatch directional comparisons and native tracking are defined in backends/unitmatch.py:_matrix_pairs() and _um_result(), using the pinned upstream metric_functions.py and assign_unique_id.py.
 - **Shows:** absolute-time morphology and amplitude consistency for the missed pairs.
 
 ## Caveats

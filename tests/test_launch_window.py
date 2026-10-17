@@ -8,7 +8,7 @@ import typing
 from typing import Optional
 
 import pytest
-from PySide6 import QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtTest import QTest
 
 from multiphy.launch import commands
@@ -18,8 +18,9 @@ from multiphy.launch.plugins import PluginApi
 from multiphy.launch.window import LauncherWindow, day_rows, list_projects, run_groups, run_window
 from multiphy.project.folder import Project
 from multiphy.run import catalog
+from multiphy.viewer import app as viewer_app
 
-from .launch_window_fixtures import qt, runs, wait_until  # noqa: F401 (fixtures by name)
+from .launch_window_fixtures import held_reads, open_and_wait, qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import extracted_project, write_day
 
 
@@ -104,22 +105,176 @@ def test_open_run_by_kind(qt, runs, monkeypatch):
     across, day = _top(window)
     try:
         window.run_tree.setCurrentItem(across.child(0))
-        window.open_run()
+        open_and_wait(window)
         assert window.viewers[-1].mode.id == 'across_days'
         assert window.viewers[-1].curation is not None
         window.run_tree.setCurrentItem(day.child(0))
-        window.open_run()
+        open_and_wait(window)
         assert window.viewers[-1].mode.id == 'same_day'
         assert window.viewers[-1].curation is None
         assert len(window.viewers) == 2
         monkeypatch.setitem(sys.modules, 'multiphy.viewer.app', None)
         window.open_run()
         assert _last_log(window).startswith('error:')
+        assert window.opening() is False
+        assert (window.open_button.text(), window.open_button.isEnabled()) == ('Inspect…', True)
         assert len(window.viewers) == 2
     finally:
         for viewer in window.viewers:
             _close(viewer)
         _close(window)
+
+
+def _close_all(window: LauncherWindow) -> None:
+    for viewer in window.viewers:
+        _close(viewer)
+    _close(window)
+
+
+def _opening_text(window: LauncherWindow, label: str) -> None:
+    text = window.open_button.text()
+    assert text[0] in '◐◓◑◒', text
+    assert text[1:] == ' opening · ' + label
+    assert window.open_button.isEnabled() is False
+
+
+def test_open_locks_button_while_reading(qt, runs, held_reads, monkeypatch):
+    window = _window(runs['root'], 'P')
+    try:
+        window.resize(1280, 860)
+        window.show()
+        item = _top(window)[0].child(0)
+        label = item.text(0)
+        window.run_tree.setCurrentItem(item)
+        states = []
+        original = viewer_app.open_prepared
+
+        def recording(prepared):
+            states.append(window.open_button.isEnabled())
+            return original(prepared)
+
+        monkeypatch.setattr(viewer_app, 'open_prepared', recording)
+        window.open_run()
+        button = window.open_button
+        assert (button.text(), button.toolTip(), button.isEnabled()) == (
+            '◐ opening · ' + label, '◐ opening · ' + label, False)
+        window.open_run()
+        assert wait_until(lambda: window.open_button.text() == '◓ opening · ' + label, 5)
+        assert window.viewers == []
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert [(p.resolve(), main) for p, main in held_reads.calls] == [(runs['across'].resolve(), False)]
+        assert states == [False]
+        assert len(window.viewers) == 1
+        assert window.viewers[0].mode.id == 'across_days'
+        assert window.viewers[0].isVisible() is True
+        assert (window.open_button.text(), window.open_button.isEnabled()) == ('Curate…', True)
+    finally:
+        _close_all(window)
+
+
+def test_open_lock_survives_redraws(qt, runs, held_reads):
+    window = _window(runs['root'], 'P')
+    try:
+        window.resize(1280, 860)
+        window.show()
+        item = _top(window)[0].child(0)
+        label = item.text(0)
+        window.run_tree.setCurrentItem(item)
+        window.open_run()
+        window.reload()
+        _opening_text(window, label)
+        window.run_tree.setCurrentItem(_top(window)[1].child(0))  # a day's run
+        _opening_text(window, label)
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert (window.open_button.text(), window.open_button.isEnabled()) == ('Inspect…', True)
+        assert window.viewers[0].mode.id == 'across_days'
+    finally:
+        _close_all(window)
+
+
+def _post_click(widget: QtWidgets.QWidget) -> None:
+    centre = QtCore.QPointF(widget.rect().center())
+    world = QtCore.QPointF(widget.mapToGlobal(widget.rect().center()))
+    for kind, buttons in ((QtCore.QEvent.MouseButtonPress, QtCore.Qt.LeftButton),
+                          (QtCore.QEvent.MouseButtonRelease, QtCore.Qt.NoButton)):
+        event = QtGui.QMouseEvent(kind, centre, world, QtCore.Qt.LeftButton, buttons, QtCore.Qt.NoModifier)
+        QtCore.QCoreApplication.postEvent(widget, event)
+
+
+def test_clicks_during_window_build_are_dropped(qt, runs, held_reads, monkeypatch):
+    window = _window(runs['root'], 'P')
+    try:
+        window.resize(1280, 860)
+        window.show()
+        window.run_tree.setCurrentItem(_top(window)[0].child(0))
+        held_reads.release()
+        original = viewer_app.open_prepared
+
+        def clicking(prepared):
+            _post_click(window.open_button)
+            _post_click(window.open_button)
+            return original(prepared)
+
+        monkeypatch.setattr(viewer_app, 'open_prepared', clicking)
+        open_and_wait(window)
+        QTest.qWait(200)
+        assert len(held_reads.calls) == 1
+        assert len(window.viewers) == 1
+        assert window.opening() is False
+        assert (window.open_button.text(), window.open_button.isEnabled()) == ('Curate…', True)
+    finally:
+        _close_all(window)
+
+
+@pytest.mark.parametrize('stage', ('prepare_run', 'open_prepared', 'show'))
+def test_failed_open_unlocks(qt, runs, monkeypatch, stage):
+    def boom(*_args, **_kwargs):
+        raise ValueError('boom')
+
+    if stage == 'show':
+        monkeypatch.setattr(viewer_app.App, 'show', boom)
+    else:
+        monkeypatch.setattr(viewer_app, stage, boom)
+    window = _window(runs['root'], 'P')
+    try:
+        window.run_tree.setCurrentItem(_top(window)[0].child(0))
+        open_and_wait(window)
+        assert _last_log(window) == 'error: boom'
+        assert (window.open_button.text(), window.open_button.isEnabled()) == ('Curate…', True)
+        assert window.viewers == []
+        lock = runs['root'] / 'P' / 'curation' / 'runs' / runs['across'].name / 'history.lock'
+        assert lock.exists() is False
+    finally:
+        _close_all(window)
+
+
+def test_opening_text_elides_long_run_label(qt, runs, held_reads):
+    long = 'Functional likelihood · 10-15 · 20261015T194032Z_functional_likelihood_f2bd29f1'
+    window = _window(runs['root'], 'P')
+    try:
+        window.resize(1280, 711)
+        window.show()
+        QTest.qWait(50)
+        item = _top(window)[0].child(0)
+        item.setText(0, long)
+        window.run_tree.setCurrentItem(item)
+        column = window.open_button.parentWidget().width()
+        height = window.open_button.height()
+        window.open_run()
+        QTest.qWait(50)
+        assert '…' in window.open_button.text()
+        assert window.open_button.toolTip()[1:] == ' opening · ' + long
+        assert window.open_button.parentWidget().width() == column
+        assert window.open_button.width() == column
+        assert window.open_button.height() == height
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert window.open_button.text() == 'Curate…'
+        assert window.open_button.parentWidget().width() == column
+    finally:
+        _close_all(window)
 
 
 def test_reload_error_clears_lists(qt, tmp_path):
@@ -259,6 +414,8 @@ def test_window_signatures():
     assert hints(LauncherWindow.reload) == {'return': type(None)}
     assert hints(LauncherWindow.set_root) == {'path': Path, 'return': bool}
     assert hints(LauncherWindow.open_run) == {'return': type(None)}
+    assert hints(LauncherWindow.opening) == {'return': bool}
+    assert hints(open_and_wait) == {'timeout_s': float, 'return': type(None)}
     assert hints(LauncherWindow.append_log) == {'line': str, 'return': type(None)}
     assert hints(run_window) == {'root': Path, 'project': Optional[str], 'plugins': PluginApi, 'return': int}
     assert hints(wait_until) == {'timeout_s': float, 'return': bool}

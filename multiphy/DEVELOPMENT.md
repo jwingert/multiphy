@@ -47,9 +47,10 @@ matching. A matching method may leave any unit unmatched.
 - `launch/window.py` (`launch gui`) runs every command as a CLI child from forms read off the
   CLI parser (`launch/forms.py`), greys backends by `selection_inputs` and `check_real_day_run`,
   shows the run's evidence tags from `Selection.evidence` and greys the `stimulus` feature stream
-  without events, and cancels with SIGINT, then a kill after 10 s; the launcher and the viewer
-  share the dark-first theme of `viewer/theme.py` and the `Settings` and `Help` menus of
-  `viewer/menus.py`.
+  without events, and cancels with SIGINT, then a kill after 10 s; it reads a run to open on one
+  worker thread (`viewer/app.py` `prepare_run`) and builds its viewer on the GUI thread
+  (`open_prepared`); the launcher and the viewer share the dark-first theme of `viewer/theme.py`
+  and the `Settings` and `Help` menus of `viewer/menus.py`.
 - `backends/`: the `functional_likelihood` and `pair_logistic` local matchers, the common tracker,
   result validation, the backend registry, run provenance.
 - `features.py:temporal_sample_windows()`: shared contiguous sample windows.

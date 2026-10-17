@@ -3,12 +3,14 @@
 ``list_projects``, ``day_rows`` and ``run_groups`` read what the window lists. ``LauncherWindow``
 shows the root, a project picker, the project's days (checkable) and its runs grouped as
 ``across days`` then one group per day, and opens the selected run with ``Curate…`` or
-``Inspect…``. The window writes no project data itself. ``run_window`` runs it as an
+``Inspect…``. The selected run is read on one worker thread while the open button shows a spinner
+and stays locked. The window writes no project data itself. ``run_window`` runs it as an
 application. Qt comes only from ``..viewer.qt``; no lab module is imported.
 """
 from __future__ import annotations
 
 import codecs
+import concurrent.futures
 import os
 import shlex
 import signal
@@ -56,6 +58,8 @@ EDGE = 18                # px between the window's edge and its panes
 GAP = 16                 # px between panes: the splitter handles
 SPACING = 8              # px between the widgets of a pane, and around a tab's form
 FORM_ROWS = 12           # px between form rows; a row's label sits FORM_ROWS + 4 px from its field
+SPIN_FRAMES = '◐◓◑◒'     # the open button's spinner while a run opens (D10)
+SPIN_MS = 150            # ms per spinner frame
 INFO_LINE = re.compile(r'^\[[^\]]* INFO\]')
 _EXIT_LINE = re.compile(r'exit (-?\d+)')
 
@@ -243,6 +247,46 @@ class _ElidedLabel(QtWidgets.QLabel):
         self._elide()
 
 
+class _ElidedButton(QtWidgets.QPushButton):
+    """A push button that shows its full text elided in the middle to its width, the full text as hover;
+    it never widens its column, and keeps one height whether it shows text or a spinner frame (D9)."""
+
+    def __init__(self, text: str = '', parent=None):
+        super().__init__(parent)
+        self._full = ''
+        self.setMinimumWidth(1)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
+        self.set_full_text(text)
+
+    def set_full_text(self, text: str) -> None:
+        self._full = text
+        self.setToolTip(text)
+        self._elide()
+
+    def full_text(self) -> str:
+        return self._full
+
+    def _elide(self) -> None:
+        option = QtWidgets.QStyleOptionButton()
+        self.initStyleOption(option)
+        width = self.style().subElementRect(QtWidgets.QStyle.SE_PushButtonContents, option, self).width()
+        self.setText(QtGui.QFontMetrics(self.font()).elidedText(self._full, QtCore.Qt.ElideMiddle, max(width, 1)))
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._elide()
+
+    def sizeHint(self) -> QtCore.QSize:
+        """The push button's hint, its height raised to that of a one-glyph text, so a spinner frame
+        never changes the button's height."""
+        hint = super().sizeHint()
+        option = QtWidgets.QStyleOptionButton()
+        self.initStyleOption(option)
+        glyph = self.fontMetrics().size(QtCore.Qt.TextShowMnemonic, SPIN_FRAMES[0])
+        spun = self.style().sizeFromContents(QtWidgets.QStyle.CT_PushButton, option, glyph, self)
+        return QtCore.QSize(hint.width(), max(hint.height(), spun.height()))
+
+
 def _space_form(form: QtWidgets.QFormLayout) -> None:
     """``FORM_ROWS`` px between ``form``'s rows; ``FORM_ROWS + 4`` px between a label and its field."""
     form.setVerticalSpacing(FORM_ROWS)
@@ -255,6 +299,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
     ``plugins`` gives the plugin commands; ``process_factory`` and ``interpreter_lookup`` are kept
     for the command tabs. ``forms`` holds each command's form fields, read off the CLI's parser.
     """
+
+    _read_done = QtCore.Signal(object)  # (PreparedRun, None) or (None, exception), from the read's worker
 
     def __init__(self, root: Path, project: Optional[str] = None, *, plugins: PluginApi, process_factory=None,
                  interpreter_lookup=None):
@@ -301,6 +347,14 @@ class LauncherWindow(QtWidgets.QMainWindow):
             except ValueError:  # not a folder directly under the root: kept as given
                 name = project
         self._wanted = (name,)  # the next reload selects this name, or the first project for None
+        self._opening = None  # the Future of the read in progress
+        self._opening_label = ''  # the run list label of the run being opened
+        self._reader = None  # the one-worker ThreadPoolExecutor, made on the first open
+        self._spin_frame = 0
+        self._spin_timer = QtCore.QTimer(self)
+        self._spin_timer.setInterval(SPIN_MS)
+        self._spin_timer.timeout.connect(self._spin)
+        self._read_done.connect(self._open_ready, QtCore.Qt.QueuedConnection)
         self._build()
         self._open_size()
         menus.install_menus(self, (self.root_action,))
@@ -335,7 +389,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.run_tree = QtWidgets.QTreeWidget()
         self.run_tree.setHeaderHidden(True)
         self.run_tree.itemSelectionChanged.connect(self._update_open_button)
-        self.open_button = QtWidgets.QPushButton('Curate…')
+        self.open_button = _ElidedButton('Curate…')
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self.open_run)
 
@@ -524,30 +578,92 @@ class LauncherWindow(QtWidgets.QMainWindow):
         return items[0]
 
     def _update_open_button(self) -> None:
-        """``Curate…`` for an across-day run, ``Inspect…`` for a day's run, disabled otherwise (D20)."""
+        """While a run opens, ``<frame> opening · <run>``, disabled, whatever is selected; otherwise
+        ``Curate…`` for an across-day run, ``Inspect…`` for a day's run, disabled without a run (D20)."""
+        if self._opening is not None:
+            self.open_button.set_full_text(f'{SPIN_FRAMES[self._spin_frame]} opening · {self._opening_label}')
+            self.open_button.setEnabled(False)
+            return
         child = self._selected_child()
         if child is None:
-            self.open_button.setText('Curate…')
+            self.open_button.set_full_text('Curate…')
             self.open_button.setEnabled(False)
             return
         across = child.parent().text(0) == ACROSS_DAYS
-        self.open_button.setText('Curate…' if across else 'Inspect…')
+        self.open_button.set_full_text('Curate…' if across else 'Inspect…')
         self.open_button.setEnabled(True)
 
+    def opening(self) -> bool:
+        """True from an open's start until its viewer shows or the open fails."""
+        return self._opening is not None
+
     def open_run(self) -> None:
-        """Open the selected run in its viewer; several may be open, and they outlive the launcher (D1, D27)."""
+        """Open the selected run in its viewer: the run is read on the worker thread, and the button shows
+        the spinner and stays locked until the viewer shows or the open fails; a click or call meanwhile does
+        nothing (D2, D3, D4). Several viewers may be open, and they outlive the launcher (D1, D27)."""
+        if self._opening is not None:
+            return
         child = self._selected_child()
         if child is None:
             return
         entry = child.data(0, _ENTRY_ROLE)
         try:
-            from ..viewer.app import open_run
-            viewer = open_run(entry.folder)
+            from ..viewer.app import prepare_run
+            if self._reader is None:
+                self._reader = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix='multiphy-open')
+            future = self._reader.submit(self._read, prepare_run, entry.folder)
         except Exception as exc:
             self.append_log(f'error: {exc}')
+            if self._reader is not None:
+                self._reader.shutdown(wait=False)
+            self._reader = None
             return
-        viewer.show()
-        self.viewers.append(viewer)
+        self._opening = future
+        self._opening_label = child.text(0)
+        self._spin_frame = 0
+        self._spin_timer.start()
+        self._update_open_button()  # the queued result cannot arrive before this returns
+
+    def _read(self, prepare, folder) -> None:
+        """The worker thread's body: read ``folder`` with ``prepare`` and emit the outcome; no Qt object
+        is touched but the emit."""
+        try:
+            payload = (prepare(folder), None)
+        except BaseException as exc:  # every failure reaches the log pane and unlocks the button (D3)
+            payload = (None, exc)
+        self._read_done.emit(payload)
+
+    def _spin(self) -> None:
+        self._spin_frame = (self._spin_frame + 1) % len(SPIN_FRAMES)
+        self._update_open_button()
+
+    def _open_ready(self, payload) -> None:
+        """On the GUI thread: build and show the read run's viewer, or log the failure; then unlock the
+        button, after the clicks queued while the window was built reached it still locked (D3, D11)."""
+        prepared, error = payload
+        viewer = None
+        opened = False
+        try:
+            if error is None:
+                from ..viewer.app import open_prepared  # read at call time, so tests may replace it
+                viewer = open_prepared(prepared)
+                viewer.show()
+                self.viewers.append(viewer)
+                opened = True
+        except Exception as exc:
+            error = exc
+        finally:
+            if viewer is not None and not opened:
+                try:
+                    viewer.close()  # a viewer built but not shown gives its run's lock back
+                except Exception as close_error:
+                    self.append_log(f'error: {close_error}')
+            QtWidgets.QApplication.processEvents()  # clicks queued while the window was built reach the still-locked button and are dropped (D11)
+            self._opening = None
+            self._spin_timer.stop()
+            self._update_open_button()
+        if error is not None:
+            self.append_log(f'error: {error}')
 
     def _choose_root(self) -> None:
         path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Root', str(self.root))

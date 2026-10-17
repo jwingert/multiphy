@@ -2,13 +2,15 @@
 
 ``qt`` builds the offscreen ``QApplication``; ``runs`` is one project with an across-day run, a
 same-day run, an initialised-only day and an unfinished run folder, under a root path holding ``' · '``;
-``wait_until`` spins the event loop until a predicate holds; ``FakeProcess`` stands in for
-``CommandProcess``.
+``wait_until`` spins the event loop until a predicate holds; ``open_and_wait`` opens the selected run
+and waits until the open ends; ``held_reads`` holds every launcher read at a gate until released
+(``HeldReads``); ``FakeProcess`` stands in for ``CommandProcess``.
 """
 from __future__ import annotations
 
 import os
 from pathlib import Path
+import threading
 import time
 
 import pytest
@@ -54,6 +56,65 @@ def wait_until(predicate, timeout_s: float) -> bool:
     while not predicate() and time.monotonic() < deadline:
         QTest.qWait(50)
     return predicate()
+
+
+def open_and_wait(window, timeout_s: float = 120.0) -> None:
+    """``window.open_run()``, then spin the event loop until the open has ended (viewer shown or failed)."""
+    window.open_run()
+    assert wait_until(lambda: not window.opening(), timeout_s)
+
+
+class HeldReads:
+    """The launcher's reads held at ``gate``: ``calls`` lists ``(run_dir, on_main_thread)`` of each read,
+    ``running`` counts the held reads not yet returned, and ``error``, when set, is raised by a read once
+    released; ``release()`` opens the gate."""
+
+    def __init__(self):
+        self.gate = threading.Event()
+        self.calls = []
+        self.error = None
+        self.running = 0
+        self._count = threading.Lock()
+
+    def release(self) -> None:
+        self.gate.set()
+
+    def _add(self, step: int) -> None:
+        with self._count:
+            self.running += step
+
+
+@pytest.fixture
+def held_reads(monkeypatch):
+    """Replace ``multiphy.viewer.app.prepare_run`` with a read that waits at the yielded ``HeldReads``'s
+    gate, then reads with the original. At teardown, while the patch still holds, it releases, waits for
+    every held read to return and its completion to arrive, then closes every visible viewer left."""
+    from multiphy.viewer import app as viewer_app
+    original = viewer_app.prepare_run
+    held = HeldReads()
+
+    def held_prepare(run_dir):
+        held.calls.append((Path(run_dir), threading.current_thread() is threading.main_thread()))
+        held._add(1)
+        try:
+            assert held.gate.wait(60), 'the held read was never released'
+            if held.error is not None:
+                raise held.error
+            return original(run_dir)
+        finally:
+            held._add(-1)
+
+    monkeypatch.setattr(viewer_app, 'prepare_run', held_prepare)
+    try:
+        yield held
+    finally:
+        held.release()
+        wait_until(lambda: held.running == 0, 120)
+        QTest.qWait(100)  # queued completions arrive
+        for widget in QtWidgets.QApplication.topLevelWidgets():
+            if isinstance(widget, viewer_app.App) and widget.isVisible():
+                widget.close()
+        QtWidgets.QApplication.processEvents()
 
 
 class FakeProcess(QtCore.QObject):

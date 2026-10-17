@@ -513,7 +513,11 @@ $ python -m multiphy.launch --root /data/multiphy gui M1
 `across days`, then each day's same-day runs. A run is listed once its run manifest and its
 result are both written (by a backend this install knows), even when Cancel arrived after
 that; an unfinished run is not. `Curate…` opens an across-days run and `Inspect…` a same-day
-run, each in its own viewer window, which stays open when the launcher closes.
+run, each in its own viewer window, which stays open when the launcher closes. While a run
+opens, its button reads `◐ opening · <run>` and stays locked until the viewer shows; clicks
+meanwhile are dropped. The spinner turns and the launcher and open viewers stay responsive
+while the run is read; they pause while its window is built. A failed open logs `error: …`
+and unlocks the button.
 
 **Right.** One tab per command: Initialization (`init`), Extract features (`extract`), Run
 matching (`run`), Export tracks (`export`), Status (`status`), then each plugin command under

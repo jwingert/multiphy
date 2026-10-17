@@ -16,7 +16,7 @@ from multiphy.launch.plugins import PluginApi, load_plugins
 from multiphy.launch.window import ACROSS_DAYS, CommandProcess, LauncherWindow
 from multiphy.project.folder import Project
 
-from .launch_window_fixtures import FakeProcess, qt, runs, wait_until  # noqa: F401 (fixtures by name)
+from .launch_window_fixtures import FakeProcess, open_and_wait, qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import write_day
 
 
@@ -228,12 +228,12 @@ def test_cancel_before_started_waits(qt, runs, monkeypatch):
 def test_close_idle_leaves_viewers(qt, runs):
     window = _window(runs['root'], 'P')
     window.run_tree.setCurrentItem(window._find_run(runs['across']))
-    window.open_run()
+    open_and_wait(window)
     viewer = window.viewers[-1]
     try:
         window.close()
         assert window.isHidden()
-        assert viewer.isVisible()
+        assert viewer.isVisible() is True
     finally:
         _close(viewer)
 
@@ -304,7 +304,7 @@ def test_real_process_pipeline(qt, tmp_path, two_day_from):
         folder = current.data(0, QtCore.Qt.UserRole).folder
         assert folder.parent == root / 'P' / 'runs'
 
-        window.open_run()
+        open_and_wait(window)
         viewer = window.viewers[-1]
         assert viewer.mode.id == 'across_days'
         assert viewer.curation is not None

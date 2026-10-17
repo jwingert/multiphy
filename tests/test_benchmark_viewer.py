@@ -10,6 +10,7 @@ from multiphy import backends
 from multiphy.viewer.modes import same_day
 from multiphy.viewer.modes.same_day import validate_benchmark_result
 from tests.settings_fixtures import tmp_settings  # noqa: F401
+from tests.theme_fixtures import theme_env  # noqa: F401
 
 
 def track(units, pairs, **kwargs):
@@ -145,7 +146,7 @@ def test_halves_result_checked_against_selection(qt, halves_project):
         same_day.load(selection, selection.dataset(), result, {})
 
 
-def test_benchmark_viewer_main_modes(qt, halves_project, tmp_path, capsys, monkeypatch):
+def test_benchmark_viewer_main_modes(qt, halves_project, tmp_path, capsys, monkeypatch, theme_env):
     from PySide6 import QtWidgets
     from multiphy.viewer import app as viewer_app
     run = str(halves_project['run'])

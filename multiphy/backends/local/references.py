@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 
 from . import evidence as ev
-from ...benchmark_pairs import _waveform_summary
 from ...contract.inputs import RunEvidence, TrialTiming, run_evidence
 from ...contract.results import single_units
 from ...features import _checked_sample_spikes, _in_windows, _isi_acg, _split_by_trial
@@ -334,6 +333,7 @@ def unit_observation(feature: dict, geometry: np.ndarray, timing: Union[Referenc
     (the feature's, or ``None``), ``sw_halves`` (the spike width of each waveform half, or ``None``)
     and ``neighbourhood`` (``unit_neighbourhood`` of the mean waveform half, or ``None``).
     """
+    from ...benchmark_pairs import _waveform_summary  # imported here: benchmark_pairs imports this package
     observation = dict(_waveform_summary(feature, geometry),
                        **alternating_references(feature, timing, min_repeats=min_repeats, min_spikes=min_spikes))
     waveform_halves: Optional[np.ndarray] = feature.get('waveform_halves')

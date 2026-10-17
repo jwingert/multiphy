@@ -10,11 +10,9 @@ import itertools
 import numpy as np
 import pandas as pd
 
-from .backends.local import evidence as ev
-from .backends import single_units
-
 
 def _waveform_summary(row, geometry):
+    from .backends.local import evidence as ev  # imported here: the backends package imports this module
     waveform = np.asarray(row.get('waveform'), dtype=float)
     geometry = np.asarray(geometry, dtype=float)
     if waveform.ndim != 2 or not np.isfinite(waveform).all():
@@ -54,6 +52,7 @@ def _waveform_summary(row, geometry):
 
 
 def _reliability(row, conditions):
+    from .backends.local import evidence as ev  # imported here: the backends package imports this module
     halves = row.get('fingerprint_halves') or {}
     counts = row.get('half_trial_counts') or {}
     left, right = [], []
@@ -121,6 +120,8 @@ def build_benchmark_pairs(units, feature_rows, channel_positions, *,
     from means alone. It does not estimate drift, calibrate scores, or assert
     that a within-sort benchmark reproduces daily probe reinsertion.
     """
+    from .backends import single_units  # imported here: the backends package imports this module
+    from .backends.local import evidence as ev  # imported here: the backends package imports this module
     if not isinstance(min_repeats, (int, np.integer)) or min_repeats < 1:
         raise ValueError('min_repeats must be a positive integer')
     if min_reliability is not None and (not np.isfinite(min_reliability) or not -1 <= min_reliability <= 1):

@@ -102,3 +102,10 @@ def test_no_module_imports_a_shim():
             for number, line in enumerate(text.splitlines(), 1)
             if dotted.search(line) or bare.search(line)]
     assert hits == []
+
+
+def test_benchmark_pairs_imports_first_in_a_fresh_interpreter():
+    import sys
+    done = subprocess.run([sys.executable, '-B', '-c', 'import multiphy.benchmark_pairs'],
+                          cwd=REPO, capture_output=True, text=True)
+    assert done.returncode == 0, done.stderr

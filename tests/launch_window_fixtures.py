@@ -74,14 +74,9 @@ class HeldReads:
         self.calls = []
         self.error = None
         self.running = 0
-        self._count = threading.Lock()
 
     def release(self) -> None:
         self.gate.set()
-
-    def _add(self, step: int) -> None:
-        with self._count:
-            self.running += step
 
 
 @pytest.fixture
@@ -95,14 +90,14 @@ def held_reads(monkeypatch):
 
     def held_prepare(run_dir):
         held.calls.append((Path(run_dir), threading.current_thread() is threading.main_thread()))
-        held._add(1)
+        held.running += 1
         try:
             assert held.gate.wait(60), 'the held read was never released'
             if held.error is not None:
                 raise held.error
             return original(run_dir)
         finally:
-            held._add(-1)
+            held.running -= 1
 
     monkeypatch.setattr(viewer_app, 'prepare_run', held_prepare)
     try:

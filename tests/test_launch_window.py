@@ -170,6 +170,7 @@ def test_open_locks_button_while_reading(qt, runs, held_reads, monkeypatch):
         assert window.viewers[0].isVisible() is True
         assert (window.open_button.text(), window.open_button.isEnabled()) == ('Curate…', True)
     finally:
+        held_reads.release()
         _close_all(window)
 
 
@@ -191,6 +192,7 @@ def test_open_lock_survives_redraws(qt, runs, held_reads):
         assert (window.open_button.text(), window.open_button.isEnabled()) == ('Inspect…', True)
         assert window.viewers[0].mode.id == 'across_days'
     finally:
+        held_reads.release()
         _close_all(window)
 
 
@@ -274,6 +276,7 @@ def test_opening_text_elides_long_run_label(qt, runs, held_reads):
         assert window.open_button.text() == 'Curate…'
         assert window.open_button.parentWidget().width() == column
     finally:
+        held_reads.release()
         _close_all(window)
 
 

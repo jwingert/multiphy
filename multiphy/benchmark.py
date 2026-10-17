@@ -168,7 +168,7 @@ class BenchmarkDataset:
             waveform_spike_counts=np.array([[len(h) for h in r['half_waveform_spike_samples']] for r in rows]))
 
 
-def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
+def build_dataset(recordings, *, dataset_id, omitted=(),
                   extraction_options=None, pair_options=None):
     """Recompute evidence, create opaque pseudo-unit IDs, then form ordinary pairs.
 
@@ -256,7 +256,7 @@ def build_dataset(recordings, *, dataset_id, runclass='BNT', omitted=(),
     pairs = build_benchmark_pairs(units, features, geometry, **(pair_options or {}))
     now = datetime.now(timezone.utc).isoformat()
     metadata = dict(schema_version=1, dataset_id=dataset_id, block_id=dataset_id,
-                    runclass=runclass, cache_built=now, sources=sources,
+                    cache_built=now, sources=sources,
                     extraction_options=extraction_options or {}, pair_options=pair_options or {},
                     reference_kind='within_sort_source_cluster',
                     scope='Conditional source-sort identities; not established across-day ground truth')

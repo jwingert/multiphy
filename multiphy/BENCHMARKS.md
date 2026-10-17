@@ -43,7 +43,7 @@ the reference without changing the saved channel geometry. All recorded neural
 channels are used by default; channel quality should be reviewed. There is no
 whitening, amplitude normalization, or additional snippet baseline subtraction.
 
-Each manifest contains `schema_version: 1`, a unique `dataset_id`, `runclass`,
+Each manifest contains `schema_version: 1`, a unique `dataset_id`,
 `extraction_options`, and a list of `recordings`. A recording supplies:
 
 | Field | Meaning |

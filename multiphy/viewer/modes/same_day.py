@@ -31,7 +31,6 @@ def validate_benchmark_result(dataset, result, *, input_manifest_sha256: Optiona
     if input_manifest_sha256 is not None and result.provenance.get('input_manifest_sha256') != input_manifest_sha256:
         raise ValueError('Result input_manifest_sha256 does not match the exact persisted benchmark archive')
     expected = {'block_id': dataset.metadata.get('block_id'),
-                'runclass': dataset.metadata.get('runclass'),
                 'cache_built': dataset.metadata.get('cache_built')}
     for key, value in expected.items():
         if value is None or result.provenance.get(key) != value:

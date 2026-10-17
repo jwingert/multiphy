@@ -36,7 +36,7 @@ def dataset(n_sessions=2):
                 if a['session_id'] != b['session_id']:
                     pairs.append(dict(cellid_a=a['cellid'], cellid_b=b['cellid'], fingerprint_r=.8))
     return BenchmarkDataset(pd.DataFrame(rows), pd.DataFrame(pairs), features, pd.DataFrame(labels), geometry,
-        dict(schema_version=1, dataset_id='full', block_id='full', runclass='BNT', cache_built='fixed',
+        dict(schema_version=1, dataset_id='full', block_id='full', cache_built='fixed',
              sources=sources, extraction_options={}, pair_options={})).validate()
 
 
@@ -363,3 +363,26 @@ def test_same_session_rows_leave_selection_unchanged():
     assert metrics['aggregate']['true_positive_pairs'] == 2
     assert metrics['aggregate']['false_positive_pairs'] == 0
     assert result.tracks == (('test0-u0', 'test1-u0'), ('test0-u1', 'test1-u1'))
+
+
+def test_stored_runclass_identity_still_matches():
+    ds = dataset()
+    ds.metadata['runclass'] = 'BNT'
+    chosen = select(ds)
+    stored = copy.deepcopy(chosen)
+    stored['selection']['dataset_identity']['runclass'] = 'BNT'
+    stored['sha256'] = op._digest(stored['selection'])
+    _, metrics = op.apply_operating_point(ds, score_result(ds, 'test'), stored, input_manifest_sha256=HASH)
+    assert metrics['aggregate']['true_positive_pairs'] == 2
+
+
+def test_stored_identity_must_be_a_mapping():
+    ds = dataset()
+    ds.metadata['runclass'] = 'BNT'
+    chosen = select(ds)
+    stored = copy.deepcopy(chosen)
+    stored['selection']['dataset_identity'] = None
+    stored['sha256'] = op._digest(stored['selection'])
+    with pytest.raises(ValueError) as exc:
+        op.apply_operating_point(ds, score_result(ds, 'test'), stored, input_manifest_sha256=HASH)
+    assert str(exc.value) == 'stored dataset_identity is not a mapping'

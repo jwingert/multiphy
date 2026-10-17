@@ -113,7 +113,7 @@ def inspect_run(run_dir, *, datasets=None):
     if input_path not in datasets:
         datasets[input_path] = load_dataset(input_path)
     dataset = datasets[input_path]
-    for key in ('dataset_id', 'block_id', 'runclass', 'cache_built', 'sources', 'extraction_options', 'pair_options'):
+    for key in ('dataset_id', 'block_id', 'cache_built', 'sources', 'extraction_options', 'pair_options'):
         if result.provenance.get(key) != dataset.metadata.get(key):
             raise ValueError(f'Result benchmark provenance disagrees on {key}')
     if manifest['dataset_id'] != dataset.metadata['dataset_id']:

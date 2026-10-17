@@ -32,7 +32,7 @@ class Dataset:
             'source_session': ['original_train' if u in 'ab' else 'original_test' for u in ids],
             'well': ['well1' if u in 'ab' else 'well2' for u in ids]})
         self.pairs = pd.DataFrame(columns=['cellid_a', 'cellid_b', 'match_score'])
-        self.metadata = dict(dataset_id='example', block_id='well2', runclass='BNT', cache_built='fixture')
+        self.metadata = dict(dataset_id='example', block_id='well2', cache_built='fixture')
         self.source_groups = source_groups or dict(train0='well1', train1='well1', test0='well2', test1='well2')
 
     def subset(self, ids):

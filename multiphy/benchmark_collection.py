@@ -102,11 +102,12 @@ def load_collection(path, manifest, ancestors=()):
         sources.extend(ds.metadata['sources'])
         exclusions.extend(ds.exclusions)
         datasets.append(ds)
-    required_common = ('runclass', 'extraction_options') + (() if override is not None else ('pair_options',))
+    required_common = ('extraction_options',) + (() if override is not None else ('pair_options',))
     for key in required_common:
         if any(ds.metadata.get(key) != datasets[0].metadata.get(key) for ds in datasets[1:]):
             raise ValueError(f'Collection inputs disagree on {key}; use comparable extraction settings.')
     metadata = dict(datasets[0].metadata)
+    metadata.pop('runclass', None)
     metadata.update(dataset_id=manifest['dataset_id'], block_id=manifest['dataset_id'],
         sources=sources, cache_built=manifest['created_at'], collection_inputs=references,
         collection_manifest_sha256=hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest())

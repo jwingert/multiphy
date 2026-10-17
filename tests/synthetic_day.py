@@ -209,7 +209,7 @@ def write_legacy_inputs(day: SyntheticDay, out_dir: Path, *, dataset_id: str, we
         'stimuli': [dict(s) for s in day.stimuli],
         'baseline_windows': day.baselines.tolist(),
     }
-    manifest = {'schema_version': 1, 'dataset_id': dataset_id, 'runclass': 'BNT',
+    manifest = {'schema_version': 1, 'dataset_id': dataset_id,
                 'extraction_options': dict(OPTIONS), 'recordings': [recording]}
     path = out_dir / 'extraction_manifest.json'
     path.write_text(json.dumps(manifest, indent=2))

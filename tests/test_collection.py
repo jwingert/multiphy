@@ -169,15 +169,19 @@ def test_explicit_override_allows_different_source_pair_settings_only(tmp_path):
     good = create_collection([a, b], tmp_path / 'good', dataset_id='good',
                              pair_options={'min_repeats': 1}, root=tmp_path)
     assert np.isfinite(load_dataset(good).pairs.fingerprint_r).all()
-    incompatible = single_repeat_archive(tmp_path, 'c', 'animal:3', 'calibration', runclass='OTHER')
-    with pytest.raises(ValueError, match='runclass'):
-        create_collection([a, incompatible], tmp_path / 'runclass_bad', dataset_id='bad',
-                          pair_options={'min_repeats': 1}, root=tmp_path)
     incompatible_extraction = single_repeat_archive(tmp_path, 'd', 'animal:4', 'calibration',
                                                     extraction_options={'before': 2, 'after': 3, 'seed': 12})
     with pytest.raises(ValueError, match='extraction_options'):
         create_collection([a, incompatible_extraction], tmp_path / 'extract_bad', dataset_id='bad',
                           pair_options={'min_repeats': 1}, root=tmp_path)
+
+
+def test_collection_ignores_stored_runclass(tmp_path):
+    old = single_repeat_archive(tmp_path, 'c', 'animal:3', 'calibration', runclass='OTHER')
+    a = single_repeat_archive(tmp_path, 'a', 'animal:1', 'train')
+    out = create_collection([old, a], tmp_path / 'mixed', dataset_id='mixed',
+                            pair_options={'min_repeats': 1}, root=tmp_path)
+    assert 'runclass' not in load_dataset(out).metadata
 
 
 @pytest.mark.parametrize('options', [[], {'min_repeats': 0}, {'min_repeats': -1},

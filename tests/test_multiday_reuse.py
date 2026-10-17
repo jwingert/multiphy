@@ -29,7 +29,7 @@ def source(tmp_path, session='DAY001a', windows=None):
         baseline_windows=[[i+50, i+100] for i in range(0, 1000, 100)])
     options = dict(before=2, after=3, max_spikes=10, min_spikes=20, seed=0)
     path = tmp_path / f'{session}.json'
-    path.write_text(json.dumps(dict(schema_version=1, dataset_id=session, runclass='BNT',
+    path.write_text(json.dumps(dict(schema_version=1, dataset_id=session,
         recordings=[spec], extraction_options=options)))
     return path, spec, options, voltage, spikes
 

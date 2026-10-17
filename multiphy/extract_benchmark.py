@@ -160,7 +160,7 @@ def extract_manifest(manifest_path, *, output_dir=None, root=None, scratch_root=
     options.update(before=before, after=after)
     with open_recording_sources(manifest, manifest_path, options=options, root=root,
                                 scratch_root=scratch_root, waveform_storage=waveform_storage) as sources:
-        dataset = build_dataset(sources, dataset_id=dataset_id, runclass=manifest.get('runclass', 'BNT'),
+        dataset = build_dataset(sources, dataset_id=dataset_id,
             omitted=manifest.get('omitted', ()), extraction_options=options, pair_options=manifest.get('pair_options'))
         dataset.metadata['extraction_manifest_sha256'] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
         dataset.metadata['waveform_storage'] = waveform_storage

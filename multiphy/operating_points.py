@@ -71,7 +71,14 @@ def _dataset_identity(dataset, manifest_hash):
     if not isinstance(manifest_hash, str) or len(manifest_hash) != 64:
         raise ValueError('A hash-verified full archive manifest identity is required')
     return dict(input_manifest_sha256=manifest_hash,
-        **{key: dataset.metadata[key] for key in ('dataset_id', 'block_id', 'runclass', 'cache_built')})
+        **{key: dataset.metadata[key] for key in ('dataset_id', 'block_id', 'cache_built')})
+
+
+def _stored_identity(identity):
+    """A stored dataset identity without the key old archives recorded; anything but a dict is refused."""
+    if not isinstance(identity, dict):
+        raise ValueError('stored dataset_identity is not a mapping')
+    return {k: v for k, v in identity.items() if k != 'runclass'}
 
 
 def _validate_full_dataset(dataset):
@@ -149,7 +156,7 @@ def scoring_signature(dataset, result):
         if any(k not in p for k in required):
             raise ValueError('Native scores are missing upstream/scoring configuration provenance')
         waveform_provenance = p.get('waveform_provenance', {})
-        for key in ('dataset_id', 'block_id', 'runclass', 'cache_built', 'sources', 'extraction_options', 'pair_options'):
+        for key in ('dataset_id', 'block_id', 'cache_built', 'sources', 'extraction_options', 'pair_options'):
             if _json_safe(waveform_provenance.get(key)) != _json_safe(dataset.metadata.get(key)):
                 raise ValueError('Native waveform scoring provenance differs from the input archive')
         expected_groups = {row.session_id: labels.loc[row.cellid, 'well'] for row in units.itertuples()}
@@ -390,7 +397,7 @@ def _validate_missing_view(dataset, parent, parent_hash, selection, view_hash=No
     their original view IDs, and are never joined using source-cluster labels.
     """
     _validate_full_dataset(parent)
-    if selection['dataset_identity'] != _dataset_identity(parent, parent_hash):
+    if _stored_identity(selection['dataset_identity']) != _dataset_identity(parent, parent_hash):
         raise ValueError('Explicit selection parent does not match the frozen artifact')
     old = set(parent.units.cellid)
     parent_keys = _observation_keys(parent, parent_hash)
@@ -417,7 +424,7 @@ def _validate_missing_view(dataset, parent, parent_hash, selection, view_hash=No
         original_session = parent_units.loc[id_map[row.cellid], 'session_id']
         if session_map.setdefault(row.session_id, original_session) != original_session:
             raise ValueError('Missing view combines different source sessions')
-    for key in ('runclass', 'extraction_options', 'pair_options'):
+    for key in ('extraction_options', 'pair_options'):
         if not _same_data(parent.metadata.get(key), dataset.metadata.get(key)):
             raise ValueError('Missing view changed source extraction or candidate settings')
     source_key = lambda row: (row['well'], row['source_session'])
@@ -456,7 +463,7 @@ def apply_operating_point(dataset, scores, document, *, input_manifest_sha256,
     """Apply one immutable cutoff to saved test scores; never search or refit."""
     selection = _validate_selection(document)
     _validate_scores(dataset, scores, 'test', input_manifest_sha256)
-    different_input = selection['dataset_identity'] != _dataset_identity(dataset, input_manifest_sha256)
+    different_input = _stored_identity(selection['dataset_identity']) != _dataset_identity(dataset, input_manifest_sha256)
     if different_input:
         if selection_dataset is None or selection_manifest_sha256 is None:
             raise ValueError('Frozen selection belongs to another archive; supply its explicit selection parent for a missing view')

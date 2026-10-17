@@ -136,14 +136,14 @@ def test_result_keeps_native_scores_and_base_window_imports_nothing(qt, tmp_path
                           'siteid_a': ['a'], 'siteid_b': ['b'],
                           'reliability_a': [.2], 'reliability_b': [.8]})
     meta = {'animal': 'test', 'well': 1, 'built': 'synthetic', 'siteids': ['a', 'b'],
-            'day_pairs': [{'siteid_a': 'a', 'siteid_b': 'b', 'days_apart': 1}], 'runclass': 'BNT'}
+            'day_pairs': [{'siteid_a': 'a', 'siteid_b': 'b', 'days_apart': 1}]}
     arrays = {u: {'wf': np.array([0., -1., .5])} for u in units.cellid}
     window = App(FAKE_MODE, layout_file=tmp_path / 'layout.json')
     reversed_pairs = pd.DataFrame({'cellid_a': ['b-01'], 'cellid_b': ['a-01'],
                                    'native_score': [.96]})
     imported = backends.result_from_pairs(
         'unitmatch', 'official-test', units, reversed_pairs, score_column='native_score',
-        run_id='unitmatch1', provenance={'block_id': 'test_w1', 'runclass': 'BNT',
+        run_id='unitmatch1', provenance={'block_id': 'test_w1',
                                        'cache_built': 'synthetic', 'assignment': 'native_intermediate'})
     imported.provenance = imported.provenance.merged(extra={'threshold': .5})
     path = tmp_path / 'result.json'

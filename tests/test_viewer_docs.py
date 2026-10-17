@@ -1,17 +1,19 @@
-"""The package docs point to ``python -m multiphy.viewer --run DIR`` and name no deleted viewer."""
+"""The package docs and the root README point to ``python -m multiphy.viewer --run DIR`` and name no deleted
+viewer."""
 from pathlib import Path
 import re
 
-PACKAGE = Path(__file__).resolve().parents[1] / 'multiphy'
+REPO = Path(__file__).resolve().parents[1]
+PACKAGE = REPO / 'multiphy'
 OLD = ('gui --run', 'multiday_viewer', 'benchmark_viewer', 'multiphy.gui')
 
 
 def test_docs_name_no_old_viewer():
     hits = []
-    for path in sorted(PACKAGE.rglob('*.md')):
+    for path in sorted(PACKAGE.rglob('*.md')) + [REPO / 'README.md']:
         # edit-tag reasons are history, so comments are removed first
         text = re.sub(r'<!--.*?-->', '', path.read_text(encoding='utf-8'), flags=re.S)
-        hits += [f'{path.relative_to(PACKAGE)}: {old}' for old in OLD if old in text]
+        hits += [f'{path.relative_to(REPO)}: {old}' for old in OLD if old in text]
     assert hits == []
 
 

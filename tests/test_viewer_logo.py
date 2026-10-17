@@ -3,6 +3,8 @@ window icon carries every size, and the launcher and the viewer both set it. Set
 ``tmp_path`` (``theme_env``)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -17,6 +19,7 @@ from multiphy.viewer.logo import make_logo
 from .launch_window_fixtures import qt, runs  # noqa: F401 (fixtures by name)
 from .theme_fixtures import theme_env  # noqa: F401  (a fixture, used by name)
 
+REPO = Path(__file__).resolve().parents[1]
 SVGS = ['icon_16.svg', 'icon_24.svg', 'icon_32.svg', 'icon_48.svg', 'icon_64.svg', 'logo.svg']
 
 
@@ -80,7 +83,7 @@ def test_docs_name_the_logo():
     for word in ('| `logo/` |', 'make_logo.py', '`About multiphy`', '`0.0.0`', 'PRN067a-338-1'):
         assert word in viewer, word
     assert '`About multiphy`' in (package / 'docs' / 'project_folder.md').read_text(encoding='utf-8')
-    assert '<img src="viewer/logo/logo.svg"' in (package / 'README.md').read_text(encoding='utf-8')
+    assert '<img src="multiphy/viewer/logo/logo.svg"' in (REPO / 'README.md').read_text(encoding='utf-8')
 
 
 def _keep_icon(app):

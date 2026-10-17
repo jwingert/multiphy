@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multiphy"
+dynamic = ["version"]
+description = "Cross-day single-unit matching and curation"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy", "pandas", "scipy", "matplotlib"]
+
+[project.optional-dependencies]
+gui = ["PySide6"]
+test = ["pytest"]
+
+[project.scripts]
+multiphy = "multiphy.launch.__main__:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "multiphy.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["multiphy*"]
+
+[tool.setuptools.package-data]
+multiphy = ["*.md", "docs/*.md"]
+"multiphy.viewer" = ["fonts/*.ttf", "fonts/*.txt"]
+"multiphy.viewer.logo" = ["*.svg"]

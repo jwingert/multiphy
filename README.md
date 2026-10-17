@@ -1,6 +1,6 @@
-<img src="viewer/logo/logo.svg" alt="multiphy logo: one unit's waveform tracked across three days" width="128">
+<img src="multiphy/viewer/logo/logo.svg" alt="multiphy logo: one unit's waveform tracked across three days" width="128">
 
-# unit_match — cross-day single-unit matching and curation
+# multiphy — cross-day single-unit matching and curation
 
 Matching units across days in a semi-chronic preparation, where the probe goes
 in afresh each day and the brain moves. The stimulus-response fingerprint is a
@@ -60,7 +60,7 @@ intermediate tracking rule and 0.5 threshold; the local tracker's threshold is
 separate. DANT cluster membership is displayed without inventing a probability.
 
 Real recording days live in a **project** (see
-[docs/project_folder.md](docs/project_folder.md)): `launch init` adds each day once,
+[docs/project_folder.md](multiphy/docs/project_folder.md)): `launch init` adds each day once,
 `launch extract` extracts its features once, and `launch run` runs any registered
 backend on a selection of extracted days. `python -m multiphy.run
 list-backends` names every registered backend and whether this interpreter can run
@@ -85,7 +85,7 @@ run keeps its folder with manifest status `failed`; running again makes a new
 folder. Every refusal comes before the folder exists.
 
 The viewer opens completed project runs and starts none; one command opens either kind
-(see [docs/viewer.md](docs/viewer.md)):
+(see [docs/viewer.md](multiphy/docs/viewer.md)):
 
 ```bash
 python -m multiphy.viewer --run /path/to/M1/runs/<run>            # across days
@@ -108,7 +108,7 @@ source labels.
 
 Benchmark archives and collections have no GUI view; their CLI scoring is
 unchanged. Extraction, dependency installation and model training use explicit
-commands; see [MATCHING_INTERFACE.md](MATCHING_INTERFACE.md).
+commands; see [MATCHING_INTERFACE.md](multiphy/MATCHING_INTERFACE.md).
 
 ## LBHB wells
 
@@ -138,9 +138,9 @@ python -m multiphy.viewer --run DIR
 `lbhb-init` skips days already in the project, so a rerun completes a failed one.
 `python -m multiphy.viewer --run DIR` opens any project run in its mode.
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for implementation priorities, the temporal
+See [DEVELOPMENT.md](multiphy/DEVELOPMENT.md) for implementation priorities, the temporal
 split benchmark contract, and the remaining data/training work.
-See [BENCHMARKS.md](BENCHMARKS.md) for extraction, comparison, and training
+See [BENCHMARKS.md](multiphy/BENCHMARKS.md) for extraction, comparison, and training
 commands. Runner code stays in this package; generated benchmarks and checkpoints
 stay under `/auto/data/nems_db/unit_match/benchmarks/`, and each project keeps its
 own runs under `runs/` and `days/<day>/runs/` and its curation under `curation/runs/<run>/`.
@@ -331,7 +331,7 @@ When a native group holds two or more observations from one session, the adapter
 A neuron belongs to at most one tracked unit. The matcher proposes the tracks:
 a run's `result.json` holds them and its unmatched units. A curator accepts,
 rejects, splits, merges and edits them in that run's own history; see
-[docs/project_folder.md](docs/project_folder.md), section 2, for
+[docs/project_folder.md](multiphy/docs/project_folder.md), section 2, for
 `curation/runs/<run>/history.csv`, `history.lock` and `launch export`.
 
 ## Reading the output

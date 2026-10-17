@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib
+import subprocess
 import sys
 from pathlib import Path
 
@@ -97,3 +98,13 @@ def test_project_path_runs_and_opens_without_lab(tmp_path):
     proc = run_without_lab(code, REPO)
     assert proc.returncode == 0, proc.stderr
     assert proc.stdout.rstrip().endswith('ok')
+
+
+def test_children_write_no_bytecode():
+    code = 'import sys\nprint(sys.dont_write_bytecode)\n'
+    proc = run_without_lab(code, REPO)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stdout.strip().splitlines()[-1] == 'True'
+    plain = subprocess.run([sys.executable, '-c', code], cwd=REPO, capture_output=True, text=True, timeout=120)
+    assert plain.returncode == 0, plain.stderr
+    assert plain.stdout.strip() == 'True'

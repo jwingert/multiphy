@@ -1,8 +1,11 @@
 from pathlib import Path
+import os
 import sys
 import pytest
 from .lab_blocker import LabBlocker
 sys.meta_path.insert(0, LabBlocker())
+# -B covers this interpreter only; every child Python a test starts inherits this and writes no bytecode.
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 from .settings_fixtures import tmp_settings  # noqa: F401
 
 FIXTURES = Path(__file__).parent / 'fixtures'

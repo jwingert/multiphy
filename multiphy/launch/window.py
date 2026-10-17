@@ -334,6 +334,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._cancel_pending = False  # cancel asked before started; sent on started (D70)
         self._killed = False  # the kill timer killed the running job
         self._close_after = False  # the close bar's Yes was clicked: close on ended (D79)
+        self._close_on_open = False  # a close came while a run opened: close once its viewer shows (D5)
         self._kill_timer = QtCore.QTimer(self)
         self._kill_timer.setSingleShot(True)
         self._kill_timer.timeout.connect(self._kill_due)
@@ -662,8 +663,15 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self._opening = None
             self._spin_timer.stop()
             self._update_open_button()
+            if not opened and self._close_on_open:  # the window stays, and runs commands again (D5)
+                self._close_on_open = False
+                self._close_after = False
+                self._update_run_buttons()
         if error is not None:
             self.append_log(f'error: {error}')
+        if opened and self._close_on_open:
+            self._close_on_open = False
+            self.close()
 
     def _choose_root(self) -> None:
         path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Root', str(self.root))
@@ -1233,8 +1241,19 @@ class LauncherWindow(QtWidgets.QMainWindow):
     # --- close ----------------------------------------------------------------------------------
     def closeEvent(self, event) -> None:
         """Close at once when idle, open viewers staying open (D27); while a command runs, ask on
-        ``close_bar`` instead (D18, D78)."""
+        ``close_bar`` instead (D18, D78). While a run opens and no command runs, the close is deferred:
+        ``closing · once <run> opens`` is logged once and the window closes once the viewer shows; a
+        failed open keeps it open (D5, D8)."""
         if not self._busy:
+            if self._opening is not None:
+                event.ignore()
+                if not self._close_on_open:
+                    self._close_on_open = True
+                    self.append_log(f'closing · once {self._opening_label} opens')
+                return
+            if self._reader is not None:  # no read runs now
+                self._reader.shutdown(wait=False)
+                self._reader = None
             super().closeEvent(event)
             return
         event.ignore()

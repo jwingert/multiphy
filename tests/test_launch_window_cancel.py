@@ -16,7 +16,7 @@ from multiphy.launch.plugins import PluginApi, load_plugins
 from multiphy.launch.window import ACROSS_DAYS, CommandProcess, LauncherWindow
 from multiphy.project.folder import Project
 
-from .launch_window_fixtures import FakeProcess, open_and_wait, qt, runs, wait_until  # noqa: F401 (fixtures by name)
+from .launch_window_fixtures import FakeProcess, held_reads, open_and_wait, qt, runs, wait_until  # noqa: F401 (fixtures by name)
 from .synthetic_day import write_day
 
 
@@ -236,6 +236,110 @@ def test_close_idle_leaves_viewers(qt, runs):
         assert viewer.isVisible() is True
     finally:
         _close(viewer)
+
+
+def _finish(window: LauncherWindow, held) -> None:
+    """Release ``held``, wait for the open to end, close every viewer the window opened, end a running
+    fake command and close the window."""
+    held.release()
+    wait_until(lambda: not window.opening(), 120)
+    for viewer in window.viewers:
+        _close(viewer)
+    if window.running():
+        window.process.ended.emit(0)
+    _close(window)
+
+
+def _open_across(window: LauncherWindow, runs: dict) -> str:
+    """Select the across run, open it and return its run list label."""
+    item = window._find_run(runs['across'])
+    label = item.text(0)
+    window.run_tree.setCurrentItem(item)
+    window.open_run()
+    return label
+
+
+def test_close_while_opening_waits_for_viewer(qt, runs, held_reads):
+    window = _window(runs['root'], 'P')
+    try:
+        label = _open_across(window, runs)
+        window.close()
+        assert window.isVisible() is True
+        assert _log(window)[-1] == f'closing · once {label} opens'
+        assert window.close_bar.isHidden() is True
+        window.close()
+        assert _log(window).count(f'closing · once {label} opens') == 1
+        held_reads.release()
+        assert wait_until(window.isHidden, 120) is True
+        assert len(window.viewers) == 1
+        assert window.viewers[0].isVisible() is True
+    finally:
+        _finish(window, held_reads)
+
+
+def test_close_while_opening_failure_keeps_window(qt, runs, held_reads):
+    held_reads.error = ValueError('boom')
+    window = _window(runs['root'], 'P')
+    try:
+        label = _open_across(window, runs)
+        window.close()
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert window.isVisible() is True
+        assert _log(window)[-2:] == [f'closing · once {label} opens', 'error: boom']
+        assert window.viewers == []
+        held_reads.error = None
+        open_and_wait(window)
+        assert window.isVisible() is True
+        assert len(window.viewers) == 1
+        window.close()
+        assert window.isHidden() is True
+    finally:
+        _finish(window, held_reads)
+
+
+def test_close_bar_yes_while_opening_waits(qt, runs, held_reads):
+    window = _window(runs['root'], 'P')
+    try:
+        window.run_command('status')
+        window.process.started.emit()
+        label = _open_across(window, runs)
+        window.close()
+        assert window.close_bar.isHidden() is False
+        assert window.close_label.text() == 'status running · cancel and close?'
+        assert not any(line.startswith('closing · once') for line in _log(window))
+        window.close_yes.click()
+        window.process.ended.emit(130)
+        assert window.isVisible() is True
+        assert _log(window)[-2:] == ['exit 130', f'closing · once {label} opens']
+        held_reads.release()
+        assert wait_until(window.isHidden, 120) is True
+        assert window.viewers[0].isVisible() is True
+    finally:
+        _finish(window, held_reads)
+
+
+def test_close_bar_yes_then_failed_open_stays_usable(qt, runs, held_reads):
+    held_reads.error = ValueError('boom')
+    window = _window(runs['root'], 'P')
+    try:
+        window.run_command('status')
+        window.process.started.emit()
+        label = _open_across(window, runs)
+        window.close()
+        window.close_yes.click()
+        window.process.ended.emit(130)
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert window.isVisible() is True
+        assert _log(window)[-3:] == ['exit 130', f'closing · once {label} opens', 'error: boom']
+        window.run_command('status')
+        assert window.running() is True
+        window.process.ended.emit(0)
+        window.close()
+        assert window.isHidden() is True
+    finally:
+        _finish(window, held_reads)
 
 
 def test_real_cancel_logs_cancelled(qt, tmp_path):

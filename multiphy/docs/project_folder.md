@@ -517,7 +517,9 @@ run, each in its own viewer window, which stays open when the launcher closes. W
 opens, its button reads `◐ opening · <run>` and stays locked until the viewer shows; clicks
 meanwhile are dropped. The spinner turns and the launcher and open viewers stay responsive
 while the run is read; they pause while its window is built. A failed open logs `error: …`
-and unlocks the button.
+and unlocks the button. Closing the launcher while a run opens and no command runs logs
+`closing · once <run> opens` and closes it once the viewer shows; a failed open keeps it open
+with the error.
 
 **Right.** One tab per command: Initialization (`init`), Extract features (`extract`), Run
 matching (`run`), Export tracks (`export`), Status (`status`), then each plugin command under
@@ -552,7 +554,8 @@ that arrives while the child is still starting ends it without that line. Still 
 can leave `days/<day>/.extract.lock`, which the next extract names for removal. Closing the
 window while a command runs asks `<command> running · cancel and close?`
 (`<command> running · N waiting · cancel and close?` while N wait); `Yes` drops the waiting
-commands, cancels the running one and closes when it ends.
+commands, cancels the running one and closes when it ends, or, while a run opens, once its
+viewer shows.
 
 **The root.** `Settings` ▸ `Root…` switches it; the left column shows the root read-only,
 shortened in the middle, the full path in hover. A switch loads the new root's config and

@@ -1,7 +1,7 @@
 """Extract a benchmark from an explicit JSON source manifest.
 
 Input spike arrays must already be zero-based rows of the raw voltage stream.
-Trial-relative BAPHY spikes require an independently verified conversion first.
+Trial-relative spike times require an independently verified conversion first.
 Compressed voltage is traversed forwards once; by default selected snippets are
 temporarily stored. Opt-in shared-profile streaming summaries avoid snippet files.
 The default scratch location is the matching cache; an

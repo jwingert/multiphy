@@ -174,9 +174,6 @@ def _population_notes(row):
         intervals = '; '.join(f'[{a / fs:.3f}, {b / fs:.3f}) seconds' for a, b, fs in windows)
         src = next(s for s in dataset.metadata['sources'] if s['well'] == well and s['source_session'] == source)
         split = src.get('provenance', {}).get('split_method', 'Split-construction rule unavailable in saved provenance')
-        if 'whole BAPHY trials' in split:
-            split = split.replace('whole BAPHY trials', 'whole experimental trials from the BAPHY experiment control system')
-            split += '; trial indices are divided into approximately equal contiguous groups, with cuts at trial starts'
         well_description = f'well {well}'
         if ':' in str(well):
             animal, well_number = str(well).rsplit(':', 1)

@@ -39,8 +39,8 @@ here.
 | `panels/plots/` | the matplotlib plot panels, each registered by id | yes |
 | `panels/tables/` | browse (with the day table), rivals, evidence, chains and tracked-unit tables | yes |
 
-`data.py`, `display.py`, `unit_palettes.py` and `modes/` import no Qt, and nothing under `viewer/`
-imports a lab module (`nems_lbhb.unit_match_lbhb`, `nems_lbhb.baphy*`, `nems_lbhb.db`).
+`data.py`, `display.py`, `unit_palettes.py` and `modes/` import no Qt, and `viewer/` imports
+no lab module (a plugin's own modules included).
 `drift_frame.py` imports no Qt and no matplotlib either.
 
 ## Theme

@@ -208,7 +208,6 @@ def write_report(dataset_path, result_path, *, output_dir=None, root=None):
     window_text = '; '.join(f'[{a / fs:.3f}, {b / fs:.3f}) seconds' if b is not None else 'stop time unavailable' for a, b, fs in windows)
     split_rules = sorted({source.get('provenance', {}).get('split_method', 'Split-construction rule unavailable in saved provenance')
                           for source in dataset.metadata.get('sources', [])})
-    split_rules = [rule.replace('whole BAPHY trials', 'whole experimental trials from the BAPHY experiment control system') + '; trial indices are divided into approximately equal contiguous groups, with cuts at trial starts' if 'whole BAPHY trials' in rule else rule for rule in split_rules]
     source_count = len(dataset.labels[['well', 'source_session', 'source_unit_id']].drop_duplicates())
     before = dataset.metadata['extraction_options']['before']
     shape = features[0]['waveform'].shape

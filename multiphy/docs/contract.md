@@ -247,7 +247,7 @@ group's provenance. Only `launch run` prints them as warnings; this command prin
 
 ```bash
 $PY -m multiphy.run run-backend \
-  --input /auto/data/nems_db/unit_match/benchmarks/prn069a_temporal_shared_v1/dataset \
+  --input /path/to/root/benchmarks/my_benchmark/dataset \
   --backend functional_likelihood --partition test \
   --root /tmp/contract_doc_demo_root
 ```
@@ -273,8 +273,7 @@ benchmark it runs the `test` partition:
 from multiphy.run import runner
 
 # dataset: the benchmark dataset read from the --input folder above.
-# timing:  {session_id: TrialTiming}, one entry for every session in dataset.units,
-#          e.g. built with nems_lbhb.unit_match_lbhb.prepare_baphy.recover_baphy_timing(spec).
+# timing:  {session_id: TrialTiming}, one entry for every session in dataset.units.
 output = runner.run(dataset, 'functional_likelihood', {},
                     group_column='recording_group', partition='test',
                     root='/tmp/contract_doc_demo_root',

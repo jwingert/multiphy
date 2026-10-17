@@ -226,7 +226,7 @@ The caller of the new temporal extractor must establish:
 - The raw voltage source, acquisition sample rate, channel order, and physical
   electrode coordinates for every session.
 - The exact mapping from saved sorted spike times to voltage sample indices.
-  BAPHY trial-relative times are not automatically raw acquisition indices.
+  Trial-relative spike times are not automatically raw acquisition indices.
 - Shared voltage preprocessing: filtering, reference subtraction, physical
   scaling, and any motion correction. Describe it in extractor provenance.
 - Stimulus and baseline windows in the same acquisition sample clock. Preserve

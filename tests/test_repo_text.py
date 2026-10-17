@@ -109,3 +109,47 @@ def test_benchmark_pairs_imports_first_in_a_fresh_interpreter():
     done = subprocess.run([sys.executable, '-B', '-c', 'import multiphy.benchmark_pairs'],
                           cwd=REPO, capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
+
+
+def test_no_lab_words():
+    skipped = {'tests/conftest.py', 'tests/lab_blocker.py', 'tests/test_no_lab_imports.py',
+               'tests/test_repo_text.py'}
+    removed = ('nems_' + 'unit_match' + '_operating_point', 'nems_' + 'unit_match' + '_result')
+    pattern = re.compile('nems' + '_lbhb|nems' + '0|nems' + '_db|unit' + '_match|/' + 'auto/|'
+                         + '(?i:' + 'lb' + 'hb|ba' + 'phy|cell' + 'db)')
+    files = [(path, text) for path, text in tracked_text() if path not in skipped]
+    assert len(files) >= 240
+    hits = []
+    for path, text in files:
+        for token in removed:
+            text = text.replace(token, '')
+        hits.extend(f'{path}:{number}: {match.group(0)}'
+                    for number, line in enumerate(text.splitlines(), 1)
+                    for match in pattern.finditer(line))
+    assert hits == []
+
+
+def test_no_runclass():
+    word = 'run' + 'class'
+    allowed = {('multiphy/benchmark_collection.py', "metadata.pop('" + word + "', None)"): 1,
+               ('multiphy/operating_points.py',
+                "return {k: v for k, v in identity.items() if k != '" + word + "'}"): 1}
+    package = sorted(path.relative_to(REPO).as_posix() for path in (REPO / 'multiphy').rglob('*.py'))
+    docs = (['README.md'] + sorted(path.relative_to(REPO).as_posix()
+                                   for path in (REPO / 'multiphy' / 'docs').glob('*.md'))
+            + ['multiphy/MATCHING_INTERFACE.md', 'multiphy/BENCHMARKS.md', 'multiphy/DEVELOPMENT.md'])
+    files = package + docs
+    assert len(files) >= 120
+    pattern = re.compile(word, re.IGNORECASE)
+    seen = {key: 0 for key in allowed}
+    hits = []
+    for path in files:
+        for number, line in enumerate((REPO / path).read_text(encoding='utf-8').splitlines(), 1):
+            if not pattern.search(line):
+                continue
+            key = (path, line.strip())
+            if key in allowed and seen[key] < allowed[key]:
+                seen[key] += 1
+                continue
+            hits.append(f'{path}:{number}')
+    assert hits == []

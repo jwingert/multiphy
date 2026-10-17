@@ -9,30 +9,12 @@ paths outside that root and never overwrite an existing dataset or run.
 
 `extract_benchmark.py` consumes a JSON source manifest whose spike times,
 stimulus windows, and baseline windows are **zero-based voltage row indices**.
-Do not pass trial-relative BAPHY spike samples directly. Record the source of
+Do not pass trial-relative spike samples directly. Record the source of
 the conversion in `clock_verification`; a descriptive string alone is not
 independent evidence that a conversion is correct.
 
-For the verified BaphyKiloSort export format, `nems_lbhb/unit_match_lbhb/prepare_baphy.py`
-(the LBHB lab package) creates the source inputs without reading continuous voltage.
-Supply the actual paths from recording metadata and the completed sort-job record:
-
-```bash
-python -m nems_lbhb.unit_match_lbhb.prepare_baphy --parmfile PARMFILE --spikefile SPIKEFILE --recording-folder RECORDING_FOLDER --sort-job SORT_JOB --run-index RUN_INDEX --well ANIMAL:WELL --partition test --dataset-id DATASET_ID
-```
-
-It verifies the complete AP sample-number index, AP trial TTLs against the sort
-job, measured channel geometry, timestamp-correction backups, and source-sort
-provenance. Mixed sort jobs fail unless `--exclude-other-jobs` is explicitly
-chosen; excluded units and their source jobs are recorded. The exact inverse
-of the historical exporter restores native timestamps with its documented
-two-sample offset. This differs from a generic MATLAB-index conversion; the
-one-sample template-center convention is retained as a waveform-inspection
-caveat.
-Stimulus names are kept whole, except in BigNat runs
-(`ReferenceClass = 'BigNat'`), which write one `wav:channel` per speaker with
-attenuation dropped; provenance `stimulus_names` maps recorded name → written
-name.
+A source plugin prepares these inputs from a lab's own recordings
+(`multiphy/docs/adding_a_source.md`).
 
 The default waveform window is 41 samples before and 41 after the native
 timestamp, matching the 82-sample centered input expected by the verified
@@ -184,7 +166,7 @@ exploratory reanalysis.
 The main viewer runs no matcher. To compare the
 local `functional_likelihood` method, run it from Python with a `TrialTiming`
 per session (`runner.run(..., extra_inputs={'timing': timing})`, timing from
-`nems_lbhb.unit_match_lbhb.prepare_baphy.recover_baphy_timing`; see
+the day's own events (`Selection.timing()`); see
 [docs/contract.md](docs/contract.md), section 5), or on project days with
 `launch run` (see [docs/project_folder.md](docs/project_folder.md)), which passes
 each day's timing and opens with `python -m multiphy.viewer --run DIR`.

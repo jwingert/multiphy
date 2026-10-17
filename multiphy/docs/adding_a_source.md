@@ -126,7 +126,7 @@ An installed package registers a reader with an entry point. Nothing in this rep
 changes:
 
 ```toml
-# pyproject.toml, in a package that depends on nems_lbhb
+# pyproject.toml, in a package that depends on multiphy
 [project.entry-points."multiphy.sources"]
 example_npz = "my_package.readers:make_npz_sort_reader"
 ```

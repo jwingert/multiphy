@@ -64,7 +64,7 @@ Real recording days live in a **project** (see
 `launch extract` extracts its features once, and `launch run` runs any registered
 backend on a selection of extracted days. `python -m multiphy.run
 list-backends` names every registered backend and whether this interpreter can run
-it; one that cannot runs in `--python EXE` or the verified lab interpreter.
+it; one that cannot runs in `--python EXE` or the verified interpreter.
 
 ```bash
 # every extracted day of project M1, matched across days
@@ -110,39 +110,11 @@ Benchmark archives and collections have no GUI view; their CLI scoring is
 unchanged. Extraction, dependency installation and model training use explicit
 commands; see [MATCHING_INTERFACE.md](multiphy/MATCHING_INTERFACE.md).
 
-## LBHB wells
-
-The lab plugin `nems_lbhb.unit_match_lbhb` turns an LBHB well into project days.
-Name it in `<root>/multiphy.json`, where `<root>` is `--root DIR` or the default
-cache root:
-
-```json
-{"plugins": ["nems_lbhb.unit_match_lbhb"]}
-```
-
-A project named `<animal>_w<well>_<RUNCLASS>` holds one day per site of that well:
-all good recordings of the run class at the site, concatenated in run order, with
-the day's FTC tone tuning when it was sorted in the same KiloSort job.
-An optional `_<tag>` after the run class (`Prince_w16_BNT_e2e`) makes another project of the
-same well, for a re-sort or a test: a day is written once, so a changed day needs a new project.
-
-```bash
-python -m multiphy.launch lbhb-init Prince_w16_BNT
-python -m multiphy.launch extract Prince_w16_BNT --tier raw
-python -m multiphy.launch run Prince_w16_BNT --backend functional_likelihood
-python -m multiphy.viewer --run DIR
-# or all of it from one window:
-# python -m multiphy.launch gui Prince_w16_BNT
-```
-
-`lbhb-init` skips days already in the project, so a rerun completes a failed one.
-`python -m multiphy.viewer --run DIR` opens any project run in its mode.
-
 See [DEVELOPMENT.md](multiphy/DEVELOPMENT.md) for implementation priorities, the temporal
 split benchmark contract, and the remaining data/training work.
 See [BENCHMARKS.md](multiphy/BENCHMARKS.md) for extraction, comparison, and training
 commands. Runner code stays in this package; generated benchmarks and checkpoints
-stay under `/auto/data/nems_db/unit_match/benchmarks/`, and each project keeps its
+stay under `<root>/benchmarks/`, and each project keeps its
 own runs under `runs/` and `days/<day>/runs/` and its curation under `curation/runs/<run>/`.
 
 New benchmark inputs use one shared filtered, median-referenced, unwhitened
@@ -151,12 +123,17 @@ waveform summaries persist; methods reuse the same archive and perform any
 additional method-specific transformations in memory. This tests the methods
 on shared inputs, rather than reproducing each author's extraction recipe.
 
+## Plugins
+
+A plugin module with `register(api)` adds source readers and launcher commands. The
+launcher finds plugins in `<root>/multiphy.json` and the `multiphy.plugins` entry points.
+The how-to is `multiphy/docs/adding_a_source.md`.
+
 ## Layers
 
 | module | role | imports |
 |---|---|---|
 | `features.py` | spiking statistics: spike width, trial split halves, interval histogram and autocorrelogram | numpy/pandas |
-| `nems_lbhb.unit_match_lbhb` | the LBHB plugin: `lbhb.baphy` reader, `lbhb-init`, well listing (`blocks.py`) and BAPHY features (`baphy_features.py`) | celldb and BAPHY, imported where queried |
 | `contract/` | the backend contract: `MatchingInput`, `BackendSpec`, `MatchResult`, `Provenance`, the registry, and every display name | numpy/pandas only |
 | `backends/` | single-unit results: the local `functional_likelihood` and `pair_logistic` matchers plus the UnitMatch/DANT/DeepUnitMatch adapters, registered on import | numpy/pandas; upstream packages imported lazily, only when run |
 | `run/` | one runner loop, the option schema shared by the CLI and subprocess launcher, the run directory and result file format | numpy/pandas |
@@ -192,36 +169,9 @@ python -m multiphy.launch export PROJECT --run RUN [--out PATH]
 
 ## Choosing the sounds
 
-The fingerprint comes from one recording block, named by runclass, and so do
-the rates and the spiking statistics: the physiology references are calibrated
-on within-session split halves, so a rate from one block and an interval
-histogram from another would compare two different states.
-Each choice is therefore its own project: the run class is the last part of an
-LBHB project name.
-
-Checked at Prince and Reishi, counting stimuli with at least five repeats:
-
-| runclass | stimuli per site | joins across days |
-|---|---|---|
-| BNT | 12–16 | on sound path, test range and binaural setting |
-| OLP | 48–282 | on epoch names, which drift; see below |
-| NFB | 14–92 | on epoch names; no set-identifying fields in celldb |
-
-BNB is deliberately absent: it presents one noise burst whose epoch is named
-after its level (`STIM_316` one day, `STIM_3162` the next), so two days share
-no stimulus to compare.
-
-OLP joins only where the naming convention held. At Prince wells 14 and 15
-one day writes `01Chimes-0-1_16Bell-0-1` and the next writes
-`01Chimes-0-1-1_16Bell-0-1-1`, an added field with no way to tell from the
-names alone whether the extra condition is the same sound.
-Rather than guess, such sounds are not joined.
-From `lbhb.baphy` version 2, BNT spellings are joined: a BigNat run writes one
-wav:channel per speaker with attenuation dropped, so mono `00seq4.wav`,
-binaural `00seq4.wav:1:0+NULL:2:0` and its 10 dB variant all become
-`00seq4.wav:1+NULL:2`. A site presenting both spellings responded to them alike
-(r 0.52 against 0.013 for two different sounds). Days extracted at version 1
-keep their literal names; see below.
+The fingerprint, the rates and the spiking statistics come from the same recording, since
+the physiology references are calibrated on within-session split halves.
+Which recordings make a day is the source plugin's choice.
 
 ## The criteria
 
@@ -249,8 +199,7 @@ penalised rather than discarded and missing evidence is neutral.
 | waveform | waveform correlation, footprint correlation, spike width (peak channels) |
 
 The streams are combined by weights fitted on the reference pairs where they
-exist, not asserted. The event response comes out heavier wherever it has been fitted
-(1.23 against 0.70 for physiology at Prince well 16, fitted before the waveform stream).
+exist, not asserted. The event response comes out heavier wherever it has been fitted.
 Rate, interval histogram and autocorrelogram are not independent — rate sets the interval
 scale and the autocorrelogram restates the short intervals — so summing their ratios would
 be overconfident; fitting the weights and then calibrating the combined score
@@ -295,28 +244,12 @@ template at the coordinate of every electrode it was recorded on, after phy.
 
 ## How two days get linked to the same sounds
 
-**The join, on the recordings.** A condition is the BAPHY stimulus string of
-a `Stim` event, kept whole by the project reader (channel, NULL and attenuation
-fields included), with one exception: from `lbhb.baphy` version 2, a BigNat run
-(`ReferenceClass = 'BigNat'`) writes each name as one `wav:channel` per
-speaker, `NULL:channel` for a silent speaker, attenuation dropped
-(`unit_match_lbhb/bignat.py`), and each recording's provenance
-`stimulus_names` maps recorded name → written name.
+**The join, on the recordings.** A condition is the `condition` label of an event in the day's events file. `condition` labels are stripped of surrounding spaces, then compared exactly, across trials and across days. A label must name everything that makes the condition, for example the sound and the ear.
 In a run with events, `functional_likelihood` scores a group of days on the conditions that every
 kept unit measures with at least `min_repeats` repeats, in its reference
 fingerprint and in both halves of every split, and each fingerprint is those
 conditions' histograms concatenated in sorted order. A group with no such
 condition is skipped with the reason recorded.
-
-On days extracted at version 1, two spellings of one sound are two
-conditions: a BigNat run names a sound `00seq4.wav` (mono) or
-`00seq4.wav:1:0+NULL:2:0` (binaural), and days on different spellings share
-neither. Within a site presenting both spellings a neuron's responses to the
-two correlate at 0.52 across 222 cells, against 0.013 for two genuinely
-different sounds. Version 2 writes both as `00seq4.wav:1+NULL:2` and pools
-their level variants. The sound field is kept as written, so `00seq4` and
-`00seq4.wav` stay distinct. One sound alone and that sound competing against a
-second stay distinct, as do channel offsets.
 
 ## Tracked units
 
@@ -363,12 +296,3 @@ refuses the run, naming the unit, the day and both counts.
 
 Single units and multi-unit clusters are both included. A multi-unit cluster's
 fingerprint is a blend, so its match means something weaker.
-
-## Data-entry dependencies
-
-Curation needs `gPenetration.well`, which is the physical-location key.
-`nems_lbhb.unit_match_lbhb.blocks.backfill_worklist()` lists the sites that
-block curation and why: `never_entered` rows need a well number,
-`well_lumps_sites` rows have a well covering more than one chamber position and
-need splitting. Clathrus is the clear case of the latter: 42 sites, all
-labelled well 1, with 41 distinct coordinate strings.

@@ -62,7 +62,7 @@ A real package registers a backend by declaring an entry point — nothing in th
 needs to change:
 
 ```toml
-# pyproject.toml, in a package that depends on nems_lbhb
+# pyproject.toml, in a package that depends on multiphy
 [project.entry-points."multiphy.backends"]
 random_baseline = "my_package.backends:make_random_baseline"
 ```
@@ -119,7 +119,7 @@ from multiphy.run.__main__ import main
 registry.register(RandomBaselineBackend())
 try:
     main(['run-backend', '--input',
-          '/auto/data/nems_db/unit_match/benchmarks/prn069a_temporal_shared_v1/dataset',
+          '/path/to/root/benchmarks/my_benchmark/dataset',
           '--backend', 'random_baseline', '--partition', 'test', '--seed', '0',
           '--root', '/tmp/adding_a_backend_demo_root'])
 finally:

@@ -174,7 +174,10 @@ Process state and artifact manifests are authoritative; these are dated snapshot
 
 - Run `functional_likelihood` and `pair_logistic` on the same fresh temporal
   benchmark inputs as the published methods, with trial timing from verified
-  acquisition-clock intervals (`drift_validation` does this for injected shifts).
+  acquisition-clock intervals. `drift_validation` does this for injected shifts on
+  extracted project days: `load_project_day` reads a day's halves archive and the
+  day's own events (`python -m multiphy.drift_validation --project NAME --day DAY
+  --output DIR`); a day without events is validated on waveforms and physiology alone.
   Old cached results open unassigned and provide no comparable benchmark.
 - Verify the project path end to end on real days: `launch init`, `extract`,
   `run` (`run/project_run.py`) and `python -m multiphy.viewer --run DIR`, or all of

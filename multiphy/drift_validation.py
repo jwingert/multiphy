@@ -10,7 +10,7 @@ writes, once, into a new folder: per-run results, ``summary.csv``, ``calibration
 figures with legends, ``METHODS.md`` and ``manifest.json``. A backend's ``ValueError`` becomes a
 ``refused`` row with its reason; the loop continues. Datasets are never pooled.
 
-CLI: ``python -m multiphy.drift_validation --benchmark PATH [--benchmark PATH ...]
+CLI: ``python -m multiphy.drift_validation [--root DIR] --project NAME --day DAY [--day DAY ...]
 --output DIR [--radius-um 80] [--seed 0]``.
 """
 from __future__ import annotations
@@ -26,6 +26,10 @@ from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
+
+from .project.folder import Project
+from .project.selection import Selection
+from .run.config import cache_root
 
 SUMMARY_COLUMNS = ('dataset', 'backend', 'registration', 'shift_um', 'status', 'reason', 'offset_error_um',
                    'n_offset_pairs',
@@ -52,79 +56,22 @@ class DriftDataset:
     timing: dict
     ground_truth: pd.DataFrame
     truth_offsets: dict
-    source: Optional[str] = None  # where the dataset was read from (load_benchmark sets it); None = in memory
+    source: Optional[str] = None  # where the dataset was read from; None = in memory
 
 
-TIMING_FILES = ('parmfile', 'ap_ttl_samples', 'ap_ttl_states')
+def load_project_day(project: Project, day: str) -> DriftDataset:
+    """One extracted project day: its halves archive with the day's own trial events.
 
-
-def _check_extraction_provenance(recording: dict, metadata: dict, well: str, source_session: str,
-                                 features: list, path: Path) -> None:
-    """Refuse a manifest recording that is not the preparation the hash-verified dataset was extracted from.
-
-    ``extraction_manifest.json`` is not among the dataset's hashed files and ``extract_manifest``
-    re-serializes it, so its bytes are not compared. Its recording must instead agree with the
-    dataset's own ``metadata['sources']`` entry for the same ``(well, source_session)``: the well,
-    every manifest provenance entry (the hashed parameter and AP TTL files that timing is read from
-    among them), the clock verification and the sample count; and its sample rate must equal the
-    ``sample_rate`` of the session's units.
+    The two halves are the day's sessions and windows of one recording, so every truth offset is
+    ``0.0``. A day extracted without events has ``timing == {}`` and is validated on waveforms and
+    physiology alone.
     """
-    entries = [s for s in metadata.get('sources', ())
-               if str(s.get('well')) == well and str(s.get('source_session')) == source_session]
-    if len(entries) != 1:
-        raise ValueError(f'the dataset records {len(entries)} sources for well {well!r} and source_session '
-                         f'{source_session!r}; exactly 1 is needed to check its timing. Re-extract {path}')
-    provenance = entries[0].get('provenance') or {}
-    stated = recording.get('provenance') or {}
-    differ = [] if str(recording.get('well')) == well else ['well']
-    differ += [f'provenance.{k}' for k in sorted(set(stated) | set(TIMING_FILES))
-               if k not in stated or provenance.get(k) != stated[k]]
-    differ += [k for k in ('clock_verification', 'n_samples') if recording.get(k) != provenance.get(k)]
-    if {float(f['sample_rate']) for f in features} != {float(recording.get('sample_rate', np.nan))}:
-        differ.append('sample_rate')
-    if differ:
-        raise ValueError(f'extraction_manifest.json recording {source_session!r} differs from the hash-verified '
-                         f'dataset beside it in {differ}; its timing would not belong to these units. Restore '
-                         f'the manifest the dataset was extracted from, or re-extract {path}')
-
-
-def load_benchmark(path: Path) -> DriftDataset:
-    """A saved temporal benchmark (``<path>/dataset``) with the timing of its source recordings.
-
-    Each session's timing is ``recover_baphy_timing`` of the ``extraction_manifest.json`` recording
-    (saved beside the dataset) whose ``source_session`` is the session's one ``labels.source_session``.
-    The sessions are time windows of one recording, so every truth offset is ``0.0``.
-    """
-    from .benchmark import load_dataset
-    from nems_lbhb.unit_match_lbhb.prepare_baphy import recover_baphy_timing
-
-    path = Path(path)
-    dataset = load_dataset(path / 'dataset')
-    manifest = json.loads((path / 'dataset' / 'extraction_manifest.json').read_text())
-    joined = dataset.units[['cellid', 'session_id']].merge(dataset.labels[['cellid', 'well', 'source_session']],
-                                                           on='cellid', validate='one_to_one')
-    timing, recovered = {}, {}
-    for session, rows in joined.groupby('session_id', sort=True):
-        sources = sorted(set(zip(rows.well.astype(str), rows.source_session.astype(str))))
-        if len(sources) != 1:
-            raise ValueError(f'session {session} has {len(sources)} source recordings (well, source_session) '
-                             f'{sources}; a session needs exactly 1 to take its timing from. Split the session '
-                             'by source recording')
-        source = sources[0]
-        if source not in recovered:
-            well, source_session = source
-            recordings = [r for r in manifest['recordings'] if r['source_session'] == source_session]
-            if len(recordings) != 1:
-                raise ValueError(f'{len(recordings)} extraction_manifest.json recordings have source_session '
-                                 f'{source_session!r}; exactly 1 is needed. Fix the manifest of {path}')
-            _check_extraction_provenance(recordings[0], dataset.metadata, well, source_session,
-                                         [dataset.features[c] for c in rows.cellid], path)
-            recovered[source] = recover_baphy_timing(recordings[0])
-        timing[str(session)] = recovered[source]
-    name = str(dataset.metadata.get('dataset_id') or path.name)
-    return DriftDataset(name, dataset.units, dataset.features, dataset.geometry, timing,
-                        dataset.labels.drop(columns=['partition'], errors='ignore'),
-                        {s: 0.0 for s in timing}, source=str(path.resolve()))
+    sel = Selection(project, (day,))
+    ds = sel.dataset()
+    return DriftDataset(sel.dataset_id, ds.units, ds.features, ds.geometry, sel.timing(),
+                        ds.labels.drop(columns=['partition'], errors='ignore'),
+                        {s: 0.0 for s in sorted(ds.units.session_id.unique())},
+                        source=str(project.day_dir(day)))
 
 
 def _row_pitch(geometry: np.ndarray) -> float:
@@ -410,12 +357,11 @@ its match scores relate to the observed same-unit fraction (calibration), one da
 |---|---|---|---|---|
 {rows}
 
-A benchmark folder is read by `drift_validation.load_benchmark`: the hash-verified dataset in
-`<path>/dataset` (`benchmark.load_dataset`), and each session's trial timing from
-`prepare_baphy.recover_baphy_timing` of its source recording in `dataset/extraction_manifest.json`,
-used only when that recording agrees with the dataset's own hash-verified source provenance (well,
-parameter and AP TTL file hashes, clock verification, sample count and sample rate).
-Its sessions are time windows of one recording, so every true offset starts at 0 µm.
+Each project day is read by `drift_validation.load_project_day` from its hash-verified halves
+archive (`Selection(project, (day,)).dataset()`) and the day's own events (`Selection.timing()`,
+the same trial timing for both halves); a day extracted without events has no timing and is
+validated on waveforms and physiology alone. Its sessions are the day's two temporal halves, time
+windows of one recording, so every true offset starts at 0 µm.
 
 ## Shift rule
 
@@ -468,8 +414,10 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
                       registrations: tuple = ('matches', 'none'), radius_um: float = 80.0, seed: int = 0) -> pd.DataFrame:
     """Run every backend and registration on every injected shift of every dataset; write the outputs.
 
-    ``output`` must not exist (``FileExistsError``); it is created before any work. Each dataset's
-    ``source`` is listed in ``METHODS.md`` and ``manifest.json``.
+    ``datasets`` must be at least 1, each with a unique name (``ValueError``), and ``output`` must
+    not exist (``FileExistsError``); both are checked before ``output`` is created, so a refused call
+    writes nothing, and ``output`` is created before any work. Each dataset's ``source`` is listed in
+    ``METHODS.md`` and ``manifest.json``.
     Returns the summary table.
     """
     from .contract import registry
@@ -479,11 +427,11 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
     from .run.run_dir import save_result, write_json
 
     output = Path(output)
-    output.mkdir(parents=True, exist_ok=False)
     datasets = list(datasets)
     names = [d.name for d in datasets]
     if not datasets or len(set(names)) != len(names):
         raise ValueError(f'{len(datasets)} datasets named {names}; give at least 1, each with a unique name')
+    output.mkdir(parents=True, exist_ok=False)
     options_by_backend = {}
     for backend in backends:
         options = registry.get(backend).spec.defaults()
@@ -565,16 +513,18 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog='python -m multiphy.drift_validation',
-                                     description='Inject known shifts into benchmark days and measure drift '
-                                                 'registration and score calibration.')
-    parser.add_argument('--benchmark', action='append', required=True, type=Path,
-                        help='benchmark folder holding dataset/ (repeat for several)')
+                                     description='Inject known shifts into extracted project days and measure '
+                                                 'drift registration and score calibration.')
+    parser.add_argument('--root', metavar='DIR', help='folder of projects; default MULTIPHY_CACHE_ROOT')
+    parser.add_argument('--project', required=True, help='project name under the root')
+    parser.add_argument('--day', action='append', required=True, help='extracted day of the project (repeat for several)')
     parser.add_argument('--output', required=True, type=Path, help='new output folder; an existing one is refused')
     parser.add_argument('--radius-um', type=float, default=80.0, help='radius_um passed to every backend')
     parser.add_argument('--seed', type=int, default=0, help='seed passed to every backend')
     args = parser.parse_args(argv)
-    datasets = [load_benchmark(path) for path in args.benchmark]
-    validate_datasets(datasets, args.output, radius_um=args.radius_um, seed=args.seed)
+    project = Project.open(cache_root(args.root), args.project)
+    validate_datasets([load_project_day(project, d) for d in args.day], args.output,
+                      radius_um=args.radius_um, seed=args.seed)
     print(f'Drift validation written: {args.output}')
     return 0
 

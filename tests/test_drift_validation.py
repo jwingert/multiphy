@@ -11,8 +11,10 @@ import json
 
 from multiphy import drift_validation as dv
 from multiphy.contract import registry
+from multiphy.project.folder import Project
 from multiphy.run.run_dir import load_result
 
+from .synthetic_day import extracted_project
 from .synthetic_drift import ground_truth, make_drift_days
 
 OUTPUT_FILES = ('summary.csv', 'calibration.csv', 'drift_recovery.png', 'calibration.png',
@@ -352,3 +354,46 @@ def test_harness_scores_offsets_within_registration_components(tmp_path, monkeyp
     assert row.n_offset_pairs == 2
     legend = (tmp_path / 'out' / 'drift_recovery_legend.md').read_text()
     assert 'synthetic · functional_likelihood: matches shift 40: 2\n' in legend.split('Known same-unit')[0]
+
+
+HALVES = {'recording0000_part000', 'recording0000_part001'}
+
+
+def test_load_project_day_reads_its_halves(tmp_path):
+    path = extracted_project(tmp_path, days=('D1',))
+    project = Project.open(path.parent, path.name)
+    dataset = dv.load_project_day(project, 'D1')
+    assert dataset.name == 'P/D1'
+    assert len(dataset.units) == 6
+    assert dataset.ground_truth.source_unit_id.nunique() == 3
+    assert dataset.truth_offsets == {'recording0000_part000': 0.0, 'recording0000_part001': 0.0}
+    assert set(dataset.timing) == HALVES
+    assert dataset.source == str(project.day_dir('D1'))
+
+
+def test_load_project_day_without_events(tmp_path):
+    path = extracted_project(tmp_path, days=('D1',), no_event_days=('D1',))
+    dataset = dv.load_project_day(Project.open(path.parent, path.name), 'D1')
+    assert dataset.timing == {}
+    assert dataset.truth_offsets == {'recording0000_part000': 0.0, 'recording0000_part001': 0.0}
+
+
+def test_cli_loads_named_days(tmp_path, monkeypatch):
+    root = extracted_project(tmp_path).parent
+    seen = []
+
+    def spy(datasets, output, **kwargs):
+        seen.append([d.name for d in datasets])
+    monkeypatch.setattr(dv, 'validate_datasets', spy)
+    assert dv.main(['--root', str(root), '--project', 'P', '--day', 'D1', '--day', 'D2',
+                    '--output', str(tmp_path / 'out')]) == 0
+    assert seen == [['P/D1', 'P/D2']]
+
+
+def test_duplicate_days_write_nothing(tmp_path):
+    root = extracted_project(tmp_path).parent
+    with pytest.raises(ValueError) as exc:
+        dv.main(['--root', str(root), '--project', 'P', '--day', 'D1', '--day', 'D1',
+                 '--output', str(tmp_path / 'out')])
+    assert str(exc.value) == "2 datasets named ['P/D1', 'P/D1']; give at least 1, each with a unique name"
+    assert not (tmp_path / 'out').exists()

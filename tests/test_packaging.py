@@ -3,6 +3,7 @@ repository carries the package documents, fonts and logo SVGs, the ``multiphy`` 
 tests. The wheel is built under ``tmp_path``, never in the repository."""
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -63,8 +64,15 @@ def test_wheel_carries_data_and_entry_point(tmp_path):
     shutil.copy2(REPO / 'pyproject.toml', src / 'pyproject.toml')
     shutil.copy2(REPO / 'README.md', src / 'README.md')
     out = tmp_path / 'out'
+    # pip's build tracker and wheel staging directories come from tempfile.mkdtemp(), so the
+    # subprocess gets a TMPDIR under tmp_path and no inherited build-tracker path.
+    tmp = tmp_path / 'tmp'
+    tmp.mkdir()
+    env = {key: value for key, value in os.environ.items() if key != 'PIP_BUILD_TRACKER'}
+    env['TMPDIR'] = str(tmp)
     subprocess.run([sys.executable, '-m', 'pip', 'wheel', '--no-deps', '--no-build-isolation', '--no-index',
-                    '--no-cache-dir', '-w', str(out), str(src)], check=True, capture_output=True, text=True)
+                    '--no-cache-dir', '-w', str(out), str(src)], check=True, capture_output=True, text=True,
+                   env=env)
 
     wheels = sorted(out.glob('*.whl'))
     assert len(wheels) == 1

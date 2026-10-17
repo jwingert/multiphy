@@ -11,7 +11,7 @@ import itertools
 from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -51,7 +51,7 @@ LABEL_COLUMNS = frozenset({'source_unit_id', 'same_unit', 'partition', 'source_u
 class CheckpointRef:
     path: str
     probe_type: str
-    sha256: str | None = None
+    sha256: Optional[str] = None
 
 
 # --- RawWaveformBundle ---
@@ -213,18 +213,18 @@ def evidence_tags(reasons: Sequence[str]) -> list:
 class MatchingInput:
     units: pd.DataFrame
     group: str
-    candidate_pairs: pd.DataFrame | None = None
-    features: dict | None = None
-    waveform_halves: np.ndarray | None = None
+    candidate_pairs: Optional[pd.DataFrame] = None
+    features: Optional[dict] = None
+    waveform_halves: Optional[np.ndarray] = None
     waveform_cellids: tuple = ()
     waveform_session_ids: tuple = ()
-    waveform_spike_counts: np.ndarray | None = None
-    geometry: dict | None = None
-    spike_times: dict | None = None
-    fingerprint: np.ndarray | None = None
+    waveform_spike_counts: Optional[np.ndarray] = None
+    geometry: Optional[dict] = None
+    spike_times: Optional[dict] = None
+    fingerprint: Optional[np.ndarray] = None
     fingerprint_bin_keys: tuple = ()
-    timing: dict | None = None
-    checkpoint: CheckpointRef | None = None
+    timing: Optional[dict] = None
+    checkpoint: Optional[CheckpointRef] = None
     waveform_provenance: dict = field(default_factory=dict)
     provenance: Provenance = field(default_factory=Provenance)
 

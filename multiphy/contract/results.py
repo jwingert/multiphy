@@ -10,6 +10,7 @@ emissions against what the backend's spec declares it can provide.
 from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -55,9 +56,9 @@ REQUIRED_PAIR_COLUMNS = frozenset({'cellid_a', 'cellid_b', 'match_score', 'decis
 @dataclass(frozen=True)
 class ScoreBlock:
     kind: ScoreKind
-    column: str | None
-    similarity_column: str | None = None
-    calibration_reference: str | None = None
+    column: Optional[str]
+    similarity_column: Optional[str] = None
+    calibration_reference: Optional[str] = None
 
     def to_json(self):
         return {'kind': self.kind.value, 'column': self.column,

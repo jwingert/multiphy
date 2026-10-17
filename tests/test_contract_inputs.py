@@ -85,3 +85,25 @@ def test_docs_name_no_fixed_model_path(tmp_path):
             for n, line in enumerate(p.read_text().splitlines(), 1)
             if removed.search(line)]
     assert hits == []
+
+
+def test_contract_annotations_resolve_on_python_39():
+    import inspect
+    import typing
+    from multiphy.contract import backend, errors, inputs, provenance, results
+    checked = []
+    for module in (backend, errors, inputs, provenance, results):
+        for name, obj in vars(module).items():
+            if getattr(obj, '__module__', None) != module.__name__:
+                continue
+            if inspect.isclass(obj):
+                typing.get_type_hints(obj)
+                for member in vars(obj).values():
+                    function = getattr(member, '__func__', member)
+                    if inspect.isfunction(function):
+                        typing.get_type_hints(function)
+                checked.append(name)
+            elif inspect.isfunction(obj):
+                typing.get_type_hints(obj)
+                checked.append(name)
+    assert {'Provenance', 'MatchingInput', 'MissingInputs'} <= set(checked)

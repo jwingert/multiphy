@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, fields, replace
 import hashlib
 import json
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -40,16 +41,16 @@ def payload_digest(payload) -> str:
 
 @dataclass(frozen=True)
 class Provenance:
-    dataset_id: str | None = None
-    input_manifest_sha256: str | None = None
-    group: str | None = None
-    partition: str | None = None
-    tier: str | None = None
-    implementation: dict | None = None
-    upstream_version: str | None = None
-    verified_api_revision: str | None = None
-    parameters: dict | None = None
-    calibration_status: str | None = None
+    dataset_id: Optional[str] = None
+    input_manifest_sha256: Optional[str] = None
+    group: Optional[str] = None
+    partition: Optional[str] = None
+    tier: Optional[str] = None
+    implementation: Optional[dict] = None
+    upstream_version: Optional[str] = None
+    verified_api_revision: Optional[str] = None
+    parameters: Optional[dict] = None
+    calibration_status: Optional[str] = None
     extra: dict = field(default_factory=dict)
 
     def to_json(self) -> dict:
@@ -61,7 +62,7 @@ class Provenance:
         return json_safe(out)
 
     @classmethod
-    def from_json(cls, d: dict | None) -> 'Provenance':
+    def from_json(cls, d: Optional[dict]) -> 'Provenance':
         d = dict(d or {})
         if not isinstance(d, dict):
             raise ValueError('Provenance must be a mapping')

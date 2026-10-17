@@ -8,7 +8,7 @@ and the subprocess launcher can all be generated from the option schema.
 from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol
+from typing import Optional, Protocol
 
 from .inputs import Input, MatchingInput
 from .provenance import Provenance
@@ -47,8 +47,8 @@ class Provides:
 @dataclass(frozen=True)
 class Availability:
     ok: bool
-    version: str | None
-    reason: str | None
+    version: Optional[str]
+    reason: Optional[str]
 
 
 @dataclass(frozen=True)

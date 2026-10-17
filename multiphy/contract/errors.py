@@ -6,6 +6,8 @@ ContractViolation: a backend or caller broke a rule the contract states.
 """
 from __future__ import annotations
 
+from typing import Optional
+
 
 class BackendUnavailable(RuntimeError):
     """The requested method needs an installed runner, checkpoint or environment."""
@@ -14,7 +16,7 @@ class BackendUnavailable(RuntimeError):
 class MissingInputs(ValueError):
     """spec.requires is not covered by MatchingInput.available()."""
 
-    def __init__(self, backend_id: str, group: str, missing, detail: str | None = None):
+    def __init__(self, backend_id: str, group: str, missing, detail: Optional[str] = None):
         self.backend_id, self.group, self.missing = backend_id, str(group), frozenset(missing)
         self.detail = detail
         names = ', '.join(sorted(str(getattr(m, 'value', m)) for m in self.missing))

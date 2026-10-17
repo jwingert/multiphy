@@ -17,6 +17,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from .benchmark_pairs import check_channel_count
 from .evaluation import validate_partitions
 from .contract.inputs import RawWaveformBundle
 from .run.config import resolve_cache_path
@@ -105,6 +106,7 @@ class BenchmarkDataset:
             f = self.features[r.cellid]
             if {'source_unit', 'source_unit_id', 'same_unit'} & set(f):
                 raise ValueError('Source identity labels must not be serialized as matcher features.')
+            check_channel_count(r.cellid, r.session_id, f['waveform_halves'], self.geometry[r.session_id])
             g = np.asarray(self.geometry[r.session_id])
             w = np.asarray(f['waveform_halves'])
             if (g.ndim != 2 or g.shape[1] != 2 or not np.isfinite(g).all()

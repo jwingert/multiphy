@@ -72,6 +72,17 @@ def test_tuning_without_tuning_part(qt):
     panel.close()
 
 
+def test_geometry_panels_without_measured_geometry(qt):
+    state = PairState()
+    state.set_data(DictData(['u:0'], {'u:0': {'ptp': np.ones(4), 'patch': np.ones((4, 5))}}, {}, {'u:0': 'dayA'}))
+    panels = [registry.PANELS[i](state) for i in ('probe', 'wfmap', 'footprint')]
+    state.set_selection(['u:0'])
+    qt.processEvents()          # the idle redraw runs while the panels live
+    for panel in panels:
+        assert [t.get_text() for t in panel.axes[0].texts] == ['no measured geometry'], panel.panel_id
+        panel.close()
+
+
 def test_probe_has_no_registered_box(qt, runs):
     state = _state(runs['same_day'])
     panel = registry.PANELS['probe'](state)

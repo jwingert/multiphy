@@ -113,3 +113,12 @@ def test_ambiguous_omissions_and_source_identity_types_are_rejected():
     s.spike_samples = {1: s.spike_samples['one'], '1': s.spike_samples['two']}
     with pytest.raises(ValueError, match='nonempty strings'):
         build_dataset([s], dataset_id='two')
+
+
+def test_dataset_refuses_channel_count_mismatch():
+    ds = dataset()
+    cid, s = ds.units.cellid.iloc[0], ds.units.session_id.iloc[0]
+    ds.geometry[s] = ds.geometry[s][:3]
+    with pytest.raises(ValueError) as exc:
+        ds.validate()
+    assert str(exc.value) == f'channel count differs · unit {cid} has 4 · {s} geometry has 3'

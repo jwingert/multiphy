@@ -11,6 +11,16 @@ import numpy as np
 import pandas as pd
 
 
+def check_channel_count(cellid: str, session: str, waveform, geometry) -> None:
+    """Refuse a unit whose waveform has a different channel count from its day's measured geometry."""
+    if np.ndim(waveform) < 2:
+        return
+    n = np.shape(waveform)[1]
+    m = len(geometry)
+    if n != m:
+        raise ValueError(f'channel count differs · unit {cellid} has {n} · {session} geometry has {m}')
+
+
 def _waveform_summary(row, geometry):
     from .backends.local import evidence as ev  # imported here: the backends package imports this module
     waveform = np.asarray(row.get('waveform'), dtype=float)
@@ -142,6 +152,8 @@ def build_benchmark_pairs(units, feature_rows, channel_positions, *,
             raise ValueError(f'{unit.cellid} is missing eligible independently extracted features')
         if unit.session_id not in channel_positions:
             raise ValueError(f'Missing measured channel geometry for {unit.session_id}')
+        check_channel_count(unit.cellid, unit.session_id, feature_rows[unit.cellid].get('waveform'),
+                            channel_positions[unit.session_id])
         summary[unit.cellid] = _waveform_summary(feature_rows[unit.cellid], channel_positions[unit.session_id])
     rows = []
     for group_id, group in eligible.groupby('recording_group', sort=True):

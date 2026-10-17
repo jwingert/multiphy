@@ -641,3 +641,23 @@ def test_settings_live_in_a_fresh_tmp_folder():
     assert p.name == 'multiphy.ini'
     assert p.parent.name == 'multiphy'
     assert re.fullmatch(r'settings\d+', p.parent.parent.name) is not None
+
+
+def test_open_run_refuses_channel_count_mismatch(qt, tmp_path, monkeypatch):
+    from multiphy.launch import commands
+    from multiphy.project import selection as selection_module
+    folder = extracted_project(tmp_path)
+    root = folder.parent
+    run = commands.run(root, 'P', backend='functional_likelihood')['run']
+    real = selection_module.load_full_day
+
+    def short_geometry(path):
+        full = real(path)
+        if 'D2' in full['geometry']:
+            full['geometry'] = dict(full['geometry'], D2=full['geometry']['D2'][:-1])
+        return full
+
+    monkeypatch.setattr(selection_module, 'load_full_day', short_geometry)
+    with pytest.raises(ValueError) as exc:
+        viewer_app.open_run(run)
+    assert str(exc.value) == 'channel count differs · unit D2:0 has 8 · D2 geometry has 7'

@@ -124,3 +124,11 @@ def test_geometry_location_changes_only_explicit_spatial_gate():
     assert exhaustive.iloc[0].distance_um > 10
     gated = build_benchmark_pairs(units, features, geometry, max_distance_um=10)
     assert len(gated) == 2
+
+
+def test_pairs_refuse_channel_count_mismatch():
+    units, features, geometry = fixture_data()
+    geometry['late'] = geometry['late'][:5]
+    with pytest.raises(ValueError) as exc:
+        build_benchmark_pairs(units, features, geometry)
+    assert str(exc.value) == 'channel count differs · unit opaque3 has 6 · late geometry has 5'

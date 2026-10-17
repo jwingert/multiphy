@@ -1,7 +1,6 @@
 """The probe as it was recorded, with each selected unit filled in on its electrodes."""
 import numpy as np
 
-from multiphy.features import probe_geometry
 from multiphy.viewer import display
 from multiphy.viewer.panels.plots.base import PlotPanel
 from multiphy.viewer.qt import QtWidgets
@@ -38,11 +37,11 @@ class ProbePanel(PlotPanel):
         row.addWidget(self.whole_probe)
 
     def geometry_for(self, cid, n_chan):
-        """The electrodes this unit's day recorded from."""
+        """The electrodes this unit's day recorded from, or None without ``n_chan`` measured rows."""
         g = self.state.data.geometry(self.state.sites[cid])
         if g is not None and len(g) == n_chan:
             return np.asarray(g, float)
-        return probe_geometry(n_chan)
+        return None
 
     def draw(self, r):
         ax = self.axes[0]
@@ -56,6 +55,10 @@ class ProbePanel(PlotPanel):
         if any(len(u.ptp) != n_chan for _, u, _ in sel):
             ax.text(.5, .5, 'selected units are on probes with different\n'
                             'channel counts', ha='center', va='center',
+                    transform=ax.transAxes, fontsize=8)
+            return
+        if any(self.geometry_for(cid, n_chan) is None for cid, _, _ in sel):
+            ax.text(.5, .5, 'no measured geometry', ha='center', va='center',
                     transform=ax.transAxes, fontsize=8)
             return
         geo = {}

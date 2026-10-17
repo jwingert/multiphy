@@ -118,3 +118,10 @@ def test_stimulus_duration_must_agree_across_temporal_parts():
                                      sample_rate=1000, n_channels=2,
                                      source_unit='one', source_session='a',
                                      su_type='SU', preprocessing='synthetic', stimuli=trials)
+
+
+def test_features_has_no_assumed_layout():
+    from multiphy import features
+    for name in ('probe_geometry', 'npx1_geometry', 'GEOM', 'CHANMAP_DIR', 'CHANMAP_DEFAULT',
+                 'DEFAULT_RUNCLASS', 'FINGERPRINT_RUNCLASSES', 'stimulus_key'):
+        assert hasattr(features, name) is False, name

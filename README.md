@@ -155,7 +155,7 @@ on shared inputs, rather than reproducing each author's extraction recipe.
 
 | module | role | imports |
 |---|---|---|
-| `features.py` | probe geometry, spiking statistics and stimulus keys | numpy/scipy |
+| `features.py` | spiking statistics: spike width, trial split halves, interval histogram and autocorrelogram | numpy/pandas |
 | `nems_lbhb.unit_match_lbhb` | the LBHB plugin: `lbhb.baphy` reader, `lbhb-init`, well listing (`blocks.py`) and BAPHY features (`baphy_features.py`) | celldb and BAPHY, imported where queried |
 | `contract/` | the backend contract: `MatchingInput`, `BackendSpec`, `MatchResult`, `Provenance`, the registry, and every display name | numpy/pandas only |
 | `backends/` | single-unit results: the local `functional_likelihood` and `pair_logistic` matchers plus the UnitMatch/DANT/DeepUnitMatch adapters, registered on import | numpy/pandas; upstream packages imported lazily, only when run |
@@ -356,11 +356,10 @@ Depth alignment comes from unit-density profiles and has a noise floor near
 20 μm, measured by running it on same-day recordings where the true offset is
 zero. That is why the proximity gate is 40 μm rather than tighter.
 
-Site coordinates come from the KiloSort channel maps in `/auto/data/code/KiloSort`,
-chosen by channel count, with an idealised Neuropixels geometry as the fallback
-for a probe with no map on disk. Several maps share a channel count (64D against
-64M, 128D against 128P) and nothing readable in the sort record says which was
-used, so the probe view offers the choice and names the one in use.
+Each day's electrode coordinates come from its own recording. A day without
+measured geometry draws `no measured geometry` in the probe, waveform-map and
+footprint views. A unit whose channel count differs from its day's geometry
+refuses the run, naming the unit, the day and both counts.
 
 Single units and multi-unit clusters are both included. A multi-unit cluster's
 fingerprint is a blend, so its match means something weaker.

@@ -368,7 +368,7 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
     warning. A backend that reads timing gets one ``warning · <reason>`` line on stderr per
     evidence fallback (``Selection.evidence``) before it starts. An available
     backend runs in this process unless ``python`` names an interpreter; otherwise it runs in
-    ``python`` or the verified lab interpreter, and a failure there raises ``RuntimeError``
+    ``python`` or the verified interpreter under ``root``, and a failure there raises ``RuntimeError``
     naming the run folder it left. A saved ``result.json`` holding ``proposed_link`` pairs of two
     units of one session prints one ``warning · <n> proposed same-day link(s) · review in the
     viewer`` line on stderr.
@@ -397,7 +397,7 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
     if availability.ok and python is None:
         run_selection(selection, backend, options, output_dir=output)
     else:
-        interpreter = python or verified_interpreter()  # the lab default root (D22)
+        interpreter = python or verified_interpreter(root=root)
         if interpreter is None:
             raise ValueError(f'{backend} is unavailable here ({availability.reason}) and no verified interpreter '
                              'exists; pass --python EXE')

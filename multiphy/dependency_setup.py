@@ -112,7 +112,7 @@ pathlib.Path(sys.argv[1]).write_text(json.dumps(result, indent=2))
 '''
 
 
-def verified_interpreter(*, root=None, directory=DEFAULT_DIRECTORY):
+def verified_interpreter(*, root, directory=DEFAULT_DIRECTORY):
     """Return the durable interpreter only when its completed manifest verifies."""
     try:
         folder = resolve_cache_path(directory, root=root)
@@ -225,8 +225,10 @@ def main(argv=None):
     parser.add_argument('--dant-source', required=True)
     parser.add_argument('--overlay', required=True)
     parser.add_argument('--output', default=DEFAULT_DIRECTORY)
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     args = parser.parse_args(argv)
-    print(setup_environment(args.unitmatch_source, args.dant_source, args.overlay, output_dir=args.output))
+    print(setup_environment(args.unitmatch_source, args.dant_source, args.overlay, output_dir=args.output,
+                            root=args.root))
     return 0
 
 

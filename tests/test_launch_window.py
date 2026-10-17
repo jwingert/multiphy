@@ -222,9 +222,32 @@ def test_root_label_elided(qt, runs, tmp_path):
     assert window.root_label.toolTip() == full
     assert '…' in window.root_label.text()
     assert len(window.root_label.text()) < len(full)
-    assert window.root_action.text() == 'Lab root…'
+    assert window.root_action.text() == 'Root…'
     assert window.set_root(runs['root']) is True
     assert window.root_label.toolTip() == str(runs['root'].resolve())
+    _close(window)
+
+
+def test_window_interpreter_reads_its_root(qt, tmp_path, monkeypatch):
+    first, second = tmp_path / 'A', tmp_path / 'B'
+    first.mkdir()
+    second.mkdir()
+    seen = []
+
+    def spy(*, root, **_kwargs):
+        seen.append(root)
+        return '/x/python'
+
+    monkeypatch.setattr(launch_window.dependency_setup, 'verified_interpreter', spy)
+    window = LauncherWindow(first, plugins=PluginApi(), interpreter_lookup=None)
+    window.form_widgets['run']['python'].setText('')
+    assert window._run_interpreter() == '/x/python'
+    assert seen == [first]
+    assert window._run_interpreter() == '/x/python'
+    assert seen == [first]
+    assert window.set_root(second) is True
+    assert window._run_interpreter() == '/x/python'
+    assert seen == [first, second]
     _close(window)
 
 

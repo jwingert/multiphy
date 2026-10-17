@@ -278,7 +278,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.form_widgets = {}
         self._busy = False
         self._project = None  # the opened Project of the last successful fill
-        self._interpreter = _UNSET  # interpreter_lookup's answer or its exception, looked up at most once
+        self._interpreter = _UNSET  # interpreter_lookup's answer or its exception, looked up at most once per root
         self._prefilled = _UNSET  # the project the init and plugin forms were last filled with
         self._backend_fields = []
         self._specs = {}
@@ -325,7 +325,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def _build(self) -> None:
         self.root_label = _ElidedLabel()
         self.root_label.set_full_text(str(self.root))
-        self.root_action = QtGui.QAction('Lab root…', self)
+        self.root_action = QtGui.QAction('Root…', self)
         self.root_action.triggered.connect(self._choose_root)
         self.addAction(self.root_action)
         self.project_combo = QtWidgets.QComboBox()
@@ -550,12 +550,12 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self.viewers.append(viewer)
 
     def _choose_root(self) -> None:
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Lab root', str(self.root))
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Root', str(self.root))
         if path:
             self.set_root(Path(path))
 
     def set_root(self, path: Path) -> bool:
-        """Show the lab root ``path``; ``False``, with the error logged and nothing changed, when its
+        """Show the root ``path``; ``False``, with the error logged and nothing changed, when its
         plugins or forms cannot be prepared (D9, D29, D72).
 
         ``load_plugins`` registers the root's source readers process-wide, and they stay registered
@@ -570,6 +570,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self.append_log(f'error: {exc}')
             return False
         self.root, self.plugins, self.forms = new_root, api, forms
+        self._interpreter = _UNSET  # the verified interpreter is looked up under the new root
         self.root_label.set_full_text(str(self.root))
         self._build_tabs()
         self._wanted = (None,)
@@ -788,13 +789,14 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._update_run_buttons()
 
     def _run_interpreter(self) -> Optional[str]:
-        """The run form's ``python``, else the verified interpreter, looked up once per window."""
+        """The run form's ``python``, else the verified interpreter, looked up once per root."""
         widget = self.form_widgets.get('run', {}).get('python')
         if isinstance(widget, QtWidgets.QLineEdit) and widget.text().strip():
             return widget.text().strip()
         if self._interpreter is _UNSET:
             try:
-                self._interpreter = (self.interpreter_lookup or dependency_setup.verified_interpreter)()
+                self._interpreter = (self.interpreter_lookup() if self.interpreter_lookup
+                                     else dependency_setup.verified_interpreter(root=self.root))
             except Exception as exc:
                 self._interpreter = exc
         if isinstance(self._interpreter, Exception):

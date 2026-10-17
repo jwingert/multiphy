@@ -22,8 +22,10 @@ file, see [`adding_a_source.md`](adding_a_source.md).
 ## 1. The lab root
 
 Every project lives directly under one **lab root**. It is `--root DIR` when given, else the
-`MULTIPHY_CACHE_ROOT` environment variable, else the LBHB default
-`/auto/data/nems_db/unit_match`. Outside LBHB, set `MULTIPHY_CACHE_ROOT` or pass `--root`.
+`MULTIPHY_CACHE_ROOT` environment variable. With neither, every launcher command, `--help`
+included, prints `error: no root · pass --root DIR or set MULTIPHY_CACHE_ROOT` and returns 1;
+the benchmark CLIs raise a `ValueError` with the same message when they need a root.
+`python -m multiphy.viewer --run DIR` takes its root from the run.
 
 - A project is `<root>/<PROJECT>/`. `PROJECT` is a name matching `[A-Za-z0-9][A-Za-z0-9_.-]*`,
   or the path of a folder directly under the root.
@@ -497,7 +499,7 @@ $ python -m multiphy.launch --root /data/multiphy export M1 --run 20260928T12000
 ### gui
 
 `launch [--root DIR] gui [PROJECT]` opens the launcher window on the lab root (`--root`, else
-the default, section 1). `PROJECT` (a name, or a path directly under the root) is shown first,
+`MULTIPHY_CACHE_ROOT`, section 1). `PROJECT` (a name, or a path directly under the root) is shown first,
 and a name that is not yet a project fills the `project` field of the init and plugin forms.
 `launch gui` itself writes no log line.
 The window opens at 1280 × 860 (`OPEN_SIZE`), or at most 90% of the screen's free width and
@@ -548,7 +550,7 @@ window while a command runs asks `<command> running · cancel and close?`
 (`<command> running · N waiting · cancel and close?` while N wait); `Yes` drops the waiting
 commands, cancels the running one and closes when it ends.
 
-**The root.** `Settings` ▸ `Lab root…` switches it; the left column shows the root read-only,
+**The root.** `Settings` ▸ `Root…` switches it; the left column shows the root read-only,
 shortened in the middle, the full path in hover. A switch loads the new root's config and
 plugins and builds every form before it switches; a root where any of that fails is refused
 with an `error:` line, and the window keeps its root. The source readers plugins add stay

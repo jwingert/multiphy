@@ -63,7 +63,7 @@ def test_menus_in_both_windows(qt, runs, theme_env):
     tmp_path = theme_env
     launcher = _launcher(runs)
     assert _texts(launcher.menuBar().actions()) == ['&Settings', '&Help']
-    assert _texts(launcher.settings_menu.actions()) == ['&Theme', '&Unit colours', '', 'Lab root…']
+    assert _texts(launcher.settings_menu.actions()) == ['&Theme', '&Unit colours', '', 'Root…']
     assert _texts(launcher.unit_palette_menu.actions()) == ['Graphite pastel', 'Tol light +', 'Max-distance',
                                                             'Okabe–Ito + tints', 'Tableau 20', 'Day ramp']
     assert [pid for pid, action in launcher.unit_palette_actions.items() if action.isChecked()] == ['pastel']

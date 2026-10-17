@@ -229,6 +229,18 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
     lock.unlink()
 
 
+def test_launcher_without_root_refuses(tmp_path, capsys, monkeypatch):
+    refused = 'error: no root · pass --root DIR or set MULTIPHY_CACHE_ROOT\n'
+    monkeypatch.delenv('MULTIPHY_CACHE_ROOT', raising=False)
+    assert main(['status', 'P']) == 1
+    assert tuple(capsys.readouterr()) == ('', refused)
+    assert main(['--help']) == 1
+    assert tuple(capsys.readouterr()) == ('', refused)
+    monkeypatch.setenv('MULTIPHY_CACHE_ROOT', str(tmp_path))
+    assert main(['--root', '', 'status', 'P']) == 1
+    assert tuple(capsys.readouterr()) == ('', refused)
+
+
 def test_cli_help(tmp_path, capsys):
     env = dict(os.environ, PYTHONPATH=str(REPO))
     help_root = str(tmp_path / 'help')

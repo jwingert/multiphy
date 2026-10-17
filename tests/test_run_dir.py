@@ -1,4 +1,5 @@
 import json
+import os
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,8 +13,31 @@ def test_cache_root_reads_environment(monkeypatch, tmp_path):
     monkeypatch.setenv('MULTIPHY_CACHE_ROOT', str(tmp_path))
     assert config.cache_root() == tmp_path.resolve()
     monkeypatch.delenv('MULTIPHY_CACHE_ROOT')
-    assert str(config.cache_root()) == config.CACHE_ROOT
     assert config.cache_root(tmp_path / 'x') == (tmp_path / 'x').resolve()
+
+
+def test_cache_root_refuses_without_root(monkeypatch, tmp_path):
+    message = 'no root · pass --root DIR or set MULTIPHY_CACHE_ROOT'
+    monkeypatch.delenv('MULTIPHY_CACHE_ROOT', raising=False)
+    with pytest.raises(ValueError) as caught:
+        config.cache_root()
+    assert str(caught.value) == message
+    monkeypatch.setenv('MULTIPHY_CACHE_ROOT', str(tmp_path))
+    with pytest.raises(ValueError) as caught:
+        config.cache_root('')
+    assert str(caught.value) == message
+    monkeypatch.setenv('MULTIPHY_CACHE_ROOT', '')
+    with pytest.raises(ValueError) as caught:
+        config.cache_root()
+    assert str(caught.value) == message
+    monkeypatch.setenv('MULTIPHY_CACHE_ROOT', str(tmp_path))
+    assert config.cache_root() == tmp_path.resolve()
+    assert config.cache_root(tmp_path / 'b') == (tmp_path / 'b').resolve()
+
+
+def test_session_has_no_env_root(request):
+    assert 'no_env_root' in request.fixturenames
+    assert 'MULTIPHY_CACHE_ROOT' not in os.environ
 
 
 def test_resolve_rejects_escape(tmp_path):

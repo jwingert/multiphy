@@ -149,7 +149,7 @@ with a `register(api)` function. The launcher finds plugins in two places, befor
 the command line:
 
 - `<root>/multiphy.json`, where `<root>` is `--root DIR` given before the command word, else
-  `run.config.cache_root()`:
+  `MULTIPHY_CACHE_ROOT`:
 
   ```json
   {"plugins": ["my_package.multiphy_plugin"]}

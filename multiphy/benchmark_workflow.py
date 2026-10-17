@@ -250,6 +250,7 @@ def main(argv=None):
                         help='Explicitly rebuild pair evidence from saved features at this repeat minimum')
     parser.add_argument('--checkpoint', help='Reuse an existing trained network instead of training again')
     parser.add_argument('--checkpoint-probe', help='Actual probe identifier used to train that checkpoint')
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     run_workflow(**vars(parser.parse_args(argv)))
 
 

@@ -362,8 +362,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='append', required=True, help='Completed run directory; repeat per method')
     parser.add_argument('--output', help='New output directory beneath the UnitMatch cache root')
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     args = parser.parse_args(argv)
-    print(write_comparison(args.run, args.output))
+    print(write_comparison(args.run, args.output, root=args.root))
     return 0
 
 

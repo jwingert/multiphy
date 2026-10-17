@@ -190,8 +190,9 @@ def main(argv=None):
     parser.add_argument('--scratch-root', help='Absolute directory outside the code repository for temporary selected snippets; defaults to the matching cache _runtime directory')
     parser.add_argument('--waveform-storage', choices=('snippets', 'streaming_summary'), default='snippets',
                         help='Opt-in shared-profile streaming summaries avoid temporary snippet files; default preserves snippet storage')
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     args = parser.parse_args(argv)
-    print(f'Benchmark dataset saved: {extract_manifest(args.manifest, output_dir=args.output, scratch_root=args.scratch_root, waveform_storage=args.waveform_storage)}')
+    print(f'Benchmark dataset saved: {extract_manifest(args.manifest, output_dir=args.output, root=args.root, scratch_root=args.scratch_root, waveform_storage=args.waveform_storage)}')
 
 
 if __name__ == '__main__':

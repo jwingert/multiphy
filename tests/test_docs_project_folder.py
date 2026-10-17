@@ -95,7 +95,7 @@ def test_docs_name_launcher_gui():
     package = DOCS.parent
     text = (DOCS / 'project_folder.md').read_text(encoding='utf-8')
     for word in ('launch [--root DIR] gui [PROJECT]', '### gui', 'cancelled', 'Curate…', 'Inspect…', 'CLI only',
-                 'Extract features', '.extract.lock', 'exits 130', 'Lab root…', 'waiting', 'Clear',
+                 'Extract features', '.extract.lock', 'exits 130', 'Root…', 'waiting', 'Clear',
                  'viewer.md#theme'):
         assert word in text, word
     readme = (REPO / 'README.md').read_text(encoding='utf-8')

@@ -230,8 +230,8 @@ The caller of the new temporal extractor must establish:
   complete acoustic identity, including ear/channel and timing. Only complete
   trials inside each temporal split contribute to its fingerprint.
 - Benchmark/training scripts live in `multiphy/`. All generated
-  data, checkpoints, and reports live beneath the existing cache root,
-  `/auto/data/nems_db/unit_match/benchmarks/`; the repository contains code only.
+  data, checkpoints, and reports live beneath the root's `benchmarks/` (`--root DIR`
+  or `MULTIPHY_CACHE_ROOT`); the repository contains code only.
 
 The initial inspected PRN069a BNT recording retains sorted cluster IDs, trial
 spike times, and the recorded AP voltage in compressed `continuous.dat.gz`.
@@ -250,7 +250,7 @@ New preparation defaults to `shared_unwhitened_v1`; old manifests remain explici
 legacy. A single new buffered source read is needed to upgrade that pilot because
 its short snippet averages do not retain the surrounding voltage needed for filtering.
 The replacement extraction and published-method pilot runs are complete under
-`/auto/data/nems_db/unit_match/benchmarks/prn069a_temporal_shared_v1/`.
+the lab root's `benchmarks/prn069a_temporal_shared_v1/`.
 
 Compressed recordings are read forwards through gzip in memory; no complete
 uncompressed recording is written. The current extractor temporarily stores only

@@ -2,7 +2,7 @@
 
 The voltage reader and all input times must already share a verified raw sample
 clock. This module does not guess a mapping from trial-relative spike times.
-Generated datasets belong beneath run/config.py:CACHE_ROOT, never beside this source.
+Generated datasets belong beneath the root (--root or MULTIPHY_CACHE_ROOT), never beside this source.
 """
 from dataclasses import dataclass, field
 from datetime import datetime, timezone

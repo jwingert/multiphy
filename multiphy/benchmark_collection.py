@@ -223,6 +223,7 @@ def main(argv=None):
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--min-stimulus-repeats', type=int,
                         help='Explicitly rebuild collection pairs with this positive per-condition repeat minimum')
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     args = parser.parse_args(argv)
     pair_options = None if args.min_stimulus_repeats is None else _pair_options_override(
         {'min_repeats': args.min_stimulus_repeats})
@@ -232,7 +233,7 @@ def main(argv=None):
         for path in args.input:
             omissions[str(Path(path).resolve())] = missing_counterpart_ids(load_dataset(path), args.omit_fraction, args.seed)
     print(create_collection(args.input, args.output, dataset_id=args.dataset_id, omissions=omissions,
-                            omission_rule=rule, pair_options=pair_options))
+                            omission_rule=rule, pair_options=pair_options, root=args.root))
 
 
 if __name__ == '__main__':

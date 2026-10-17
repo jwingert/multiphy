@@ -1,8 +1,8 @@
 # Running temporal single-unit comparisons
 
 Code lives in `multiphy/`. Generated input arrays, datasets, method
-results, model checkpoints, and reports live beneath the existing cache root:
-`/auto/data/nems_db/unit_match/benchmarks/`. The commands below reject output
+results, model checkpoints, and reports live beneath the root's `benchmarks/`
+folder (`--root DIR`, else `MULTIPHY_CACHE_ROOT`). The commands below reject output
 paths outside that root and never overwrite an existing dataset or run.
 
 ## 1. Prepare and extract independent observations
@@ -86,7 +86,7 @@ uncompressed recording is written. The extractor temporarily writes only the
 selected snippets, prints their directory and planned size, then removes its
 unique temporary directory when it exits normally or handles an exception.
 Abrupt termination may leave partial files. The default location is
-`/auto/data/nems_db/unit_match/_runtime/extract-*`. An explicit
+`<root>/_runtime/extract-*`. An explicit
 `--scratch-root /absolute/path/to/scratch` relocates those temporary snippets for
 that run while keeping permanent dataset outputs in the matching cache. Paths
 inside the code repository, including symlink aliases, are rejected. This option
@@ -112,7 +112,7 @@ transforms. Exact numerical-equivalence tests cover both modes; real-recording
 deployment and timing are still pending.
 
 The default dataset location is
-`/auto/data/nems_db/unit_match/benchmarks/<dataset_id>/dataset/`.
+`<root>/benchmarks/<dataset_id>/dataset/`.
 It contains separate matcher inputs and `reference_labels.csv`, content
 hashes, exclusions, source/preprocessing provenance, and `METHODS.md`.
 Prespecified missing observations can be supplied as

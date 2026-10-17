@@ -110,7 +110,7 @@ def test_launch_run_child_failure_keeps_selection(tmp_path):
 def test_unavailable_backend_runs_in_lab_interpreter(clean, unavailable, monkeypatch):
     monkeypatch.setenv('PYTHONPATH', '/existing/path')
     result = commands.run(clean.root, 'P', backend=FL, options={'seed': 7})
-    assert unavailable.interpreter == [((), {})]
+    assert unavailable.interpreter == [((), {'root': clean.root})]
     ((command, kwargs),) = unavailable.run
     assert command[:17] == ['/lab/python', '-u', '-m', 'multiphy.run', 'run-backend',
                             '--project', str(clean.path), '--days', 'D1', 'D2', '--backend', FL,

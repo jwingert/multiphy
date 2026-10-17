@@ -1,9 +1,9 @@
 """Execute persisted benchmark inputs without writing data into the code tree.
 
-Examples (all output defaults to /auto/data/nems_db/unit_match):
-    python -m multiphy.runners run-backend --input DATASET --backend unitmatch
-    python -m multiphy.runners prepare-deep --input DATASET --source-checkout CHECKOUT
-    python -m multiphy.runners train-deep --prepared PREPARED_DIRECTORY
+Examples (output goes under --root DIR, else MULTIPHY_CACHE_ROOT):
+    python -m multiphy.runners --root DIR run-backend --input DATASET --backend unitmatch
+    python -m multiphy.runners --root DIR prepare-deep --input DATASET --source-checkout CHECKOUT
+    python -m multiphy.runners --root DIR train-deep --prepared PREPARED_DIRECTORY
 
 Imports of official numerical implementations remain lazy. These commands never
 install dependencies. Only the explicit train-deep command starts training.
@@ -152,6 +152,7 @@ def wait_for_extraction(pid, input_path):
 
 def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     commands = parser.add_subparsers(dest='command', required=True)
     run = commands.add_parser('run-backend', help='Run a genuine optional matching implementation')
     run.add_argument('--input', required=True, type=Path)
@@ -205,16 +206,16 @@ def main(argv=None):
                 if key in options:
                     options[key] = _json_object(options[key])
             output = run_backend_dataset(args.input, args.backend, partition=args.partition,
-                output_dir=args.output, **options)
+                output_dir=args.output, root=args.root, **options)
             print(f'Matching result: {output / "result.json"}')
         elif args.command == 'prepare-deep':
             output = prepare_deep_dataset(args.input, source_checkout=args.source_checkout,
                 output_dir=args.output, autoencoder_epochs=args.autoencoder_epochs,
                 contrastive_epochs=args.contrastive_epochs, seed=args.seed, cpu_threads=args.cpu_threads,
-                preprocessing=_json_object(args.preprocessing))
+                preprocessing=_json_object(args.preprocessing), root=args.root)
             print(f'Training prepared; not started: {output}')
         else:
-            result = train_prepared(args.prepared, python_executable=args.python_executable)
+            result = train_prepared(args.prepared, python_executable=args.python_executable, root=args.root)
             print(f'Training completed. Checkpoint: {result["checkpoint"]}')
     except Exception as exc:
         parser.exit(2, f'{type(exc).__name__}: {exc}\n')

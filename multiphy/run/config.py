@@ -6,13 +6,15 @@ from pathlib import Path
 import uuid
 
 
-CACHE_ROOT = '/auto/data/nems_db/unit_match'   # lab default until the repository split; override with MULTIPHY_CACHE_ROOT
+NO_ROOT = 'no root · pass --root DIR or set MULTIPHY_CACHE_ROOT'
 
 
 def cache_root(root=None):
-    """Explicit root, else MULTIPHY_CACHE_ROOT, else the lab default."""
+    """Explicit root, else MULTIPHY_CACHE_ROOT; an empty or missing root raises ValueError(NO_ROOT)."""
     if root is None:
-        root = os.environ.get('MULTIPHY_CACHE_ROOT') or CACHE_ROOT
+        root = os.environ.get('MULTIPHY_CACHE_ROOT') or None
+    if root is None or str(root) == '':
+        raise ValueError(NO_ROOT)
     return Path(root).expanduser().resolve()
 
 

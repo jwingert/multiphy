@@ -587,6 +587,7 @@ def run_apply(input_path, test_scores, selection_path, *, output_dir=None, root=
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root', metavar='DIR', help='lab root · else MULTIPHY_CACHE_ROOT')
     commands = parser.add_subparsers(dest='operation', required=True)
     for operation in ('select', 'apply'):
         command = commands.add_parser(operation)
@@ -602,10 +603,11 @@ def main(argv=None):
             command.add_argument('--selection-input', help='Explicit complete archive used for selection; required for a test-only missing-counterpart view')
     args = parser.parse_args(argv)
     if args.operation == 'select':
-        output = run_select(args.input, args.scores, target_fdr=args.target_fdr, output_dir=args.output,
+        output = run_select(args.input, args.scores, target_fdr=args.target_fdr, output_dir=args.output, root=args.root,
             contradiction_threshold=args.contradiction_threshold, ambiguity_margin=args.ambiguity_margin)
     else:
-        output = run_apply(args.input, args.scores, args.selection, output_dir=args.output, selection_input=args.selection_input)
+        output = run_apply(args.input, args.scores, args.selection, output_dir=args.output, root=args.root,
+                           selection_input=args.selection_input)
     print(output)
     return 0
 

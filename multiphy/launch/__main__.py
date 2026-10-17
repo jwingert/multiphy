@@ -1,7 +1,7 @@
 """``python -m multiphy.launch [--root DIR] {init,extract,status,run,export,gui,<plugin command>} …``.
 
-Plugin commands, such as ``lbhb-init``, come from the modules named in ``<root>/multiphy.json``
-and from ``multiphy.plugins`` entry points; each takes the project first, then its own options.
+Plugin commands come from the modules named in ``<root>/multiphy.json`` and from
+``multiphy.plugins`` entry points; each takes the project first, then its own options.
 
 ``init`` adds days to a project, ``--from`` a folder of day folders or one ``--day``, and prints
 each note. ``extract`` extracts the named days, by default every day not yet extracted, and
@@ -12,13 +12,14 @@ extracted days, by default all of them, and prints ``<run folder> · <backend> �
 the across-day run ``--run RUN`` to a new CSV, by default under ``curation/runs/<run>/exports/``,
 and prints ``<path> · <n> tracks · <n> units``. ``gui [PROJECT]`` opens the launcher window
 (``window.run_window``), which runs every other command as a child process of this module; it
-writes no ``launcher.log`` line (D22). ``--root`` defaults to ``run.config.cache_root()``.
+writes no ``launcher.log`` line (D22). ``--root DIR``, else ``MULTIPHY_CACHE_ROOT``; with neither, every
+command, ``--help`` included, prints ``error: no root · …`` and returns 1.
 
 An error, a command line the parser refuses included, prints ``error: <message>`` to stderr and
-returns 1. ``--help`` returns 0. When the command line parses and ``<project>/project.json`` exists
-after the command, ``<project>/logs/launcher.log`` gains one line: the UTC time, the command with
-the arguments given after it, and ``ok``, ``error: <message>`` or ``cancelled``. A refused command
-line runs nothing and writes no line (D12). SIGINT during a command prints ``cancelled`` on stderr
+returns 1. ``--help`` returns 0 once a root is known. When the command line parses and
+``<project>/project.json`` exists after the command, ``<project>/logs/launcher.log`` gains one
+line: the UTC time, the command with the arguments given after it, and ``ok``,
+``error: <message>`` or ``cancelled``. A refused command line runs nothing and writes no line (D12). SIGINT during a command prints ``cancelled`` on stderr
 and returns 130, even in a process started with SIGINT ignored (D26, D75).
 """
 from __future__ import annotations
@@ -97,7 +98,7 @@ def build_parser(plugin_commands: Optional[dict] = None, backend_spec=None) -> a
     parser = _Parser(prog=PROG, description='Add days to a project folder, extract and check them, and run matchers on them.',
                      allow_abbrev=False)
     # only --root DIR or --root=DIR can precede the command
-    parser.add_argument('--root', metavar='DIR', help='lab root holding the projects · default run.config.cache_root()')
+    parser.add_argument('--root', metavar='DIR', help='lab root holding the projects · else MULTIPHY_CACHE_ROOT')
     commands = parser.add_subparsers(dest='command', required=True)
 
     init = commands.add_parser('init', usage=INIT_USAGE, help='add days · creates a new project')

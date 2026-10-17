@@ -248,8 +248,9 @@ after a probe is reinserted on a different day.
 
 ## Durable inference environment
 
-This workstation's durable interpreter is
-`/auto/data/nems_db/unit_match/dependencies/inference-v2/venv/bin/python`.
+The default durable interpreter is
+`<root>/dependencies/inference-v3/venv/bin/python`, where `<root>` is `--root DIR`
+or `MULTIPHY_CACHE_ROOT`. It is absent until built with the setup below.
 `launch run` uses it for a backend unavailable in its own interpreter only when
 its completed environment manifest and copied-file hashes verify. `--python EXE`
 chooses another existing interpreter instead. If verification fails and no
@@ -264,21 +265,23 @@ in the environment folder record source revisions, file hashes, package versions
 and the successful import/network-construction check. That check is not training
 or evidence of matching accuracy.
 
-To stage a **new** environment from local pinned source checkouts and an existing
-tested dependency directory, without downloading or installing into the base
-interpreter:
+To stage the `inference-v3` environment from local pinned source checkouts and an
+existing tested dependency directory, without downloading or installing into the
+base interpreter:
 
 ```bash
 python -m multiphy.dependency_setup \
   --unitmatch-source /path/to/pinned/UnitMatch-checkout \
   --dant-source /path/to/pinned/pyDANT-checkout \
   --overlay /path/to/tested-dependency-directory \
-  --output dependencies/new-inference-environment
+  --output dependencies/inference-v3 \
+  --root DIR
 ```
 
 The source revisions must match the adapter's audited revisions; the overlay
 must contain `hdbscan` 0.8.42 and `mat73` 0.65 with intact distribution metadata.
-Existing output directories are never overwritten. Pass the new folder's
-`venv/bin/python` explicitly as `--python`; custom output names do not change
-the automatic default. The staged source snapshot supports inference, not the
-separate clean Git checkout required when preparing future training runs.
+Existing output directories are never overwritten. Only
+`dependencies/inference-v3` is the automatic default; for any other output
+name, pass its `venv/bin/python` explicitly as `--python`. The staged source
+snapshot supports inference, not the separate clean Git checkout required when
+preparing future training runs.

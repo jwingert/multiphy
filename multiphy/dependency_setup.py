@@ -18,13 +18,18 @@ import sys
 
 from .run.config import resolve_cache_path
 
-DEFAULT_DIRECTORY = 'dependencies/inference-v2'
+DEFAULT_DIRECTORY = 'dependencies/inference-v3'
 UNITMATCH_REVISION = '95b6fed5db84d12f67487b92d07f0a2664a6122f'
 DANT_REVISION = '741240511e6a4ed9315b2c80d71ab5cfe4c588eb'
 
 
 def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _pth_lines(output: Path) -> list:
+    """The private .pth entries: the staged sources, the overlay and this repository."""
+    return [output / 'sources', output / 'overlay', Path(__file__).resolve().parents[1]]
 
 
 def _git(checkout, *args):
@@ -200,7 +205,7 @@ Inherited scientific packages remain tied to the existing base environment. Bina
         env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONNOUSERSITE='1', MPLCONFIGDIR=str(runtime),
                    XDG_CACHE_HOME=str(runtime), TMPDIR=str(runtime), OMP_NUM_THREADS='1')
         site = Path(subprocess.check_output([str(interpreter), '-c', 'import sysconfig;print(sysconfig.get_path("purelib"))'], env=env, text=True).strip())
-        (site / 'unitmatch-inference.pth').write_text('\n'.join(map(str, [output / 'sources', output / 'overlay', Path(__file__).resolve().parents[1]])) + '\n')
+        (site / 'unitmatch-inference.pth').write_text('\n'.join(map(str, _pth_lines(output))) + '\n')
         with (output / 'setup.log').open('w') as log:
             subprocess.run([str(interpreter), '-c', _SMOKE, str(output / 'smoke.json')], env=env,
                            cwd=output, stdout=log, stderr=subprocess.STDOUT, check=True)

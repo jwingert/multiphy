@@ -3,6 +3,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from multiphy import dependency_setup
 from multiphy.dependency_setup import DEFAULT_DIRECTORY, _overlay_files, verified_interpreter
 import pytest
 
@@ -49,3 +50,13 @@ def test_only_complete_hash_verified_environment_can_become_gui_default(tmp_path
     pth.write_text('/tmp/unverified-overlay')
     assert verified_interpreter(root=tmp_path) is None
     assert verified_interpreter(root=tmp_path / 'unconfigured') is None
+
+
+def test_default_environment_is_v3():
+    assert dependency_setup.DEFAULT_DIRECTORY == 'dependencies/inference-v3'
+
+
+def test_pth_lines_name_this_repository(tmp_path):
+    repository = Path(__file__).resolve().parents[1]
+    assert dependency_setup._pth_lines(tmp_path) == [tmp_path / 'sources', tmp_path / 'overlay', repository]
+    assert (repository / 'multiphy' / '__init__.py').is_file()

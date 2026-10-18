@@ -342,6 +342,31 @@ def test_close_bar_yes_then_failed_open_stays_usable(qt, runs, held_reads):
         _finish(window, held_reads)
 
 
+def test_close_while_opening_then_close_bar_yes_failed_open_keeps_yes(qt, runs, held_reads):
+    held_reads.error = ValueError('boom')
+    window = _window(runs['root'], 'P')
+    try:
+        label = _open_across(window, runs)
+        window.close()
+        assert _log(window)[-1] == f'closing · once {label} opens'
+        window.run_command('status')
+        window.process.started.emit()
+        window.close()
+        assert window.close_bar.isHidden() is False
+        window.close_yes.click()
+        held_reads.release()
+        assert wait_until(lambda: not window.opening(), 120)
+        assert window.isVisible() is True
+        assert _log(window)[-1] == 'error: boom'
+        assert window.running() is True
+        window.run_command('status')
+        assert window.queue == []
+        window.process.ended.emit(130)
+        assert window.isHidden() is True
+    finally:
+        _finish(window, held_reads)
+
+
 def test_real_cancel_logs_cancelled(qt, tmp_path):
     root = tmp_path / 'lab'
     root.mkdir()

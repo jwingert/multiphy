@@ -665,7 +665,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self._update_open_button()
             if not opened and self._close_on_open:  # the window stays, and runs commands again (D5)
                 self._close_on_open = False
-                self._close_after = False
+                if not self._busy:  # a Yes still waiting on its command's end keeps it
+                    self._close_after = False
                 self._update_run_buttons()
         if error is not None:
             self.append_log(f'error: {error}')

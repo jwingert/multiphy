@@ -8,6 +8,41 @@ central source of evidence; multichannel waveform and firing-pattern evidence
 can be compared through the same interface. Performance on chronic implants or
 within-session temporal splits does not by itself establish reinsertion accuracy.
 
+## Install
+
+Python 3.9 or newer. The core needs numpy, pandas, scipy and matplotlib; the
+launcher window and the viewer also need PySide6 (the `gui` extra).
+
+```bash
+git clone https://github.com/jwingert/multiphy.git
+cd multiphy
+pip install -e '.[gui]'          # add ,test for pytest: '.[gui,test]'
+```
+
+UnitMatch, DANT and DeepUnitMatch are optional; `python -m multiphy.run list-backends`
+says which ones this interpreter can run. `functional_likelihood` and `pair_logistic`
+need nothing extra.
+
+## Quick start
+
+Every project lives under a lab root: `--root DIR` before the command, or the
+`MULTIPHY_CACHE_ROOT` environment variable. Each day is a phy (KiloSort) folder with
+measured `channel_positions.npy`, plus an optional raw binary file and events CSV.
+
+```bash
+export MULTIPHY_CACHE_ROOT=/path/to/lab_root
+# add each day once; --uv-per-bit is required with a raw file
+python -m multiphy.launch init M1 --day D1 --sort /path/to/D1_phy --date 2026-01-05 --raw /path/to/D1.bin --uv-per-bit 0.195
+python -m multiphy.launch init M1 --day D2 --sort /path/to/D2_phy --date 2026-01-06 --raw /path/to/D2.bin --uv-per-bit 0.195
+python -m multiphy.launch extract M1                                # features, once per day
+python -m multiphy.launch run M1 --backend functional_likelihood    # match across days
+python -m multiphy.viewer --run "$MULTIPHY_CACHE_ROOT"/M1/runs/<run>   # curate
+python -m multiphy.launch export M1 --run <run>                     # accepted tracks to CSV
+```
+
+`python -m multiphy.launch gui` does the same from one window. Released under the MIT
+License (`LICENSE`).
+
 ## Comparing methods and curating unmatched units
 
 The viewer runs no matcher. Runs arrive through the viewer's run list or

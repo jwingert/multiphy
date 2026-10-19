@@ -8,6 +8,8 @@ central source of evidence; multichannel waveform and firing-pattern evidence
 can be compared through the same interface. Performance on chronic implants or
 within-session temporal splits does not by itself establish reinsertion accuracy.
 
+<img width="3745" height="1750" alt="image" src="https://github.com/user-attachments/assets/7430c879-784c-406e-b27f-55cd0e24dc31" />
+
 ## Install
 
 Python 3.9 or newer. The core needs numpy, pandas, scipy and matplotlib; the

@@ -19,9 +19,48 @@ cd multiphy
 pip install -e '.[gui]'          # add ,test for pytest: '.[gui,test]'
 ```
 
-UnitMatch, DANT and DeepUnitMatch are optional; `python -m multiphy.run list-backends`
-says which ones this interpreter can run. `functional_likelihood` and `pair_logistic`
-need nothing extra.
+## Optional backends
+
+`functional_likelihood` and `pair_logistic` need nothing extra. UnitMatch, DANT and
+DeepUnitMatch are optional; `python -m multiphy.run list-backends` says which ones this
+interpreter can run. A run picks the interpreter for an optional backend in this order:
+
+1. this interpreter, when the backend's package imports here;
+2. `--python EXE` (in the launcher, the run form's **python** field);
+3. the lab root's shared environment, `<root>/dependencies/inference-v3`, when its recorded
+   file hashes and smoke test still verify.
+
+With none of these, the launcher greys the backend out and shows the reason on hover.
+
+**The shared environment.** One per lab root, built once; everyone who uses the root can then
+run all three. It holds the UnitMatch, DeepUnitMatch and pyDANT sources at pinned revisions,
+plus hdbscan 0.8.42 and mat73 0.65, on top of a base Python. Each run passes the caller's own
+multiphy to it. The base is a conda environment (or a system Python) in which multiphy is
+installed with `gui` and which also has torch, scikit-learn, h5py, tqdm, joblib and networkx.
+It cannot be a venv: the environment is a venv with system site packages, and it does not see
+packages installed in another venv. With the base Python:
+
+```bash
+git clone https://github.com/EnnyvanBeest/UnitMatch
+git -C UnitMatch checkout 95b6fed5db84d12f67487b92d07f0a2664a6122f
+git clone https://github.com/jiumao2/pyDANT
+git -C pyDANT checkout 741240511e6a4ed9315b2c80d71ab5cfe4c588eb
+python -m pip install --no-deps --target overlay hdbscan==0.8.42 mat73==0.65
+python -m multiphy.dependency_setup --root /path/to/lab_root \
+    --unitmatch-source UnitMatch --dant-source pyDANT --overlay overlay
+/path/to/lab_root/dependencies/inference-v3/venv/bin/python -m multiphy.run list-backends
+```
+
+The setup refuses a checkout that differs from its pinned revision, and an existing
+`inference-v3` folder. A failed setup leaves the folder with `status: failed`; its
+`environment.json` and `setup.log` name the cause, and the folder must be deleted before a
+retry. It copies only the Python sources, so the clones and `overlay` can be deleted afterwards. The environment uses the base Python's packages, so a change to the base
+changes the environment.
+
+**Inputs.** UnitMatch and DANT need raw-waveform features: days with a raw file, extracted at
+`--tier raw`. DANT's default settings need 38 or more channels on a shank. DeepUnitMatch needs
+384 channels and `--checkpoint` and `--checkpoint-probe`, a model trained for your probe type;
+the model that ships with it fits only Neuropixels 2.0 four-shank probes.
 
 ## Quick start
 

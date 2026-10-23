@@ -6,8 +6,8 @@ stages are hash-verified before resume. Failed attempts remain inspectable.
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+import errno
 import hashlib
-import fcntl
 import json
 import os
 from pathlib import Path
@@ -21,17 +21,42 @@ def _digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _lock_file(file):
+    """Acquire a nonblocking OS lock that lasts until unlock or process exit."""
+    if os.name == 'nt':
+        import msvcrt
+        # Windows locks a byte range from the current position, even beyond EOF.
+        # Always use byte zero, including when an existing lock file is nonempty.
+        file.seek(0)
+        msvcrt.locking(file.fileno(), msvcrt.LK_NBLCK, 1)
+    else:
+        import fcntl
+        fcntl.flock(file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def _unlock_file(file):
+    if os.name == 'nt':
+        import msvcrt
+        file.seek(0)
+        msvcrt.locking(file.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+        fcntl.flock(file.fileno(), fcntl.LOCK_UN)
+
+
 class Workflow:
     def __init__(self, output, config, root=None):
         self.output = resolve_cache_path(output, root=root)
         self.output.mkdir(parents=True, exist_ok=True)
-        self._lock = (self.output / 'workflow.lock').open('a+')
+        self._lock = (self.output / 'workflow.lock').open('a+b')
         try:
-            fcntl.flock(self._lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
+            _lock_file(self._lock)
+        except BaseException as exc:
             self._lock.close()
             self._lock = None
-            raise RuntimeError(f'Another process owns this workflow: {self.output}') from exc
+            if isinstance(exc, OSError) and exc.errno in (errno.EACCES, errno.EAGAIN):
+                raise RuntimeError(f'Another process owns this workflow: {self.output}') from exc
+            raise
         self.path = self.output / 'workflow.json'
         try:
             if self.path.exists():
@@ -61,9 +86,12 @@ class Workflow:
 
     def close(self):
         if getattr(self, '_lock', None) is not None:
-            fcntl.flock(self._lock.fileno(), fcntl.LOCK_UN)
-            self._lock.close()
+            lock = self._lock
             self._lock = None
+            try:
+                _unlock_file(lock)
+            finally:
+                lock.close()
 
     def __del__(self):
         self.close()

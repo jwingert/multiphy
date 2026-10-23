@@ -18,8 +18,21 @@ launcher window and the viewer also need PySide6 (the `gui` extra).
 ```bash
 git clone https://github.com/jwingert/multiphy.git
 cd multiphy
-pip install -e '.[gui]'          # add ,test for pytest: '.[gui,test]'
+python -m pip install -e ".[gui]"  # add ,test for pytest: ".[gui,test]"
 ```
+
+The same Python install command works on Linux and Windows. On minimal
+Debian/Ubuntu installations, install Qt's native graphics libraries as well:
+
+```bash
+sudo apt-get update
+sudo apt-get install --no-install-recommends -y libegl1 libgl1 libxkbcommon0
+```
+
+Headless Linux tests use `QT_QPA_PLATFORM=offscreen`, but still need these shared
+libraries. Leave that variable unset when using the interactive launcher/viewer.
+CI runs the full suite, including GUI and interprocess workflow-lock tests, on
+both Ubuntu and Windows with Python 3.9 and 3.12.
 
 ## Optional backends
 

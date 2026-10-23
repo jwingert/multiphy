@@ -221,6 +221,9 @@ def test_write_source_roundtrip(project, sd, options, tmp_path):
     target = tmp_path / 'out' / 'source'
     target.parent.mkdir()
     os.chmod(target.parent, 0o770)  # group-writable, unlike the umask default: source/ must get these bits
+    parent_mode = stat.S_IMODE(target.parent.stat().st_mode)
+    if os.name != 'nt':
+        assert parent_mode == 0o770
     day_source = _day_source(record)
     earlier = dataclasses.replace(day_source, templates=None,
                                   spikes={unit: samples + 1 for unit, samples in day_source.spikes.items()})
@@ -239,7 +242,7 @@ def test_write_source_roundtrip(project, sd, options, tmp_path):
 
     assert source_id != earlier_id and 'templates_file' not in first['entry']
     assert _listing(target.parent) == ['source']  # no stage or old copy left, and no lock file
-    assert stat.S_IMODE(target.stat().st_mode) == 0o770  # the parent's bits, not mkdtemp's 0700
+    assert stat.S_IMODE(target.stat().st_mode) == parent_mode  # the parent's bits, not mkdtemp's 0700
     manifest_bytes = (target / 'extraction_manifest.json').read_bytes()
     assert source_id == source['source_id'] == hashlib.sha256(manifest_bytes).hexdigest()
     assert manifest_bytes.decode('utf-8').endswith('}\n')

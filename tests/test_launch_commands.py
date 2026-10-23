@@ -103,7 +103,7 @@ def test_init_from_links(tmp_path, day):
     record = _record(root)
     files = record['files']
     given = files['spike_times']['given']
-    assert given.endswith('D1/sort/spike_times.npy')
+    assert Path(given).parts[-3:] == ('D1', 'sort', 'spike_times.npy')
     assert given == str(from_dir / 'D1' / 'sort' / 'spike_times.npy')  # the link as given, never resolved
     assert files['spike_times']['resolved'] == os.path.realpath(sd.sort_dir / 'spike_times.npy')
     assert files['raw']['given'] == str(from_dir / 'D1' / 'raw.bin')

@@ -239,20 +239,21 @@ def test_build_selection_command_argv():
     defaults = ['--min-repeats', '5', '--min-spikes', '200', '--n-splits', '20', '--seed', '0', '--radius-um', '80.0',
                 '--min-pairs', '30', '--registration', 'matches', '--feature-stream', 'combined', '--threshold', '0.9',
                 '--contradiction-threshold', '0.1', '--ambiguity-margin', '0.02']
-    program, argv = build_selection_command(Path('/x/P'), ('D1',), FL, {}, output=Path('/x/o'))
+    project, output = Path('/x/P'), Path('/x/o')
+    program, argv = build_selection_command(project, ('D1',), FL, {}, output=output)
     assert program == str(Path(sys.executable).absolute())
-    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', '/x/P', '--day', 'D1',
-                    '--backend', 'functional_likelihood', '--output', '/x/o'] + defaults
-    _, argv = build_selection_command(Path('/x/P'), ('D1', 'D2'), FL, {}, output=Path('/x/o'))
-    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', '/x/P',
-                    '--days', 'D1', 'D2', '--backend', 'functional_likelihood', '--output', '/x/o'] + defaults
+    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', str(project), '--day', 'D1',
+                    '--backend', 'functional_likelihood', '--output', str(output)] + defaults
+    _, argv = build_selection_command(project, ('D1', 'D2'), FL, {}, output=output)
+    assert argv == ['-u', '-m', 'multiphy.run', 'run-backend', '--project', str(project),
+                    '--days', 'D1', 'D2', '--backend', 'functional_likelihood', '--output', str(output)] + defaults
 
 
 def test_run_cli_project_mode_writes_run(project, capsys):
     o = str(project.root / 'cli_run')
     assert main(['run-backend', '--project', str(project.path), '--days', 'D1', 'D2', '--backend', FL,
                  '--output', o]) == 0
-    assert capsys.readouterr().out.strip().splitlines()[-1] == f'Matching result: {o}/result.json'
+    assert capsys.readouterr().out.strip().splitlines()[-1] == f'Matching result: {Path(o) / "result.json"}'
     saved = (Path(o) / 'selection.json').read_bytes()
     assert saved == Selection(project, ('D1', 'D2')).record_bytes()
     result = run_dir.load_result(Path(o) / 'result.json')

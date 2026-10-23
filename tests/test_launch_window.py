@@ -328,11 +328,17 @@ def test_bad_plugin_root_refused(qt, runs, tmp_path, monkeypatch):
     unreadable.mkdir()
     config = unreadable / 'multiphy.json'
     config.write_text(json.dumps({'plugins': []}))
-    config.chmod(0o000)
-    try:
+    read_text = Path.read_text
+
+    def denied_read(path, *args, **kwargs):
+        if path == config:
+            raise PermissionError(f'Permission denied: {path}')
+        return read_text(path, *args, **kwargs)
+
+    # chmod(0) neither denies Windows reads nor reliably denies an elevated Unix user.
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, 'read_text', denied_read)
         refused(unreadable, 'error:')
-    finally:
-        config.chmod(0o644)
     _close(window)
 
 

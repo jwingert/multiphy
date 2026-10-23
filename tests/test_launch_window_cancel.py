@@ -3,6 +3,7 @@ end; every file lives under ``tmp_path``, and every window gets ``interpreter_lo
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import shutil
 import typing
@@ -367,7 +368,12 @@ def test_close_while_opening_then_close_bar_yes_failed_open_keeps_yes(qt, runs, 
         _finish(window, held_reads)
 
 
-def test_real_cancel_logs_cancelled(qt, tmp_path):
+@pytest.mark.parametrize('stdin_control', (False, True))
+def test_real_cancel_logs_cancelled(qt, tmp_path, monkeypatch, stdin_control):
+    if stdin_control:
+        child_env = window_module._child_env
+        monkeypatch.setattr(window_module, '_child_env',
+                            lambda: dict(child_env(), MULTIPHY_LAUNCH_CONTROL_STDIN='1'))
     root = tmp_path / 'lab'
     root.mkdir()
     (root / 'multiphy.json').write_text(json.dumps({'plugins': ['tests.wait_plugin']}), encoding='utf-8')
@@ -378,9 +384,55 @@ def test_real_cancel_logs_cancelled(qt, tmp_path):
         assert wait_until(lambda: 'waiting' in _log(window), 60)
         assert wait_until(window.cancel_button.isEnabled, 10)
         window.cancel_button.click()
+        window.process.interrupt()  # even direct repeated requests must be harmless
         assert wait_until(lambda: _log(window)[-1:] == ['exit 130'], 30)
+        assert _log(window).count('cancelled') == 1
+        assert 'killed' not in _log(window)
         lines = (root / 'P' / 'logs' / 'launcher.log').read_text(encoding='utf-8').splitlines()
         assert lines[-1].endswith(' · wait P · cancelled')
+    finally:
+        if window.running():
+            window.process.kill()
+            wait_until(lambda: not window.running(), 10)
+        _close(window)
+
+
+def test_real_cancel_ignored_interrupt_is_killed(qt, tmp_path, monkeypatch):
+    """A real uncooperative child gets the bounded fallback, never a cancelled status."""
+    monkeypatch.setattr(window_module, 'KILL_AFTER_MS', 250)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    (tmp_path / 'ignore_interrupt_plugin.py').write_text(
+        'import signal, time\n'
+        'def wait(args, root):\n'
+        '    signal.signal(signal.SIGINT, signal.SIG_IGN)\n'
+        '    print("waiting", flush=True)\n'
+        '    time.sleep(60)\n'
+        '    return []\n'
+        'def register(api):\n'
+        '    api.add_command("wait", lambda parser: None, wait)\n', encoding='utf-8')
+    child_env = window_module._child_env
+
+    def env():
+        values = child_env()
+        values['PYTHONPATH'] = os.pathsep.join((str(tmp_path), values['PYTHONPATH']))
+        return values
+
+    monkeypatch.setattr(window_module, '_child_env', env)
+    root = tmp_path / 'lab'
+    root.mkdir()
+    (root / 'multiphy.json').write_text('{"plugins": ["ignore_interrupt_plugin"]}', encoding='utf-8')
+    Project.ensure(root, 'P')
+    window = _window(root, 'P', plugins=load_plugins(root), factory=CommandProcess)
+    try:
+        window.run_command('wait')
+        assert wait_until(lambda: 'waiting' in _log(window), 60)
+        assert window.cancel_button.isEnabled()
+        window.cancel_button.click()
+        assert wait_until(lambda: not window.running(), 10)
+        assert _log(window)[-1] == 'killed'
+        assert 'cancelled' not in _log(window)
+        launcher_log = root / 'P' / 'logs' / 'launcher.log'
+        assert not launcher_log.exists() or 'cancelled' not in launcher_log.read_text(encoding='utf-8')
     finally:
         if window.running():
             window.process.kill()

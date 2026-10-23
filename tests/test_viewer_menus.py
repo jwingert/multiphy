@@ -271,8 +271,12 @@ def test_log_pane_colours_and_font(qt, runs):
 
 def test_run_buttons_primary_and_close_bar(qt, runs):
     launcher = _launcher(runs)
-    assert launcher.run_buttons
-    assert all(button.property('primary') is True for button in launcher.run_buttons.values())
+    # Check is a secondary menu button, not a command's primary Run action.
+    assert launcher.run_buttons['status'] is launcher.check_project_button
+    assert launcher.check_project_button.property('primary') is not True
+    run_buttons = [button for name, button in launcher.run_buttons.items() if name != 'status']
+    assert run_buttons
+    assert all(button.property('primary') is True for button in run_buttons)
     assert launcher.close_bar.objectName() == 'close_bar'
     launcher.close()
 

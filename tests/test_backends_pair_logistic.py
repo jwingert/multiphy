@@ -82,7 +82,7 @@ def test_held_out_day_moves_only_the_calibration(drift_run, monkeypatch):
         held_out = (examples.session == 'day1').to_numpy()
         rng = np.random.default_rng(7)
         for p in pair_logistic.PROPERTIES:
-            values = examples[p].to_numpy(dtype=float)
+            values = examples[p].to_numpy(dtype=float, copy=True)
             values[held_out] = values[held_out] * 1.5 + rng.normal(0, 1, held_out.sum()) * np.nanstd(values)
             examples[p] = values
         return examples

@@ -63,13 +63,13 @@ def test_harness_writes_outputs(small_run):
         data = (output / name).read_bytes()
         assert data[:8] == b'\x89PNG\r\n\x1a\n' and len(data) > 10_000, name
     for name in ('drift_recovery_legend.md', 'calibration_legend.md'):
-        text = (output / name).read_text()
+        text = (output / name).read_text(encoding='utf-8')
         assert 'nothing is pooled across datasets' in text, name
         for backend in ('functional_likelihood', 'pair_logistic'):
             assert f'synthetic · {backend}' in text, (name, backend)
-    methods = (output / 'METHODS.md').read_text()
+    methods = (output / 'METHODS.md').read_text(encoding='utf-8')
     assert '| synthetic | in memory (no path) |' in methods and 'radius_um = 80' in methods
-    manifest = json.loads((output / 'manifest.json').read_text())
+    manifest = json.loads((output / 'manifest.json').read_text(encoding='utf-8'))
     assert manifest['inputs'][0]['shifted_session'] == 'day2'
     assert set(OUTPUT_FILES) <= set(manifest['files'])
     assert sum(f.endswith('result.json') for f in manifest['files']) == 8
@@ -78,7 +78,7 @@ def test_harness_writes_outputs(small_run):
 def test_harness_refuses_existing_output(tmp_path, monkeypatch):
     output = tmp_path / 'existing'
     output.mkdir()
-    (output / 'keep.txt').write_text('mine')
+    (output / 'keep.txt').write_text('mine', encoding='utf-8')
 
     def no_work(*args, **kwargs):
         raise AssertionError('matcher work started before the output folder was refused')
@@ -87,7 +87,7 @@ def test_harness_refuses_existing_output(tmp_path, monkeypatch):
     with pytest.raises(FileExistsError):
         dv.validate_datasets([_dataset(n_neurons=16, seed=0)], output, shifts_um=(0,))
     assert sorted(p.name for p in output.iterdir()) == ['keep.txt']
-    assert (output / 'keep.txt').read_text() == 'mine'
+    assert (output / 'keep.txt').read_text(encoding='utf-8') == 'mine'
 
 
 def _capturing(monkeypatch, fail=lambda call: None):
@@ -222,7 +222,7 @@ def test_non_finite_shift_refused_and_manifest_written(tmp_path, monkeypatch):
     assert len(calls) == 1
     for name in OUTPUT_FILES:
         assert (output / name).is_file(), name
-    manifest = json.loads((output / 'manifest.json').read_text())
+    manifest = json.loads((output / 'manifest.json').read_text(encoding='utf-8'))
     assert manifest['options']['shifts_um'] == [0.0, 'inf', 'nan']
 
 
@@ -260,10 +260,10 @@ def test_drift_legend_counts_session_pairs_within_groups(tmp_path):
     output = tmp_path / 'out'
     dv.validate_datasets([_two_groups()], output, shifts_um=(0,), backends=('functional_likelihood',),
                          registrations=('matches',), radius_um=1.0)
-    legend = (output / 'drift_recovery_legend.md').read_text()
+    legend = (output / 'drift_recovery_legend.md').read_text(encoding='utf-8')
     assert 'Session pairs compared per offset-error point:' in legend and 'share a `recording_group`' in legend
     assert 'synthetic · functional_likelihood: matches shift 0: refused' in legend
-    assert 'share a `recording_group`' in (output / 'METHODS.md').read_text()
+    assert 'share a `recording_group`' in (output / 'METHODS.md').read_text(encoding='utf-8')
 
 def _last_day_alone() -> dv.DriftDataset:
     """Three days: day0/day1 in group g1, the shifted last day day2 alone in g2."""
@@ -352,7 +352,7 @@ def test_harness_scores_offsets_within_registration_components(tmp_path, monkeyp
     assert row.offset_error_um == pytest.approx(0.0)
     assert 'unmeasured' in row.reason and "('day1', 'day3')" in row.reason
     assert row.n_offset_pairs == 2
-    legend = (tmp_path / 'out' / 'drift_recovery_legend.md').read_text()
+    legend = (tmp_path / 'out' / 'drift_recovery_legend.md').read_text(encoding='utf-8')
     assert 'synthetic · functional_likelihood: matches shift 40: 2\n' in legend.split('Known same-unit')[0]
 
 

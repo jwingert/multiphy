@@ -72,9 +72,9 @@ def test_viewer_strings_say_events(qt, tmp_path):
 def test_no_sound_in_generic_layer():
     sound = re.compile(r'(?i)\bsounds?\b')
     for rel in GENERIC:
-        for n, line in enumerate((PKG / rel).read_text().splitlines(), 1):
+        for n, line in enumerate((PKG / rel).read_text(encoding='utf-8').splitlines(), 1):
             assert not sound.search(line), f'{rel}:{n}: {line}'
-    readme = (PKG.parent / 'README.md').read_text()
+    readme = (PKG.parent / 'README.md').read_text(encoding='utf-8')
     for new in ('scores firing, waveform and optional event-response likelihood ratios',
                 '| event response | fingerprint correlation |',
                 'The event response comes out heavier wherever it has been fitted',

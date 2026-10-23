@@ -63,9 +63,9 @@ def test_collection_result_opens_shared_display_and_legacy_ids_remain_stable(tmp
     data = same_day.run_data(ds, result)
     assert len(set(data.sites().values())) == 4
     assert set(data.unit_map) == set(data.units().cellid)
-    manifest = json.loads((out / 'manifest.json').read_text())
+    manifest = json.loads((out / 'manifest.json').read_text(encoding='utf-8'))
     manifest.pop('observation_id_policy')
-    (out / 'manifest.json').write_text(json.dumps(manifest))
+    (out / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     legacy = load_dataset(out)
     assert set(legacy.units.cellid) == set(load_dataset(a).units.cellid) | set(load_dataset(b).units.cellid)
 
@@ -78,7 +78,7 @@ def test_collection_rejects_leakage_duplicate_sources_and_changed_inputs(tmp_pat
     with pytest.raises(ValueError, match='twice'):
         create_collection([a,a],tmp_path/'dup',dataset_id='dup',root=tmp_path)
     out = create_collection([a],tmp_path/'good',dataset_id='good',root=tmp_path)
-    (a/'manifest.json').write_text((a/'manifest.json').read_text()+' ')
+    (a/'manifest.json').write_text((a/'manifest.json').read_text(encoding='utf-8')+' ', encoding='utf-8')
     with pytest.raises(ValueError, match='hash mismatch'):
         load_dataset(out)
 
@@ -127,7 +127,7 @@ def test_explicit_repeat_override_rebuilds_measured_pairs_without_mutating_archi
     assert provenance['source_archives_unchanged'] is True
     assert provenance['reference_labels_used_for_pair_evidence'] is False
     assert all(s['pair_options'] == {'min_repeats': 4} for s in provenance['source_options'])
-    manifest = json.loads((out / 'manifest.json').read_text())
+    manifest = json.loads((out / 'manifest.json').read_text(encoding='utf-8'))
     assert manifest['pair_options_override'] == ds.metadata['pair_options']
     assert set(p.name for p in out.iterdir()) == {'manifest.json', 'METHODS.md'}
     units = ds.units.set_index('cellid')
@@ -152,7 +152,7 @@ def test_override_works_after_omission_and_default_keeps_unmeasured_source_pairs
     omitted = missing_counterpart_ids(ds, fraction=.5, seed=3)
     default = create_collection([source_path], tmp_path / 'default', dataset_id='default', root=tmp_path)
     assert load_dataset(default).pairs.fingerprint_r.isna().all()
-    assert 'pair_options_override' not in json.loads((default / 'manifest.json').read_text())
+    assert 'pair_options_override' not in json.loads((default / 'manifest.json').read_text(encoding='utf-8'))
     overridden = create_collection([source_path], tmp_path / 'missing', dataset_id='missing', root=tmp_path,
         omissions={str(source_path): omitted}, pair_options={'min_repeats': 1})
     view = load_dataset(overridden)

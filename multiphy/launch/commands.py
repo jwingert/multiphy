@@ -25,7 +25,6 @@ import datetime
 import os
 from pathlib import Path
 import re
-import subprocess
 import sys
 from typing import Optional
 
@@ -46,6 +45,7 @@ from ..project.identity import verify as verify_identity
 from ..sources.base import file_role, get_reader
 from ..sources.binary import _uv_per_bit as binary_uv_per_bit
 from ..sources.phy import READER as PHY_READER
+from .control import run_captured
 
 RAW_FOUND_NOTE = 'raw file found at dat_path; pass --uv-per-bit to use it'
 DATE_PATTERN = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}\Z')
@@ -405,7 +405,7 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
                                                 interpreter=interpreter)
         repo = Path(__file__).resolve().parents[2]
         env = dict(os.environ, PYTHONPATH=_pythonpath(repo), PYTHONDONTWRITEBYTECODE='1')
-        proc = subprocess.run([program, *argv], capture_output=True, text=True, cwd=repo, env=env)
+        proc = run_captured([program, *argv], cwd=repo, env=env)
         if proc.returncode != 0:
             lines = proc.stderr.strip().splitlines()
             raise RuntimeError(f'{backend} failed: {lines[-1] if lines else ""} · run folder {output}')

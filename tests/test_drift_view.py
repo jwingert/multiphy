@@ -404,10 +404,18 @@ def test_unreadable_registration_leaves_group_without_depth(provenance):
 
 
 def test_registered_position_signatures():
-    assert (str(inspect.signature(registered_positions))
-            == '(units: pandas.core.frame.DataFrame, provenance) -> pandas.core.frame.DataFrame')
-    assert (str(inspect.signature(unit_distance))
-            == '(positions: pandas.core.frame.DataFrame, a: str, b: str) -> float')
+    # Compare the public types and complete call contract, not pandas' display module.
+    parameter = inspect.Parameter
+    kind = parameter.POSITIONAL_OR_KEYWORD
+    assert inspect.signature(registered_positions) == inspect.Signature([
+        parameter('units', kind, annotation=pd.DataFrame),
+        parameter('provenance', kind),
+    ], return_annotation=pd.DataFrame)
+    assert inspect.signature(unit_distance) == inspect.Signature([
+        parameter('positions', kind, annotation=pd.DataFrame),
+        parameter('a', kind, annotation=str),
+        parameter('b', kind, annotation=str),
+    ], return_annotation=float)
 
 
 def test_registered_positions_nullable_missing_coordinates():

@@ -633,12 +633,15 @@ def _wholly_shown(days):
 def _drag_browse(window, width):
     """Drag the Browse dock to ``width``, as a user drags its edge."""
     browse = window._docks['browse']
+    requested = width
     for _ in range(40):
-        before = browse.width()
-        window.resizeDocks([browse], [width], QtCore.Qt.Horizontal)
+        window.resizeDocks([browse], [requested], QtCore.Qt.Horizontal)
         window.layout().activate()
-        if browse.width() in (width, before):
+        if browse.width() == width:
             return
+        # Qt distributes dock sizes using native layout/frame metrics; correct the
+        # measured outer-width error instead of assuming the API request is exact.
+        requested += width - browse.width()
 
 
 def _fitted_window(qt, tmp_path, n_days):
@@ -676,7 +679,8 @@ def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path):
     narrowest = days.same_table.width()
     _drag_browse(window, 560)
     _settle(qt)
-    assert window._docks['browse'].width() == 560
+    browse = window._docks['browse']
+    assert browse.width() == 560, (browse.width(), browse.minimumWidth(), browse.minimumSizeHint().width())
     assert days.scroll.horizontalScrollBar().isVisible()
     assert len(_wholly_shown(days)) < 3
     assert [t.width() for t in days.tables.values()] == [narrowest] * 3

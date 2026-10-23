@@ -40,6 +40,7 @@ from ..run.config import cache_root
 from .commands import extract, init_day, init_from, run, status, status_lines
 from . import commands
 from .plugins import load_plugins
+from .control import start_control_reader
 
 PROG = 'python -m multiphy.launch'
 INIT_USAGE = ('%(prog)s [-h] PROJECT (--from DIR | --day DAY --sort DIR --date YYYY-MM-DD '
@@ -262,6 +263,7 @@ def main(argv: Optional[list] = None) -> int:
     outcome = OK
     try:
         root = cache_root(args.root)
+        start_control_reader()
         with redirect_stdout(sys.stderr):  # the commands' own progress lines; stdout holds only their result
             lines = _run(args, root, plugin_commands)
         for line in lines:

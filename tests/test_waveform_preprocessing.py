@@ -165,7 +165,7 @@ def test_shared_manifest_preserves_processing_provenance_and_filtered_waveforms(
     config = dict(schema_version=1, dataset_id='shared', recordings=[source],
                   extraction_options={'before': 9, 'after': 13, 'max_spikes': 20})
     manifest = tmp_path / 'manifest.json'
-    manifest.write_text(json.dumps(config))
+    manifest.write_text(json.dumps(config), encoding='utf-8')
     saved = extract_manifest(manifest, root=tmp_path / 'cache')
     dataset = load_dataset(saved)
     provenance = dataset.metadata['sources'][0]['provenance']
@@ -183,5 +183,5 @@ def test_shared_manifest_preserves_processing_provenance_and_filtered_waveforms(
         centers = feature['waveform_spike_samples']
         mean = np.mean([expected[center - 9:center + 13] for center in centers], axis=0)
         np.testing.assert_allclose(feature['waveform'], mean, rtol=2e-4, atol=2e-3)
-    assert 'shared_unwhitened_v1' in (saved / 'METHODS.md').read_text()
+    assert 'shared_unwhitened_v1' in (saved / 'METHODS.md').read_text(encoding='utf-8')
     assert not list((tmp_path / 'cache' / '_runtime').iterdir())

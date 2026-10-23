@@ -28,8 +28,8 @@ def make_run(root, name, data_path, *, units_override=None):
     run.mkdir()
     save_result(result, run / 'result.json')
     (run / 'run_manifest.json').write_text(json.dumps(dict(status='completed', backend='functional_likelihood',
-        input_path=str(data_path), dataset_id=ds.metadata['dataset_id'], partition='test')))
-    (run / 'evaluation.json').write_text(json.dumps(dict(combined=evaluate_result(result, ds.labels))))
+        input_path=str(data_path), dataset_id=ds.metadata['dataset_id'], partition='test')), encoding='utf-8')
+    (run / 'evaluation.json').write_text(json.dumps(dict(combined=evaluate_result(result, ds.labels))), encoding='utf-8')
     return run
 
 
@@ -45,7 +45,7 @@ def test_same_population_grouped_but_missing_counterparts_separated(tmp_path):
     assert inspect_run(a)['population_id'] == inspect_run(b)['population_id']
     assert inspect_run(a)['population_id'] != inspect_run(c)['population_id']
     output = write_comparison([a, b, c], 'report', root=tmp_path)
-    text = (output / 'comparison.md').read_text()
+    text = (output / 'comparison.md').read_text(encoding='utf-8')
     assert text.count('## Population ') == 2
     assert 'not independently verified across-day' in text
     assert 'Not defined' in text and 'Known unmatched observations' in text
@@ -61,14 +61,14 @@ def test_same_population_grouped_but_missing_counterparts_separated(tmp_path):
 def test_stale_metrics_and_incomplete_runs_rejected(tmp_path):
     data = save_dataset(dataset(), tmp_path / 'data', cache_root=tmp_path)
     run = make_run(tmp_path, 'run', data)
-    evaluation = json.loads((run / 'evaluation.json').read_text())
+    evaluation = json.loads((run / 'evaluation.json').read_text(encoding='utf-8'))
     evaluation['combined']['false_negative_pairs'] = 99
-    (run / 'evaluation.json').write_text(json.dumps(evaluation))
+    (run / 'evaluation.json').write_text(json.dumps(evaluation), encoding='utf-8')
     with pytest.raises(ValueError, match='disagrees with saved tracks'):
         inspect_run(run)
-    manifest = json.loads((run / 'run_manifest.json').read_text())
+    manifest = json.loads((run / 'run_manifest.json').read_text(encoding='utf-8'))
     manifest['status'] = 'failed'
-    (run / 'run_manifest.json').write_text(json.dumps(manifest))
+    (run / 'run_manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     with pytest.raises(ValueError, match='not completed'):
         inspect_run(run)
 
@@ -91,15 +91,15 @@ def test_local_aggregate_schema_without_backend_or_partition_fields(tmp_path):
         run_id=saved.run_id, provenance=dict(ds.metadata, benchmark_input=str(data), benchmark_partition='test',
             evidence_display_name='Stimulus fingerprint and shared-stimulus firing rate'))
     save_result(result, run / 'result.json', overwrite=True)
-    manifest = json.loads((run / 'run_manifest.json').read_text())
+    manifest = json.loads((run / 'run_manifest.json').read_text(encoding='utf-8'))
     manifest.pop('backend')
     manifest.pop('partition')
     manifest['run_id'] = result.run_id
-    (run / 'run_manifest.json').write_text(json.dumps(manifest))
+    (run / 'run_manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     metrics = evaluate_result(result, load_dataset(data).labels)
     metrics.pop('run_id')
     metrics.pop('backend_id')
-    (run / 'evaluation.json').write_text(json.dumps(dict(aggregate=metrics)))
+    (run / 'evaluation.json').write_text(json.dumps(dict(aggregate=metrics)), encoding='utf-8')
     inspected = inspect_run(run)
     assert inspected['partition'] == 'test'
     assert inspected['result'].backend_id == 'unitmatch'
@@ -119,12 +119,12 @@ def test_report_names_actual_tracking_policy_and_calibration_target(tmp_path, as
             assignment='common_constrained', assignment_selection='calibration_operating_point'))
         result.provenance = result.provenance.merged(extra={'target_empirical_false_match_fraction': .01})
     save_result(result, run / 'result.json', overwrite=True)
-    manifest = json.loads((run / 'run_manifest.json').read_text())
+    manifest = json.loads((run / 'run_manifest.json').read_text(encoding='utf-8'))
     manifest['backend'] = 'unitmatch'
-    (run / 'run_manifest.json').write_text(json.dumps(manifest))
-    (run / 'evaluation.json').write_text(json.dumps(dict(combined=evaluate_result(result, load_dataset(data).labels))))
+    (run / 'run_manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+    (run / 'evaluation.json').write_text(json.dumps(dict(combined=evaluate_result(result, load_dataset(data).labels))), encoding='utf-8')
     output = write_comparison([run], 'report', root=tmp_path)
-    text = (output / 'comparison.md').read_text()
+    text = (output / 'comparison.md').read_text(encoding='utf-8')
     if assignment == 'native_intermediate':
         assert 'Native intermediate tracking first requires' in text
     else:

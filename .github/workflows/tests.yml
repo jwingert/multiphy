@@ -28,4 +28,4 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv venv --python python
       - run: uv pip install -e ".[gui,test]"
-      - run: uv run --no-sync python -B -m pytest tests -q -p no:cacheprovider
+      - run: uv run --no-sync python -B -m pytest tests -q -ra --durations=10 -p no:cacheprovider

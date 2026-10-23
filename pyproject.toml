@@ -13,7 +13,8 @@ dependencies = ["numpy", "pandas", "scipy", "matplotlib"]
 
 [project.optional-dependencies]
 gui = ["PySide6"]
-test = ["pytest"]
+# The wheel-content test builds offline without build isolation.
+test = ["pytest", "pip", "setuptools>=77", "wheel"]
 
 [project.scripts]
 multiphy = "multiphy.launch.__main__:main"

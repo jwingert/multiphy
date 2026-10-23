@@ -201,7 +201,7 @@ No figures. Evaluation files record precision, recovery, erroneous identity link
 Reference identities depend on the original sort. Small training/calibration populations and same-recording temporal splits do not establish daily reinsertion accuracy. Published network augmentation and other upstream assumptions are explicitly recorded in its METHODS.
 
 Minimum stimulus repeats override: {config['min_stimulus_repeats']}; None preserves archived candidate evidence. An explicit override rebuilds candidates from saved measured features without changing waveform archives. Repeat counts and reliability remain available; no missing sound response is invented. Existing checkpoint: {config['checkpoint'] or 'train a new model'}; an existing model is hash-pinned and its source/probe/preprocessing compatibility is checked again during inference.
-''')
+''', encoding='utf-8')
     dependencies = [(training_pid, training), (calibration_pid, calibration)]
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(wait_for_extraction, pid, path) for pid, path in dependencies

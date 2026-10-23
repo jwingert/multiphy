@@ -226,8 +226,13 @@ def mock_pipeline(monkeypatch, tmp_path, fail_training=False, bad_partition=Fals
 
 
 def test_mocked_complete_workflow_waits_checks_partitions_and_reuses_all_stages(monkeypatch, tmp_path):
+    original_write = Path.write_text
+    def legacy_write(path, data, encoding=None, errors=None):
+        return original_write(path, data, encoding=encoding or 'cp1252', errors=errors)
+    monkeypatch.setattr(Path, 'write_text', legacy_write)
     calls, kwargs = mock_pipeline(monkeypatch, tmp_path)
     output = run_workflow(**kwargs)
+    assert '\u2190' in (output / 'METHODS.md').read_text(encoding='utf-8')
     state = json.loads((output / 'workflow.json').read_text())
     assert state['status'] == 'completed'
     assert len(state['stages']) == 15

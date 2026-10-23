@@ -7,6 +7,7 @@ Ordinary CLI stdin is untouched. This protocol is not an interactive input API.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 import os
 import signal
 import subprocess
@@ -49,6 +50,33 @@ def start_control_reader() -> None:
     threading.Thread(target=receive, name='multiphy-cancel', daemon=True).start()
 
 
+@contextmanager
+def _defer_sigint_during_spawn():
+    """Delay a Python SIGINT handler until the caller owns the newly created child.
+
+    A signal between the OS spawn and Popen returning would otherwise lose the
+    child reference needed for cleanup. Restore and invoke the original handler
+    on exit, including after failed construction; a pending cancellation takes
+    precedence over a simultaneous construction error. Worker-thread callers do
+    not own signal handlers, and ignored/default OS dispositions stay unchanged.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    previous = signal.getsignal(signal.SIGINT)
+    if not callable(previous):
+        yield
+        return
+    pending = []
+    signal.signal(signal.SIGINT, lambda signum, frame: pending.append((signum, frame)))
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        for signum, frame in pending:
+            previous(signum, frame)
+
+
 def run_captured(command: list, *, cwd, env: dict) -> subprocess.CompletedProcess:
     """Capture a backend's output without an uninterruptible Windows pipe join.
 
@@ -57,9 +85,11 @@ def run_captured(command: list, *, cwd, env: dict) -> subprocess.CompletedProces
     cleanup or terminate arbitrary grandchildren created by a backend/plugin.
     Both pipe draining and reaping during exceptional cleanup have deadlines.
     """
-    process = subprocess.Popen(command, cwd=cwd, env=dict(env, PYTHONIOENCODING='utf-8'),
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+    process = None
     try:
+        with _defer_sigint_during_spawn():
+            process = subprocess.Popen(command, cwd=cwd, env=dict(env, PYTHONIOENCODING='utf-8'),
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
         while True:
             try:
                 out, err = process.communicate(timeout=0.1)
@@ -70,14 +100,15 @@ def run_captured(command: list, *, cwd, env: dict) -> subprocess.CompletedProces
                 # run its handler even when a backend is silent or sleeping.
                 continue
     except BaseException:
-        try:
-            if process.poll() is None:
-                process.kill()
-            process.wait(timeout=2)
-            process.communicate(timeout=2)
-        except BaseException:
-            # Keep the original error/interrupt, including if a grandchild holds
-            # the capture pipes open. Do not enter Popen.__exit__, whose stream
-            # closes/waits could block here after the cleanup deadline.
-            pass
+        if process is not None:
+            try:
+                if process.poll() is None:
+                    process.kill()
+                process.wait(timeout=2)
+                process.communicate(timeout=2)
+            except BaseException:
+                # Keep the original error/interrupt, including if a grandchild holds
+                # the capture pipes open. Do not enter Popen.__exit__, whose stream
+                # closes/waits could block here after the cleanup deadline.
+                pass
         raise

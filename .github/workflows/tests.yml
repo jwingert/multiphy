@@ -33,4 +33,4 @@ jobs:
           uv --version
           uv run --no-sync python --version
           uv pip freeze
-      - run: uv run --no-sync python -B -m pytest tests -q -ra --durations=10 -p no:cacheprovider
+      - run: uv run --no-sync python -B -m pytest tests -v -ra -o faulthandler_timeout=300 --durations=10 -p no:cacheprovider

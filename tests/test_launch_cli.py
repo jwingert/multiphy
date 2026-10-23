@@ -552,6 +552,109 @@ def test_cancellable_backend_cleanup_is_bounded(monkeypatch):
     assert calls == [('communicate', 0.1), ('kill',), ('wait', 2), ('communicate', 2)]
 
 
+def test_cancellable_backend_sigint_before_popen_returns(tmp_path, monkeypatch):
+    """A real signal during construction cannot escape before child ownership is recorded."""
+    from multiphy.launch import control
+
+    original = subprocess.Popen
+    children = []
+
+    def interrupt_before_return(*args, **kwargs):
+        child = original(*args, **kwargs)
+        children.append(child)
+        signal.raise_signal(signal.SIGINT)  # child exists, but caller has no reference yet
+        return child
+
+    monkeypatch.setattr(control.subprocess, 'Popen', interrupt_before_return)
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            control.run_captured([sys.executable, '-c', 'import time; time.sleep(60)'],
+                                 cwd=tmp_path, env=dict(os.environ))
+        assert len(children) == 1 and children[0].poll() is not None
+        assert children[0].returncode != 0
+        assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        for child in children:
+            if child.poll() is None:
+                child.kill()
+                child.communicate(timeout=5)
+
+
+@pytest.mark.parametrize('interrupted', (False, True))
+def test_cancellable_backend_spawn_failure_restores_handler(tmp_path, monkeypatch, interrupted):
+    from multiphy.launch import control
+
+    failure = OSError('spawn failed')
+
+    def fail(*args, **kwargs):
+        if interrupted:
+            signal.raise_signal(signal.SIGINT)
+        raise failure
+
+    monkeypatch.setattr(control.subprocess, 'Popen', fail)
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        with pytest.raises(KeyboardInterrupt if interrupted else OSError) as caught:
+            control.run_captured(['missing'], cwd=tmp_path, env={})
+        if not interrupted:
+            assert caught.value is failure
+        assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
+def test_spawn_sigint_deferral_preserves_custom_handlers():
+    from multiphy.launch.control import _defer_sigint_during_spawn
+
+    received = []
+
+    def handler(signum, frame):
+        received.append((signum, frame))
+
+    previous = signal.signal(signal.SIGINT, handler)
+    try:
+        with _defer_sigint_during_spawn():
+            with _defer_sigint_during_spawn():
+                signal.raise_signal(signal.SIGINT)
+                signal.raise_signal(signal.SIGINT)
+            assert received == []
+        assert [signum for signum, _frame in received] == [signal.SIGINT, signal.SIGINT]
+        assert all(frame is not None for _signum, frame in received)
+        assert signal.getsignal(signal.SIGINT) is handler
+        for disposition in (signal.SIG_IGN, signal.SIG_DFL):
+            signal.signal(signal.SIGINT, disposition)
+            with _defer_sigint_during_spawn():
+                assert signal.getsignal(signal.SIGINT) is disposition
+            assert signal.getsignal(signal.SIGINT) is disposition
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
+def test_cancellable_backend_from_worker_thread(tmp_path):
+    from multiphy.launch.control import run_captured
+
+    result = queue.Queue()
+    previous = signal.getsignal(signal.SIGINT)
+
+    def run():
+        try:
+            result.put(run_captured([sys.executable, '-c', 'print("worker")'],
+                                    cwd=tmp_path, env=dict(os.environ)))
+        except BaseException as exc:
+            result.put(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=10)
+    assert not worker.is_alive()
+    proc = result.get(timeout=1)
+    assert isinstance(proc, subprocess.CompletedProcess), repr(proc)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, 'worker\n', '')
+    assert signal.getsignal(signal.SIGINT) is previous
+
+
 def test_cli_stdin_cancel_reaps_external_backend(tmp_path):
     """The launcher cancels and reaps a real captured child, not just its own wait."""
     root = tmp_path / 'root'

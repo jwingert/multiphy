@@ -630,18 +630,26 @@ def _wholly_shown(days):
     return shown
 
 
-def _drag_browse(window, width):
+def _drag_browse(qt, window, width):
     """Drag the Browse dock to ``width``, as a user drags its edge."""
     browse = window._docks['browse']
     requested = width
+    sizes = []
     for _ in range(40):
         window.resizeDocks([browse], [requested], QtCore.Qt.Horizontal)
         window.layout().activate()
-        if browse.width() == width:
+        # Native layout work can still change the dock after activate() returns.
+        # Measure each correction only after those queued events have settled.
+        _settle(qt)
+        settled = browse.width()
+        sizes.append((requested, settled))
+        if settled == width:
             return
         # Qt distributes dock sizes using native layout/frame metrics; correct the
         # measured outer-width error instead of assuming the API request is exact.
-        requested += width - browse.width()
+        requested += width - settled
+    pytest.fail(f'Browse dock did not settle at {width}; requested/settled widths: {sizes}; '
+                f'minimum widths: {browse.minimumWidth()}, {browse.minimumSizeHint().width()}')
 
 
 def _fitted_window(qt, tmp_path, n_days):
@@ -677,7 +685,7 @@ def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path):
     window = _fitted_window(qt, tmp_path, 3)
     days = window.days
     narrowest = days.same_table.width()
-    _drag_browse(window, 560)
+    _drag_browse(qt, window, 560)
     _settle(qt)
     browse = window._docks['browse']
     assert browse.width() == 560, (browse.width(), browse.minimumWidth(), browse.minimumSizeHint().width())

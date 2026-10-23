@@ -33,10 +33,10 @@ jobs:
           uv --version
           uv run --no-sync python --version
           uv pip freeze
-      - name: Check native Windows backend cancellation
-        id: cancellation_smoke
+      - name: Check native Windows startup and layout regressions
+        id: platform_smoke
         if: runner.os == 'Windows'
-        run: uv run --no-sync python -B -m pytest tests/test_launch_cli.py::test_cli_stdin_cancel_reaps_external_backend tests/test_launch_cli.py::test_cancellable_backend_sigint_before_popen_returns -v -ra -o faulthandler_timeout=300 -p no:cacheprovider
-      - name: Run the full suite even after a cancellation smoke failure
-        if: ${{ !cancelled() && (success() || steps.cancellation_smoke.outcome == 'failure') }}
+        run: uv run --no-sync python -B -m pytest tests/test_launch_cli.py::test_cli_stdin_cancel_reaps_external_backend tests/test_launch_cli.py::test_cancellable_backend_sigint_before_popen_returns tests/test_viewer_app.py::test_narrower_browse_scrolls_and_reset_fits_again -v -ra -o faulthandler_timeout=300 -p no:cacheprovider
+      - name: Run the full suite even after a platform smoke failure
+        if: ${{ !cancelled() && (success() || steps.platform_smoke.outcome == 'failure') }}
         run: uv run --no-sync python -B -m pytest tests -v -ra -o faulthandler_timeout=300 --durations=10 -p no:cacheprovider

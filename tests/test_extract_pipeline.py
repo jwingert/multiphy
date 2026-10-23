@@ -282,7 +282,8 @@ def test_changed_events_refused(tmp_path):
     path = sd.events_path
     status = path.stat()
     data = bytearray(path.read_bytes())
-    index = data.index(b',A\n') + 1  # the condition of the first stimulus row
+    newline = b'\r\n' if b'\r\n' in data else b'\n'
+    index = data.index(b',A' + newline) + 1  # the condition of the first stimulus row
     data[index] = ord('C')
     path.write_bytes(bytes(data))
     os.utime(path, ns=(status.st_atime_ns, status.st_mtime_ns))

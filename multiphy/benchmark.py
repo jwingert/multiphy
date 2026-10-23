@@ -318,11 +318,15 @@ def save_dataset(dataset, path, *, cache_root=None):
         manifest = dict(schema_version=1, metadata=dataset.metadata,
                         sha256={name: hashlib.sha256((stage / name).read_bytes()).hexdigest() for name in files})
         (stage / 'manifest.json').write_text(json.dumps(manifest, indent=2))
-        (stage / 'METHODS.md').write_text(_methods(target, dataset))
-        # mkdir reserves the destination against concurrent writers; rename
-        # replaces only our own empty directory on the same filesystem.
-        target.mkdir()
-        stage.replace(target)
+        (stage / 'METHODS.md').write_text(_methods(target, dataset), encoding='utf-8')
+        if sys.platform == 'win32':
+            # Windows rename refuses an existing destination, including an
+            # empty directory, so publish directly without a placeholder.
+            stage.rename(target)
+        else:
+            # Reserve the destination before replacing our empty directory.
+            target.mkdir()
+            stage.replace(target)
     except BaseException:
         shutil.rmtree(stage, ignore_errors=True)
         raise

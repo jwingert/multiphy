@@ -241,15 +241,19 @@ def save_full_day(full: dict, target: Path, *, metadata: dict) -> str:
         np.savez_compressed(stage / 'features.npz', **arrays)
         (stage / 'features.json').write_text(json.dumps(tree, allow_nan=False, indent=2))
         np.savez_compressed(stage / 'extras.npz', **extras)
-        (stage / 'METHODS.md').write_text(_methods(target, full, metadata))
+        (stage / 'METHODS.md').write_text(_methods(target, full, metadata), encoding='utf-8')
         manifest = {'schema_version': 1, 'kind': KIND, 'metadata': metadata,
                     'sha256': {name: _sha256(stage / name) for name in DATA_FILES}}
         (stage / 'manifest.json').write_text(json.dumps(manifest, allow_nan=False, indent=2))
         full_id = _sha256(stage / 'manifest.json')
-        # mkdir reserves the destination against concurrent writers; rename
-        # replaces only our own empty directory on the same filesystem.
-        target.mkdir()
-        stage.replace(target)
+        if sys.platform == 'win32':
+            # Windows rename refuses an existing destination, including an
+            # empty directory, so publish directly without a placeholder.
+            stage.rename(target)
+        else:
+            # Reserve the destination before replacing our empty directory.
+            target.mkdir()
+            stage.replace(target)
     except BaseException:
         shutil.rmtree(stage, ignore_errors=True)
         raise

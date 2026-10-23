@@ -175,11 +175,11 @@ def extract_manifest(manifest_path, *, output_dir=None, root=None, scratch_root=
              if waveform_storage == 'streaming_summary' else
              'Selected snippets are stored temporarily and read in selected timestamp order for each summary. ') +
             'The storage choice does not change waveform preprocessing, selection seeds, physiology or stimulus fingerprints.\n')
-        documentation = methods.read_text().replace('## Data lineage\n', '## Data lineage\n\n' + note, 1)
+        documentation = methods.read_text(encoding='utf-8').replace('## Data lineage\n', '## Data lineage\n\n' + note, 1)
         if waveform_storage == 'streaming_summary':
             documentation = documentation.replace('temporary processed snippets are removed.',
                 'summary accumulation occurs in memory without temporary processed snippet files.')
-        methods.write_text(documentation)
+        methods.write_text(documentation, encoding='utf-8')
     return saved
 
 

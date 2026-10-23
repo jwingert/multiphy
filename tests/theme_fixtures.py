@@ -17,6 +17,8 @@ def theme_env(tmp_path, monkeypatch):
     saved_font = QtGui.QFont(QtWidgets.QApplication.instance().font())
     QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(tmp_path))
     monkeypatch.setenv('TMPDIR', str(tmp_path))
+    temporary_dir = QtCore.QTemporaryDir
+    monkeypatch.setattr(QtCore, 'QTemporaryDir', lambda *args: temporary_dir(str(tmp_path / 'theme-XXXXXX')))
     monkeypatch.setattr(theme, '_assets', None)
     yield tmp_path
     app = QtWidgets.QApplication.instance()

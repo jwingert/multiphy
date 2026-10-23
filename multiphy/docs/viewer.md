@@ -16,6 +16,36 @@ mode; the window opens in that mode. The viewer runs no matcher: runs come from
 `launch run` or the launcher window (`launch gui`), whose `Curate…` and `Inspect…` open a run
 here.
 
+## Match, review and export
+
+Click a unit, Ctrl-click the observations to compare on other days, press `Q` (Match), then
+`E` (Accept track) when satisfied. Match joins the whole current tracks containing the selected
+units. Accept acts on the picked unit's track; it does not merge the comparison selection.
+An unmatched singleton can be accepted too. Selecting units and navigating never writes a match.
+The track hotkeys follow the active panel: the day browser's picked track and active unit,
+or the Tracked units panel's selected tracks and active member. A disabled track action cannot
+be invoked by its shortcut. Clicking a Tracked units row replaces the comparison with that
+grouping; refreshing after a curation action preserves the comparison.
+
+The original backend assignments remain in `result.json`. Curation writes a separate history
+under `curation/runs/<run>/history.csv`; the current tracks and reviewer decisions are rebuilt
+from that history. The browser separates backend assignment (`b`) and current grouping (`t`),
+both using `m` (matched) and `u` (unmatched). Approval leaves these membership labels unchanged.
+Cyan cell values identify members of the picked track while matched and unreviewed; green
+values identify its accepted members. Hover shows the review decision, without a separate
+review column. Comparison selections use a background highlight.
+
+`X` (Unmatch unit) detaches the active unit. `R` (Reject track) records a rejection of the picked
+grouping and releases its units as unmatched; it does not mark those neurons as bad. Changing
+membership resets the resulting groups to unreviewed. `Ctrl+Z` undoes the last curation action.
+Only accepted current tracks appear in the export, including accepted singletons. Each row
+also records its original backend track ID, empty for an originally unmatched unit.
+
+Pair annotations are separate and optional: `Settings` ▸ `Pair review (advanced)` shows their
+controls, notes and consistency panel. `Alt+E`, `Alt+R`, `Alt+U` record same, different or unsure
+for the displayed pair, then advance to the next candidate. They do not change current tracks
+or export eligibility. Old pair annotations remain in the history and can be inspected in this mode.
+
 ## Package map
 
 `multiphy/viewer/`:
@@ -133,34 +163,42 @@ A `Mode` names its `Words` (the nouns its tables use), its plot panel ids and th
 ## The day table
 
 `panels/tables/days.py` holds `DayTablePanel`, docked under Browse's run list. It lists every unit of
-each day beside its links.
+each day beside its matches.
 
 - **Columns:** one per site of `site_order()`, headed by `day_name(site)` on two lines (date over
-  site), with `unit`, `µm` (distance), `sc` (score) and `s` (status). A column lists the units of
+  site), with `unit`, `µm` (distance), `sc` (score), `b` (backend) and `t` (tracked).
+  A column lists the units of
   every track on that site; each column scrolls on its own. Opening a run leaves no unit picked.
 - **Distance and score cells:** `µm` is the distance to the column's reference (see **String**), in
   whole µm; `sc` is the score to it. Both read `--` with no unit picked, for the reference itself,
   or with no value.
 - **Header hovers:** `µm` reads `distance to <reference> · µm` and `sc` reads `score to <reference>`;
-  with no unit picked, `distance to the picked unit · µm` and `score to the picked unit`. `s` names
-  its letters.
-- **Widths:** `unit` 64 px, `µm` 40 px, `sc` 40 px, `s` 28 px (`WIDTHS`), under compact header
-  padding. A day column is never narrower than those plus frame and scrollbar (184 px under the
-  theme); `spread` shares any extra width among all four columns in proportion to `WIDTHS`, again
+  with no unit picked, `distance to the picked unit · µm` and `score to the picked unit`.
+  The other headers explain backend assignment and current membership.
+- **Widths:** `unit` 64 px, `µm` 40 px, `sc` 40 px, `b` 28 px and `t` 28 px
+  (`WIDTHS`), under compact header padding. A day column is never narrower than those plus
+  frame and scrollbar; `spread` shares any extra width among all columns in proportion to `WIDTHS`, again
   whenever the table's viewport resizes (a vertical scrollbar appearing narrows it). The days scroll
   sideways when they don't fit. Opening a run and **View → Reset layout** size Browse to show the
-  first `min(days, FIT_DAYS)` day columns (5) at that width, growing or shrinking it. The window never resizes: Browse stops where the other docks,
+  first `min(days, FIT_DAYS)` day columns (3) at that width, growing or shrinking it. The window never resizes: Browse stops where the other docks,
   or Tracked units tabbed with it (544 px minimum), reach their minimum widths. Dragging Browse
   narrower scrolls the days; wider stretches them.
-- **Status:** one letter, its word on hover: `a` (accepted) for a unit of an accepted track; `m`
-  (matched) for a track of two or more; else `u` (unmatched). With no pick every score is `--`.
+- **Assignments and review:** `b` shows `m` for an original backend match or `u` for an
+  originally unmatched unit; hover for its original track ID. `t` uses the same labels for
+  current membership: `m` when matched to another unit, `u` for a singleton. Approval does not
+  change either label. Hover shows the full current track ID, members and review decision.
+  Review is conveyed by the picked track's cell colours: cyan while matched and unreviewed,
+  green when accepted for export. An accepted matched unit shows green `m`; an accepted
+  singleton shows green `u`. `--` is reserved for unavailable information. The legend explains
+  these labels and colours.
+  With no pick every score is `--`.
 - **Score:** the pair row of the two units (either order): its finite score, else its finite
   similarity, else missing. Non-numeric or non-finite cells count as missing. `--` for a missing
   score and for the picked unit.
 - **Held order:** each day keeps a held order. Opening a run holds each day in status order
-  (`u`, `m`, `a`, then cellid). A column shows its held order with no pick, for the
+  (unmatched, matched, accepted, then cellid). A column shows its held order with no pick, for the
   picked unit's own day, and for a day whose header was clicked since the last pick; a unit missing
-  from it follows by cellid, so every unit shows once. Accept, Reject, Merge and Unmatch unit never
+  from it follows by cellid, so every unit shows once. Accept, Reject, Match and Unmatch unit never
   change it, so the own day's rows stay in place.
 - **Pick order:** a click picks a unit. Every other day sorts to its reference: the picked unit's
   current track first; then distance to the reference, ascending; then score to it, descending; then
@@ -168,9 +206,10 @@ each day beside its links.
   draws them: other days shifted by the run's saved registration, a day it left unlinked or a group
   with no usable offsets at its measured depth. No distance across recording groups, without `x_um`
   or `depth`, or when the group's registration cannot be read.
-- **Headers:** a click on `unit`, `µm`, `sc` or `s` sorts that column into its held order: `unit`
+- **Headers:** a click on a header sorts that column into its held order: `unit`
   by cellid; `µm` by distance then score to the reference; `sc` by score then distance to it (`µm`
-  and `sc` by cellid with no unit picked); `s` by status, then cellid. The same header again, while
+  and `sc` by cellid with no unit picked); `b` and `t` sort by their respective
+  fields, then cellid. The same header again, while
   the column shows that order, reverses it. The arrow shows on a column showing a held order a header
   set, pointing down for `sc` only; another day's header sort lasts until the next pick.
 - **String:** a click picks a unit and empties the string. The string holds one strung unit per
@@ -194,42 +233,48 @@ each day beside its links.
   (headed `same day`) until a pick; each pick fills it with the picked unit's other units of its own
   day, by the pick order above with the picked unit as reference, headed `same day · <day name>`
   (date over site). Its `µm` and `sc` read against the picked unit; the `unit` hover lists only the
-  proposed-link lines. A click there, with or without Ctrl, adds the unit as an extra beside the
+  candidate-match lines. A click there, with or without Ctrl, adds the unit as an extra beside the
   string (the same-day column becomes active) or removes it; the pick, the string and the column
   order stay.
   Its header sorts it as a day column's header does, to the picked unit (the same header again
   reverses it), until the next pick refills it. Its width is fixed at a day column's narrowest.
 - **Keys:** one key per action (`viewer/keys.py`), saved per user as `shortcuts/<action id>` in
-  `multiphy.ini` and changed in `Help` ▸ `Keyboard shortcuts`. The defaults, in action order:
+  `multiphy.ini` and changed in `Help` ▸ `Keyboard shortcuts`. The defaults:
   - `W` / `S`: the unit above / below in the active day (clamped). In another day it becomes that
     day's strung unit (its top unit when none is strung); in the picked unit's own day it becomes the
     pick (no pair opens); with the same-day column active it replaces the extra last clicked.
   - `A` / `D`: the day to the left / right becomes the active day (clamped); a day other than the
     picked unit's own gets its top unit strung when none is.
-  - `F` strings the picked unit's current track; `Esc` clears the string back to the picked unit; `X`
+  - `F` strings the picked unit's current track; `Esc` clears the string back to the picked unit; `Shift+X`
     drops the active day's strung unit, so the days beyond sort to the day before.
-  - `E` / `R` / `U` save accept / reject / unsure for the pair on screen, then step down as `S` does.
-  - `Q` merges (`Merge`); `Shift+E` / `Shift+R` accept / reject the picked unit's track (`Accept`,
-    `Reject`); `Shift+X` takes the active unit out of its track (`Unmatch unit`).
+  - `Q` matches (`Match`); `E` / `R` accept / reject the picked unit's track (`Accept track`,
+    `Reject track`); `X` takes the active unit out of its track (`Unmatch unit`).
+  - In `Pair review (advanced)` only, `Alt+E` / `Alt+R` / `Alt+U` annotate the pair on screen
+    as same / different / unsure, then step down as `S` does. These do not change tracks.
   - `Ctrl+Z` / `Ctrl+Shift+Z` undo / redo the last curation action.
 
+  Old saved default bindings are interpreted as the new defaults; custom bindings remain.
   A saved key that is not one key (or not text) falls back to its default; an empty one leaves its
-  action unbound; a key an earlier action already holds leaves the later action unbound. No saved
+  action unbound. Conflicting bindings leave an action unbound. No saved
   value stops the window. The verdict, track, merge, unmatch, undo and redo keys work only while the
-  run is writable; the movement keys (`W` `S` `A` `D` `F` `Esc` `X`) always work, inspect-only
-  included. Letter keys don't fire while you type in the notes box; `Esc` does. A saved key rebinds
+  run is writable; the movement keys (`W` `S` `A` `D` `F` `Esc` `Shift+X`) always work, inspect-only
+  included. Pair annotation keys also require advanced pair review. Letter keys don't fire while
+  you type in the notes box; `Esc` does. A saved key rebinds
   every window of that viewer at once; another viewer open at the time rebinds on its next start, and
   the last save wins.
 - **`⇄`:** a unit the backend saved a `proposed_link` pair for (two units of one native group that
-  were not kept together in one track; the partner may be on the same day or another day). Hover: one line `proposed link · <partner> · <score>` per
-  partner.
+  were not kept together in one track; the partner may be on the same day or another day). Hover: one line `candidate match · <partner> · <score>` per
+  partner. These suggestions are distinct from saved track membership.
 - **Wash:** `accent_tint` for the selected units; else `proposal_tint` for the units the backend grouped
-  with the picked unit (its track in the result, and its proposed-link partners). The wash shows the
+  with the picked unit (its track in the result, and its candidate-match partners). The wash shows the
   backend's grouping, so curation never clears it.
-- **Curation text:** bold for the picked unit's current track, toned `accept` when that track is
-  accepted; else toned `reject` for a unit that shares a rejected track with the picked unit.
-- **Buttons:** `Accept · Reject · Merge · Unmatch unit`. Accept and Reject act on the picked unit's
-  track; Merge joins the whole tracks of the selected units (2 or more tracks); Unmatch unit takes the
+- **Curation text:** every cell value in a member row of the picked unit's current track is toned
+  `linked` (cyan) while matched and unreviewed, or `accept` (green) when accepted. The unit name is
+  also bold. A selected nonmember has a comparison background but no membership text colour.
+  An unreviewed singleton has ordinary text. Rejected former associations remain in history;
+  rejection does not permanently label the units as bad.
+- **Buttons:** `Accept track · Reject track · Match · Unmatch unit`. Accept and Reject act on the picked unit's
+  track; Match joins the whole tracks of the selected units (2 or more tracks); Unmatch unit takes the
   active unit (the active day's strung unit, the extra last clicked, else the picked unit) out of its
   track. With no pick: `pick a unit`. A refused action writes no history row and shows its message only.
 - **Inspect-only runs** (`same_day`) show no buttons; a read-only run greys them out.
@@ -238,10 +283,10 @@ each day beside its links.
   whose track the `needing review only` or `hide decided` filter hides clears Tracked units' row and
   Members table; the filters stay. A day-table action whose track a filter hides keeps the pick and the
   selection, and clears Tracked units' row and Members table, as a pick does.
-- **Tracked units flag:** a track holding a unit with proposed links shows `proposed link · <units>`,
+- **Tracked units flag:** a track holding a unit with candidate matches shows `candidate match · <units>`,
   and the flag never clears. A row needs review only while its status is `proposed` or `unmatched`:
   accepting or rejecting a track takes it out of the queue for every flag (`N units on one day`,
-  `weak internal link`, `proposed link`); a unit a rejected track left unmatched stays out too;
+  `weak pair evidence`, `candidate match`); a unit a rejected track left unmatched stays out too;
   reopening the track or merging queues it again.
 
 

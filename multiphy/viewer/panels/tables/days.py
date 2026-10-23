@@ -3,17 +3,19 @@
 Rules:
 
 - ``show_run()`` builds one column per site of ``site_order()``: the day name on two lines (date over site)
-  above a table of ``unit``, ``µm`` (distance), ``sc`` (score) and ``s`` (status). It clears the pick, the
+  above a table of ``unit``, ``µm`` (distance), ``sc`` (score), original backend assignment ``b`` and
+  current track ``t``. It clears the pick, the
   cursor, the selection, the string and its extras, the held orders, the header sorts and the shown held
   orders, and changes no ``PairState``; each day's held order then starts in status order (``unmatched``,
   ``track``, ``accepted``, then cellid).
-- Widths: ``unit``, ``µm``, ``sc`` and ``s`` start at ``WIDTHS``; ``spread`` shares a wider table's spare
-  width among all four in proportion to them, on every resize of its viewport. A day column is never
+- Widths: all five fields start at ``WIDTHS``; ``spread`` shares a wider table's spare
+  width among them in proportion to them, on every resize of its viewport. A day column is never
   narrower than those widths plus frame and scrollbar, and grows with the panel; days past the panel's width
   scroll sideways. ``fit_width()`` is the scroll width that shows the first ``min(days, FIT_DAYS)`` day
   columns at their narrowest.
-- Status: one letter, its word on hover: ``a`` (accepted) for a unit of an accepted track, ``m`` (matched)
-  for a track of two or more, else ``u`` (unmatched).
+- Backend and current track: ``m`` for a multi-unit assignment, or ``u`` for unmatched.
+  Both retain full ids on hover; accepting a singleton leaves its current assignment ``u``.
+  Review is shown by membership text colour and the current track's tooltip.
 - Held order: with no pick, for the picked unit's own day, and for a day whose header was clicked since the
   last pick, a column shows its held order (kept to its current units, then any other unit by cellid).
   Accept, Reject, Merge and Unmatch unit never change it.
@@ -29,15 +31,16 @@ Rules:
   ``--`` with no reference, for the reference itself, or with no value. Header hovers name the reference
   (``distance to <r> · µm``, ``score to <r>``); with none, ``HEADER_TIPS``.
 - A header click sorts that column into its held order: ``unit`` by cellid, ``µm`` by distance then rank to
-  the reference, ``sc`` by rank then distance to it (both by cellid with no reference), ``s`` by status then
-  cellid; the same header again reverses it. The sort arrow shows on a column showing a held order a header
+  the reference, ``sc`` by rank then distance to it (both by cellid with no reference), ``b`` by original
+  assignment, ``t`` by current grouping, then cellid; the same header again
+  reverses it. The sort arrow shows on a column showing a held order a header
   set; it points down for ``sc`` only.
 - A unit with proposed links (the partner may be on the same day or another day) shows ``⇄``; its tooltip
   names each partner and rank.
-- Fill: the selected units in ``accent_tint``; the units the backend grouped with the picked one (its track
-  in the result, and its proposed-link partners) in ``proposal_tint``. Unit text: bold for the picked
-  unit's current track, toned ``accept`` when that track is accepted; else toned ``reject`` for a unit that
-  shares a rejected track with the picked unit.
+- Fill: temporary selection in ``accent_tint``; original backend grouping and proposed-link partners in
+  ``proposal_tint``. All cell values of the picked unit's current track are bold and toned ``linked``
+  (unreviewed linked track) or ``accept`` (accepted track). An unreviewed singleton stays neutral.
+  Rejected associations are described on hover; their former members remain available for matching.
 - Same-day column: pinned left of the days, outside their scroll. Empty until a pick; each pick fills it
   with the picked unit's other own-day units by the pick key to the picked unit, its reference, headed
   ``same day · <day name>`` (date over site). Only its header re-orders it (as a day column's header does)
@@ -57,7 +60,7 @@ Rules:
   ``step(d)`` moves the active extra ``d`` rows in the same-day column; in the own day picks the unit ``d``
   rows away in its held order (no pair opens); in another day moves its strung unit ``d`` rows (its top unit
   when none). ``drop_day()`` drops the active day's strung unit; ``clear_string()`` empties the string;
-  ``string_track()`` strings the picked unit's current track (``no link`` with fewer than 2 units). After
+  ``string_track()`` strings the picked unit's current track (``no match`` with fewer than 2 units). After
   each: an active other day with a strung unit opens the pair of its reference and that unit, an active extra
   the pair of the picked unit and it, else the selection is set; ``selected`` stays selected either way.
   ``reselect()`` emits that again after a curation action, when there is a string.
@@ -70,24 +73,22 @@ import numpy as np
 import pandas as pd
 
 from multiphy import clusters as cl
-from multiphy.viewer import theme
+from multiphy.viewer import display, theme
 from multiphy.viewer.drift_frame import registered_positions, unit_distance
 from multiphy.viewer.panels.tables.base import _table
 from multiphy.viewer.qt import QtCore, QtWidgets
 from multiphy.viewer.state import Actions, PairState
+from multiphy.viewer.track_labels import backend_assignments, review_label
 
 STATUS_ORDER = {'unmatched': 0, 'track': 1, 'accepted': 2}
-# a status shows as one letter; its hover names it
-STATUS_LETTERS = {'unmatched': 'u', 'track': 'm', 'accepted': 'a'}
-STATUS_WORDS = {'unmatched': 'unmatched', 'track': 'matched', 'accepted': 'accepted'}
-HEADERS = ('unit', 'µm', 'sc', 's')
+HEADERS = ('unit', 'µm', 'sc', 'b', 't')
 HEADER_TIPS = ('', 'distance to the picked unit · µm', 'score to the picked unit',
-               'status · u unmatched · m matched · a accepted')
-# the narrowest widths that show `318-1 ⇄`, `9999`, `0.97` and a status letter, and each header beside its sort
-# arrow, under the theme's compact header padding (theme.py `QHeaderView[role="compact"]`); sum 172
-WIDTHS = (64, 40, 40, 28)
+               'backend assignment · m originally matched · u originally unmatched · hover for original track id',
+               'current track · m matched · u unmatched · hover for full id, members and review status')
+# Compact assignment letters; full ids and membership appear on hover.
+WIDTHS = (64, 40, 40, 28, 28)
 # Browse opens wide enough for this many day columns; more days scroll
-FIT_DAYS = 5
+FIT_DAYS = 3
 
 
 def _numbers(values) -> np.ndarray:
@@ -126,12 +127,12 @@ class _Spread(QtCore.QObject):
 
 
 def _narrowest(table) -> int:
-    """The narrowest width of a day table that shows its four columns: ``WIDTHS`` plus frame and scrollbar."""
+    """The narrowest width showing all fields: ``WIDTHS`` plus frame and scrollbar."""
     return sum(WIDTHS) + 2 * table.frameWidth() + table.verticalScrollBar().sizeHint().width()
 
 
 def _day_table():
-    """A day table of the four ``HEADERS`` at ``WIDTHS`` (a wider viewport's spare width shared among them by
+    """A day table of ``HEADERS`` at ``WIDTHS`` (a wider viewport's spare width shared among them by
     ``_Spread``), compact headers with ``HEADER_TIPS``, no selection and no Qt sorting, never narrower than
     ``_narrowest``."""
     table = _table(list(HEADERS), list(WIDTHS))
@@ -152,7 +153,7 @@ def _day_table():
 
 def _set_tips(table, ref: Optional[str]) -> None:
     """``table``'s header hovers: ``µm`` and ``sc`` name ``ref``; with no reference, ``HEADER_TIPS``."""
-    tips = HEADER_TIPS if ref is None else ('', f'distance to {ref} · µm', f'score to {ref}', HEADER_TIPS[3])
+    tips = HEADER_TIPS if ref is None else ('', f'distance to {ref} · µm', f'score to {ref}', *HEADER_TIPS[3:])
     for i, tip in enumerate(tips):
         table.horizontalHeaderItem(i).setToolTip(tip)
 
@@ -187,6 +188,7 @@ class DayTablePanel(QtWidgets.QWidget):
         self._ranks = {}
         self._links = {}
         self._grouped = {}
+        self._backend_assignments = {}
         self.same_ids = []
         self.same_sorted_by = None
         self.same_day_active = False
@@ -213,14 +215,20 @@ class DayTablePanel(QtWidgets.QWidget):
         body.addWidget(self.scroll, 1)
         lay.addLayout(body, 1)
 
+        self.legend = QtWidgets.QLabel()
+        self.legend.setWordWrap(True)
+        self.legend.setProperty('role', 'hint')
+        lay.addWidget(self.legend)
+
         row = QtWidgets.QHBoxLayout()
         self.buttons = {}
         verdicts = {'Accept': 'accept', 'Reject': 'reject'}
-        for label, tip, slot in (('Accept', "accept the picked unit's track", self.accept),
-                                 ('Reject', "reject the picked unit's track", self.reject),
-                                 ('Merge', 'join the tracks of the selected units', self.merge),
-                                 ('Unmatch unit', 'take the active unit out of its track', self.unmatch_unit)):
-            b = QtWidgets.QPushButton(label)
+        for label, text, tip, slot in (
+                ('Accept', 'Accept track', "approve the picked unit's track for export", self.accept),
+                ('Reject', 'Reject track', "reject this association and release its units for matching", self.reject),
+                ('Merge', 'Match', 'match the whole tracks of the selected units; review stays unreviewed', self.merge),
+                ('Unmatch unit', 'Unmatch unit', 'detach the active unit; changed tracks need review again', self.unmatch_unit)):
+            b = QtWidgets.QPushButton(text)
             b.setToolTip(tip)
             if label in verdicts:
                 b.setProperty('verdict', verdicts[label])
@@ -288,10 +296,12 @@ class DayTablePanel(QtWidgets.QWidget):
         """The run's ranks by unit pair, proposed links, the backend's grouping and the units' registered
         positions; empty without a run."""
         self._ranks, self._links, self._grouped = {}, {}, {}
+        self._backend_assignments = {}
         self._positions = pd.DataFrame()
         data = self.state.data
         if data is None:
             return
+        self._backend_assignments = backend_assignments(data.result)
         self._positions = registered_positions(data.units(),
                                                data.result.provenance if data.result is not None else {})
         pairs = data.pairs()
@@ -381,7 +391,7 @@ class DayTablePanel(QtWidgets.QWidget):
 
     def _header_order(self, units: list, section: int, ref: Optional[str]) -> list:
         """``units`` sorted by header ``section`` against ``ref``: ``unit`` by cellid, ``µm`` by the pick key
-        without a track, ``sc`` by ``_score_key``, ``s`` by status then cellid; ``µm`` and ``sc`` by cellid
+        without a track, ``sc`` by ``_score_key``, then backend assignment or current track; ``µm`` and ``sc`` by cellid
         with no reference."""
         if section == 0 or (section in (1, 2) and ref is None):
             return sorted(units)
@@ -389,7 +399,9 @@ class DayTablePanel(QtWidgets.QWidget):
             return sorted(units, key=lambda c: self._pick_key(c, ref, set()))
         if section == 2:
             return sorted(units, key=lambda c: self._score_key(c, ref))
-        return sorted(units, key=self._status_key)
+        if section == 3:
+            return sorted(units, key=lambda c: (c in self._backend_assignments, c))
+        return sorted(units, key=lambda c: (len((self._track(c) or {}).get('members', [])) > 1, c))
 
     def _order(self, site: str, units: list, mates: set) -> list:
         """``site``'s held order when it shows one, else ``units`` by the pick key to its reference."""
@@ -436,10 +448,26 @@ class DayTablePanel(QtWidgets.QWidget):
             return 'accepted'
         return 'track' if len(track['members']) >= 2 else 'unmatched'
 
+    def _refresh_legend(self) -> None:
+        """Follow theme changes without altering the comparison or reloading any curation state."""
+        palette = display.colors()
+        self.legend.setText(
+            f"Picked track: <span style='color:{palette['linked']}'>matched / unreviewed</span> · "
+            f"<span style='color:{palette['accept']}'>accepted for export</span> · "
+            'filled rows: comparison selection · b/t: m matched, u unmatched')
+        self.legend.setToolTip('Only members of the picked unit’s current track have colored values. '
+                               'Selection does not match units. The subtler background marks backend suggestions. '
+                               'Use Match to group units, then Accept track to approve.')
+
+    def restyle(self) -> None:
+        """Update the legend with its owning window, preserving selection and curation state."""
+        self._refresh_legend()
+
     def refresh(self) -> None:
         """Redraw every column and the same-day column from the current pick, selection, track state and
         held orders; each table's header hovers name its reference. The active day's header is toned
         ``accent`` (with a pick, while the same-day column is not active); the same-day header while it is."""
+        self._refresh_legend()
         for site, label in self.headers.items():
             active = self.picked_unit is not None and not self.same_day_active and site == self.active_site
             label.setProperty('tone', 'accent' if active else '')
@@ -477,29 +505,40 @@ class DayTablePanel(QtWidgets.QWidget):
     def _fill_row(self, table, i: int, c: str, site, ref: Optional[str], marks: tuple) -> None:
         """Row ``i`` of ``table`` for unit ``c``: the ``unit`` label with ``⇄`` and its proposed-link lines on
         hover, the distance (whole µm) and score to ``ref`` (``--`` with no reference, for ``ref`` itself, or with
-        no value), the status letter with its word on hover, and the wash, bold and tone rules."""
+        no value), original backend assignment and current track, with review in its tooltip and text colour."""
         p, mates, accepted, grouped, rejected_with = marks
-        lines = [f'proposed link · {o} · {_text(self.rank(c, o))}' for o in self._links.get(c, [])]
+        lines = [f'candidate match · {o} · {_text(self.rank(c, o))}' for o in self._links.get(c, [])]
         unit = QtWidgets.QTableWidgetItem(cl.unit_label(c, site) + (' ⇄' if c in self._links else ''))
         unit.setToolTip('\n'.join(lines))
         unit.setData(QtCore.Qt.UserRole, c)
         d = self.distance(c, ref) if ref is not None and c != ref else np.nan
         microns = QtWidgets.QTableWidgetItem(f'{d:.0f}' if np.isfinite(d) else '--')
         score = QtWidgets.QTableWidgetItem('--' if ref is None or c == ref else _text(self.rank(c, ref)))
-        status = self._status(c)
-        letter = QtWidgets.QTableWidgetItem(STATUS_LETTERS[status])
-        letter.setToolTip(STATUS_WORDS[status])
-        cells = [unit, microns, score, letter]
+        original = self._backend_assignments.get(c)
+        backend = QtWidgets.QTableWidgetItem('m' if original else 'u')
+        backend.setToolTip(f'backend assignment · {original}\nOriginal matching result; unchanged by review'
+                           if original else 'backend assignment · unmatched in the original matching result')
+        track = self._track(c) or {}
+        tid = self.track_of(c)
+        linked = len(track.get('members', [])) > 1
+        reviewed = review_label(track)
+        current = QtWidgets.QTableWidgetItem('m' if linked else 'u')
+        review_tip = 'accepted for export' if reviewed == 'accepted' else 'unreviewed · not included in export'
+        current.setToolTip(('matched' if linked else 'unmatched singleton') + f' · {tid}\n' +
+                           ', '.join(track.get('members', [])) + '\n' + review_tip)
+        if c in rejected_with:
+            current.setToolTip(current.toolTip() + '\nA previous association with the picked unit was rejected; '
+                               'this unit remains available for matching.')
+        cells = [unit, microns, score, backend, current]
         wash = 'accent_tint' if c in self.selected else ('proposal_tint' if c in grouped else None)
+        member = c in mates and (len(mates) > 1 or accepted)
+        tone = ('accept' if accepted else 'linked') if member else None
         for cell in cells:
             theme.fill(cell, wash)
-        font = unit.font()
-        font.setBold(c in mates)
-        unit.setFont(font)
-        if c in mates and accepted:
-            theme.tone(unit, 'accept')
-        elif c in rejected_with:
-            theme.tone(unit, 'reject')
+            theme.tone(cell, tone)
+            font = cell.font()
+            font.setBold(member)
+            cell.setFont(font)
         for j, cell in enumerate(cells):
             table.setItem(i, j, cell)
 
@@ -642,6 +681,32 @@ class DayTablePanel(QtWidgets.QWidget):
         if table is not None and cellid in self.column_ids(site):
             table.scrollToItem(table.item(self.column_ids(site).index(cellid), 0))
             self.scroll.ensureWidgetVisible(table.parentWidget())
+
+    def choose_track(self, members: list) -> None:
+        """An explicit track-list choice replaces the comparison, including when its pick is unchanged.
+
+        Keep each chosen unit visible in the comparison. Programmatic curation refreshes use
+        ``follow_track`` instead, so they preserve the user's comparison through edits and undo.
+        """
+        if not members:
+            return
+        order = self.state.data.site_order()
+        sites = self.state.sites
+        ranks = {site: i for i, site in enumerate(order)}
+        first = self.picked_unit if self.picked_unit in members else min(
+            members, key=lambda c: (ranks.get(sites.get(c), len(ranks)), c))
+        self._set_pick(first)
+        own = sites.get(first)
+        for member in members:
+            if member == first:
+                continue
+            site = sites.get(member)
+            if site != own and site not in self.strung:
+                self._string(site, member)
+            else:
+                self.extras.append(member)
+        self.selected = [first] + [self.strung[s] for s in order if s in self.strung] + self.extras
+        self.refresh()
 
     def follow_track(self, members: list) -> None:
         """Follow a track shown elsewhere: keep a pick inside it, else pick its earliest member quietly."""
@@ -791,14 +856,14 @@ class DayTablePanel(QtWidgets.QWidget):
     def string_track(self) -> None:
         """String the picked unit's current track: in its stored order, each member but the picked unit is
         strung on its day, or is an extra when it is on the own day or its day is already strung. The own day
-        is active. ``no link`` when the track has fewer than 2 units."""
+        is active. ``no match`` when the track has fewer than 2 units."""
         p = self.picked_unit
         if p is None:
             return
         tid = self.track_of(p)
         members = list(self.actions.track_state().tracks[tid]['members']) if tid is not None else []
         if len(members) < 2:
-            self.status.setText('no link')
+            self.status.setText('no match')
             return
         own, sites = self.state.sites.get(p), self.state.sites
         self.strung, self.extras = {}, []

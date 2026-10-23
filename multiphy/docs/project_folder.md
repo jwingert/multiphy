@@ -485,7 +485,11 @@ new file. An existing file is never overwritten, and a failed write leaves no fi
 - It reads `curation/runs/<run>/history.csv` without taking `history.lock`, so it runs while a
   viewer has the run open.
 - The CSV has one row per member of each accepted track, a one-unit track included, with the
-  columns `track_id`, `cellid`, `siteid`, `n_units`, `n_days`, `accepted_at` and `curator`.
+  columns `track_id`, `cellid`, `siteid`, `n_units`, `n_days`, `accepted_at`, `curator`,
+  `backend_track_id`, `review_status`, `backend_id` and `backend_run_id`. `track_id` is the
+  current curated grouping; `backend_track_id` is the original assignment from `result.json`,
+  empty for an originally unmatched unit. `review_status` is `accepted`. Pair annotations do
+  not control export eligibility.
 - A run that is not a completed run in the project's `runs/`, or whose `selection.json` is not
   across days, is refused. Same-day runs have nothing to export.
 
@@ -521,8 +525,18 @@ and unlocks the button. Closing the launcher while a run opens and no command ru
 `closing · once <run> opens` and closes it once the viewer shows; a failed open keeps it open
 with the error.
 
-**Right.** One tab per command: Initialization (`init`), Extract features (`extract`), Run
-matching (`run`), Export tracks (`export`), Status (`status`), then each plugin command under
+**Check.** Beside the project picker, this compact split button runs a quick status check for every
+day in the shown project. Its arrow menu offers **Quick status check** and **Verify file
+contents**, with an explanation beneath each option. The quick check reports source-file size/time
+changes, missing or retargeted sources, feature-manifest status and run counts. Verification additionally
+reads all recorded source files, including raw recordings, and compares their checksums; it records the first
+checksum for a raw file that has none. Large recordings can take time. Both actions report
+in the log pane and use the same command queue and Cancel control as the other commands.
+They are disabled when no readable project is selected. Choosing verification applies to
+that check only; clicking the button itself always performs the quick check.
+
+**Right.** Command tabs: Initialization (`init`), Extract features (`extract`), Run
+matching (`run`), Export tracks (`export`), then each plugin command under
 its own name; hover a tab for its `launch` command. A field is one option of the command,
 labelled by its flag in plain words, its help in hover; a required field ends ` *` and Run
 waits for it; an empty backend option shows its default in grey; `…` picks a folder or file. A

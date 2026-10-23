@@ -219,7 +219,7 @@ def run(dataset, backend_id, options=None, *, group_column, partition=None, outp
                     options=json_safe(resolved), output_dir=str(output),
                     started_at=datetime.now(timezone.utc).isoformat())
     write_json(output / 'run_manifest.json', manifest, exclusive=True)
-    (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'running'))
+    (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'running'), encoding='utf-8')
     try:
         with cache_runtime(root) as work:
             results, evaluations = [], {}
@@ -259,10 +259,10 @@ def run(dataset, backend_id, options=None, *, group_column, partition=None, outp
                     n_reported_unmatched=len(combined.unmatched), n_candidate_pair_rows=len(combined.pairs)), exclusive=True)
         manifest.update(status='completed', run_id=combined.run_id, result_path=str(output / 'result.json'),
                         finished_at=datetime.now(timezone.utc).isoformat())
-        (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'completed'))
+        (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'completed'), encoding='utf-8')
     except BaseException as exc:
         manifest.update(status='failed', error=f'{type(exc).__name__}: {exc}', finished_at=datetime.now(timezone.utc).isoformat())
-        (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'failed; inspect run_manifest.json'))
+        (output / 'METHODS.md').write_text(_methods_md(output, backend_id, group_column, partition, 'failed; inspect run_manifest.json'), encoding='utf-8')
         raise
     finally:
         write_json(output / 'run_manifest.json', manifest)

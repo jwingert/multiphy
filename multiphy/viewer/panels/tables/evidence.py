@@ -4,6 +4,7 @@ import numpy as np
 from multiphy import store as st
 from multiphy.viewer import display
 from multiphy.viewer import theme
+from multiphy.viewer import keys
 from multiphy.viewer.display import (STREAM_WORDS, diagnostic_gate_outcome, headline_probability,
                                                  pct, probability, shows_scores)
 from multiphy.viewer.panels.tables.base import _table
@@ -13,7 +14,7 @@ from multiphy.viewer.qt import QtWidgets
 
 class EvidencePanel(QtWidgets.QWidget):
     """Scalar evidence, the criterion outcomes, and the verdict controls."""
-    panel_id, panel_title = 'evidence', 'Evidence and verdict'
+    panel_id, panel_title = 'evidence', 'Pair evidence'
 
     FIELDS = display.EVIDENCE_FIELDS
 
@@ -42,25 +43,47 @@ class EvidencePanel(QtWidgets.QWidget):
         self.table.horizontalHeader().setSectionsClickable(False)
         self.table.setRowCount(len(self.FIELDS))
         lay.addWidget(self.table, 1)
+        self.pair_review = QtWidgets.QWidget()
+        review_layout = QtWidgets.QVBoxLayout(self.pair_review)
+        review_layout.setContentsMargins(0, 0, 0, 0)
+        hint = QtWidgets.QLabel('Advanced pair review: independent of track approval and export.')
+        hint.setWordWrap(True)
+        hint.setProperty('role', 'hint')
+        review_layout.addWidget(hint)
         self.notes = QtWidgets.QPlainTextEdit()
         self.notes.setPlaceholderText('notes for this pair')
         self.notes.setMaximumHeight(56)
-        lay.addWidget(self.notes)
+        review_layout.addWidget(self.notes)
         brow = QtWidgets.QHBoxLayout()
         self.verdict_buttons = []
         for v in st.VERDICTS:
-            b = QtWidgets.QPushButton(f'{v.capitalize()}  ({v[0].upper()})')
+            b = QtWidgets.QPushButton()
             b.setProperty('verdict', v)
             b.setStyleSheet('padding:7px 10px;')
             b.clicked.connect(lambda _=False, vv=v: self.actions.set_verdict(vv))
             brow.addWidget(b)
             self.verdict_buttons.append(b)
-        lay.addLayout(brow)
+        review_layout.addLayout(brow)
         self.status = QtWidgets.QLabel('')
         self.status.setWordWrap(True)
         self.status.setProperty('role', 'hint')
-        lay.addWidget(self.status)
+        review_layout.addWidget(self.status)
+        lay.addWidget(self.pair_review)
+        self.pair_review.hide()
+        self.bind_keys()
+        keys.notifier().changed.connect(self.bind_keys)
         state.changed.connect(self.refresh)
+
+    def bind_keys(self):
+        """Name pair decisions explicitly and show their actual, possibly customized shortcuts."""
+        bound = keys.bindings()
+        labels = {'accept': 'Pair same', 'reject': 'Pair different', 'unsure': 'Pair unsure'}
+        for button in self.verdict_buttons:
+            verdict = button.property('verdict')
+            key = bound[verdict]
+            button.setText(labels[verdict] + (f' ({key})' if key else ''))
+            button.setToolTip('Save a pair verdict and advance to the next candidate. '
+                              'Does not change track membership or export eligibility.')
 
     def refresh(self):
         r = self.state.row

@@ -11,9 +11,9 @@ from __future__ import annotations
 import copy
 import dataclasses
 import getpass
-import hashlib
 import json
 import time
+import uuid
 from typing import Optional, Sequence
 
 from multiphy import store
@@ -85,8 +85,9 @@ def make_row(operation: str, **fields) -> dict:
         if row['verdict'] not in store.VERDICTS:
             raise ValueError(f"verdict must be one of {store.VERDICTS}, got {row['verdict']!r}")
         row['cellid_a'], row['cellid_b'] = store.canonical(row['cellid_a'], row['cellid_b'])
-    key = f"{time.time_ns()}|{operation}|{row['members']}|{row['cellid_a']}|{row['cellid_b']}"
-    row['op_id'] = 'op_' + hashlib.sha1(key.encode()).hexdigest()[:12]
+    # Wall-clock resolution can be coarser than consecutive actions (notably on
+    # Windows). IDs must remain distinct even when their timestamps are equal.
+    row['op_id'] = 'op_' + uuid.uuid4().hex
     row['at'] = time.strftime('%Y-%m-%d %H:%M:%S')
     row['curator'] = getpass.getuser()
     return row
@@ -317,7 +318,37 @@ def _read_lock(path: Path) -> Optional[dict]:
     return lock
 
 
+def _windows_pid_alive(pid: int) -> bool:
+    """Query a process handle without sending a signal or requiring terminate rights."""
+    import ctypes
+    from ctypes import wintypes
+
+    if not 0 < pid <= 0xffffffff:
+        return False
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel.OpenProcess.restype = wintypes.HANDLE
+    kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+    kernel.WaitForSingleObject.restype = wintypes.DWORD
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel.CloseHandle.restype = wintypes.BOOL
+    handle = kernel.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE only
+    if not handle:
+        # ERROR_INVALID_PARAMETER means there is no such PID. Access denied or
+        # any unexpected failure must preserve the existing writer's lock.
+        return ctypes.get_last_error() != 87
+    try:
+        # A process is signaled only after exit. Query errors conservatively
+        # count as alive; a zero timeout never blocks the UI.
+        return kernel.WaitForSingleObject(handle, 0) != 0  # WAIT_OBJECT_0
+    finally:
+        kernel.CloseHandle(handle)
+
+
 def _pid_alive(pid: int) -> bool:
+    if os.name == 'nt':
+        # os.kill(pid, 0) is not a portable liveness probe on Windows.
+        return _windows_pid_alive(pid)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -533,11 +564,21 @@ class Curation:
         self.closed = True
 import pandas as pd
 
-EXPORT_COLUMNS = ('track_id', 'cellid', 'siteid', 'n_units', 'n_days', 'accepted_at', 'curator')
+EXPORT_COLUMNS = ('track_id', 'cellid', 'siteid', 'n_units', 'n_days', 'accepted_at', 'curator',
+                  'backend_track_id', 'review_status', 'backend_id', 'backend_run_id')
 
 
-def accepted_rows(state: CurationState, sites: dict) -> pd.DataFrame:
-    """One row per member of each accepted held track, singletons included; a missing site raises KeyError."""
+def accepted_rows(state: CurationState, sites: dict, *, result: Optional[MatchResult] = None) -> pd.DataFrame:
+    """Accepted members with current grouping and optional immutable backend provenance.
+
+    ``result`` is the original run result, never the edited tracks. Its unmatched
+    units have an empty ``backend_track_id`` even after manual linking. Without a
+    result all backend fields are empty. A missing site raises KeyError.
+    """
+    backend_tracks = ({str(m): cluster_id(track) for track in result.tracks for m in track}
+                      if result is not None else {})
+    backend_id = getattr(result, 'backend_id', '') or ''
+    backend_run_id = getattr(result, 'run_id', '') or ''
     rows = []
     for tid, track in state.tracks.items():
         if track['status'] != 'accepted':
@@ -548,14 +589,16 @@ def accepted_rows(state: CurationState, sites: dict) -> pd.DataFrame:
         for cellid, siteid in zip(members, member_sites):
             rows.append({'track_id': tid, 'cellid': cellid, 'siteid': siteid, 'n_units': len(members),
                          'n_days': len(set(member_sites)), 'accepted_at': accepted['at'],
-                         'curator': accepted['curator']})
+                         'curator': accepted['curator'], 'backend_track_id': backend_tracks.get(cellid, ''),
+                         'review_status': 'accepted', 'backend_id': backend_id, 'backend_run_id': backend_run_id})
     table = pd.DataFrame(rows, columns=list(EXPORT_COLUMNS))
     return table.sort_values(['track_id', 'cellid'], kind='stable').reset_index(drop=True)
 
 
-def write_export(state: CurationState, sites: dict, curation_dir: Path, out: Optional[Path] = None) -> Path:
+def write_export(state: CurationState, sites: dict, curation_dir: Path, out: Optional[Path] = None, *,
+                 result: Optional[MatchResult] = None) -> Path:
     """Write the accepted tracks to a new CSV; an existing ``out`` is refused, a failed write leaves no file (D36)."""
-    table = accepted_rows(state, sites)  # every row is built before any file exists
+    table = accepted_rows(state, sites, result=result)  # every row is built before any file exists
     if out is None:
         out = Path(curation_dir) / 'exports' / f'accepted_tracks_{time.strftime("%Y%m%d-%H%M%S")}.csv'
     out = Path(out)
@@ -598,4 +641,4 @@ def export_run(project_path: Path, run: str, out: Optional[Path] = None) -> Path
     sites = dict(zip(result.units.cellid, result.units.session_id))  # a project day's siteid is its session_id
     curation_dir = project_path / 'curation' / 'runs' / run
     state = replay(result.tracks, result.unmatched, read_history(curation_dir))
-    return write_export(state, sites, curation_dir, out)
+    return write_export(state, sites, curation_dir, out, result=result)

@@ -6,7 +6,7 @@ from multiphy.viewer.qt import QtWidgets
 
 class ChainPanel(QtWidgets.QWidget):
     """Chains across days, and triangles that disagree."""
-    panel_id, panel_title = 'chains', 'Chains and consistency'
+    panel_id, panel_title = 'chains', 'Pair chains and consistency (advanced)'
 
     def __init__(self, state: PairState, parent=None):
         super().__init__(parent)
@@ -19,7 +19,7 @@ class ChainPanel(QtWidgets.QWidget):
 
     def show_for(self, verdicts):
         if verdicts is None or not len(verdicts):
-            self.text.setPlainText('no verdicts yet')
+            self.text.setPlainText('No pair verdicts yet. Track approvals are separate.')
             return
         _, summ = st.chains(verdicts)
         bad = st.inconsistencies(verdicts)
@@ -31,7 +31,7 @@ class ChainPanel(QtWidgets.QWidget):
             for _, x in summ.head(10).iterrows():
                 lines.append(f'  {x.chain_id}: {x.n_units} units over {x.n_sites} days')
         else:
-            lines.append('no accepted matches yet')
+            lines.append('no same-neuron pair verdicts yet')
         if len(bad):
             lines.append(f'\n{len(bad)} inconsistent triangle(s):')
             for _, b in bad.head(6).iterrows():

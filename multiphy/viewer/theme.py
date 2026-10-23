@@ -4,7 +4,7 @@ Only the two entry points apply a theme: ``viewer.app.main`` and ``launch.window
 ``apply_theme`` and set the saved unit palette; windows built anywhere else (tests included) stay unstyled and
 read no theme settings. ``switch_theme`` applies a theme live and writes key ``theme`` of the user's settings file,
 ``~/.config/multiphy/multiphy.ini``. The file also holds key ``unit_palette``, written only by
-``switch_unit_palette``, and the ``shortcuts/<action id>`` keys, written only by ``keys.save_binding`` and
+``switch_unit_palette``, and the ``shortcuts/<action id>`` keys with ``shortcut_versions/<action id>`` metadata, written only by ``keys.save_binding`` and
 ``keys.reset_bindings`` and read by every viewer window (``keys.bindings``); nothing else writes the file. A
 missing file, a missing key or any value other than a known theme name opens graphite; any ``unit_palette`` value
 other than an id of ``unit_palettes.IDS`` opens ``unit_palettes.DEFAULT``. Table cells carry a token (``tone``,
@@ -51,6 +51,12 @@ _RULES = [
     'QMenu::item { padding: 5px 24px 5px 22px; border-radius: 4px; }',
     'QMenu::item:selected { background: {accent_tint}; color: {text}; }',
     'QMenu::separator { height: 1px; background: {border}; margin: 4px 6px; }',
+    'QMenu#project_checks QPushButton { background: transparent; border: none; border-radius: 4px; padding: 0; }',
+    'QMenu#project_checks QPushButton[menu_active="true"]:enabled { background: {accent_tint}; }',
+    'QMenu#project_checks QLabel { background: transparent; }',
+    'QMenu#project_checks QLabel[role="check_title"] { font-weight: 600; }',
+    'QMenu#project_checks QLabel[role="check_detail"] { font-size: 12px; color: {muted}; }',
+    'QMenu#project_checks QLabel:disabled { color: {muted}; }',
     'QSplitter::handle { background: {ground}; }',
     'QTabWidget::pane { background: {panel}; border: 1px solid {border}; border-radius: 10px; top: -1px; }',
     'QLineEdit, QComboBox, QPlainTextEdit, QTextEdit, QTextBrowser, QListWidget, QTreeWidget, QTableWidget '
@@ -69,6 +75,11 @@ _RULES = [
     'QPushButton, QToolButton { background: {raised}; color: {text}; border: 1px solid {border}; '
     'border-radius: 8px; padding: 6px 14px; }',
     'QToolButton { padding: 4px 8px; }',
+    'QToolButton#project_check { padding: 4px 26px 4px 8px; min-height: 20px; }',
+    'QToolButton#project_check::menu-button { subcontrol-origin: padding; subcontrol-position: top right; '
+    'width: 22px; border: none; border-left: 1px solid {border}; '
+    'border-top-right-radius: 8px; border-bottom-right-radius: 8px; }',
+    'QToolButton#project_check::menu-arrow { image: url({chevron}); width: 10px; height: 10px; }',
     'QPushButton:hover, QToolButton:hover { border-color: {muted}; }',
     'QPushButton:disabled, QToolButton:disabled { color: {muted}; background: {panel}; border-color: {border}; }',
     'QPushButton[primary="true"] { background: {accent}; color: {accent_ink}; border: 1px solid {accent}; '

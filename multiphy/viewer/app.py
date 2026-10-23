@@ -89,6 +89,7 @@ class App(QtWidgets.QMainWindow):
         self._rejected_runs = set()
         self._run_items = []
         self._shown_key = None
+        self.pair_review_enabled = False
         self.setDockNestingEnabled(True)
         self.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks |
                             QtWidgets.QMainWindow.AllowNestedDocks |
@@ -102,6 +103,7 @@ class App(QtWidgets.QMainWindow):
         self.state.changed.connect(self._selection_changed)
         theme.notifier().changed.connect(self.restyle)
         self._restore_layout()
+        self._apply_pair_review_visibility()
         # a new window has no run, so it starts inspect-only with its controls disabled
         self._update_controls()
 
@@ -116,6 +118,7 @@ class App(QtWidgets.QMainWindow):
                 panel.restyle()
         for table in self.findChildren(QtWidgets.QTableWidget):
             table.viewport().update()
+        self.days.restyle()
 
     # ------------------------------------------------------------ construction
     def _actions(self) -> Actions:
@@ -150,7 +153,11 @@ class App(QtWidgets.QMainWindow):
 
         menu = self.menuBar()
         self._view_menu = menu.addMenu('&View')
-        menus.install_menus(self)
+        self.pair_review_action = QtGui.QAction('Pair review (advanced)', self)
+        self.pair_review_action.setCheckable(True)
+        self.pair_review_action.setToolTip('Separate pair verdicts and consistency checks; does not approve tracks for export.')
+        self.pair_review_action.toggled.connect(self._set_pair_review)
+        menus.install_menus(self, extra_settings=(self.pair_review_action,))
         self.header = QtWidgets.QLabel('')
         self.header.setStyleSheet('font-size:14px; font-weight:600; padding:4px 10px;')
         tb = QtWidgets.QToolBar('header')
@@ -252,6 +259,7 @@ class App(QtWidgets.QMainWindow):
 
         self.browse.import_btn.clicked.connect(self.import_result_dialog)
         self.days.picked.connect(self.tracked.show_track_of)
+        self.tracked.track_chosen.connect(self.days.choose_track)
         self.tracked.track_shown.connect(self.days.follow_track)
         self.days.curated.connect(self._day_curated)
         p['drift'].unit_clicked.connect(self.days.toggle)
@@ -262,8 +270,11 @@ class App(QtWidgets.QMainWindow):
                  'left': lambda: days.move_day(-1), 'right': lambda: days.move_day(1),
                  'track': days.string_track, 'clear': days.clear_string, 'skip': days.drop_day,
                  'accept': lambda: self.set_verdict('accept'), 'reject': lambda: self.set_verdict('reject'),
-                 'unsure': lambda: self.set_verdict('unsure'), 'merge': days.merge, 'accept_track': days.accept,
-                 'reject_track': days.reject, 'unmatch': days.unmatch_unit,
+                 'unsure': lambda: self.set_verdict('unsure'),
+                 'merge': lambda: self._curate_track('Merge'),
+                 'accept_track': lambda: self._curate_track('Accept'),
+                 'reject_track': lambda: self._curate_track('Reject'),
+                 'unmatch': lambda: self._curate_track('Unmatch unit'),
                  'undo': lambda: self._undo_redo('undo'), 'redo': lambda: self._undo_redo('redo')}
         self.shortcuts = {}
         for aid, _label, _default, _hover in keys.ACTIONS:
@@ -278,12 +289,47 @@ class App(QtWidgets.QMainWindow):
         self._bind_keys()
         # a bound method of the window, so the connection ends with it
         keys.notifier().changed.connect(self._bind_keys)
+        self._apply_pair_review_visibility()
 
     def _bind_keys(self) -> None:
         """Give each action's shortcut its key from ``keys.bindings()``; an unbound action (``''``) gets no key, so
         its shortcut never fires."""
         for aid, key in keys.bindings().items():
             self.shortcuts[aid].setKey(QtGui.QKeySequence(key))
+
+    def _curate_track(self, action):
+        """Use the visible curation panel's action, never a hidden comparison's selection.
+
+        Focus chooses between separately visible panels. With tabbed panels, the front tab remains
+        the context while the user inspects plots. The Tracked units buttons already enforce valid
+        actions, including refusing acceptance of a historical rejected grouping.
+        """
+        tracked, browse = self._docks['clusters'], self._docks['browse']
+        focused = QtWidgets.QApplication.focusWidget()
+        in_tracked = focused is not None and (focused is tracked or tracked.isAncestorOf(focused))
+        tracked_only = not tracked.visibleRegion().isEmpty() and browse.visibleRegion().isEmpty()
+        if in_tracked or tracked_only:
+            button = self.tracked.buttons[action]
+            if button.isEnabled():
+                button.click()
+            return
+        slots = {'Merge': self.days.merge, 'Accept': self.days.accept,
+                 'Reject': self.days.reject, 'Unmatch unit': self.days.unmatch_unit}
+        slots[action]()
+
+    def _set_pair_review(self, enabled):
+        """Opt this window into independent pair annotation; track review remains the primary workflow."""
+        self.pair_review_enabled = bool(enabled)
+        self._apply_pair_review_visibility()
+        self._update_controls()
+
+    def _apply_pair_review_visibility(self):
+        """Keep restored layouts and View actions from exposing advanced controls while the mode is off."""
+        self.evidence.pair_review.setVisible(self.pair_review_enabled)
+        dock = self._docks['chains']
+        dock.setVisible(self.pair_review_enabled)
+        dock.toggleViewAction().setVisible(self.pair_review_enabled)
+        dock.toggleViewAction().setEnabled(self.pair_review_enabled)
 
     # ------------------------------------------------------------------ layout
     def _save_layout(self):
@@ -309,11 +355,13 @@ class App(QtWidgets.QMainWindow):
             return
         self.restoreGeometry(geometry)
         self.restoreState(state)
+        self._apply_pair_review_visibility()
 
     def _reset_layout(self):
         if self._default_state:
             self.restoreGeometry(self._default_state[0])
             self.restoreState(self._default_state[1])
+            self._apply_pair_review_visibility()
             QtCore.QTimer.singleShot(0, self, self._fit_days)
 
     def _fit_days(self) -> None:
@@ -328,13 +376,20 @@ class App(QtWidgets.QMainWindow):
         width = self.days.fit_width()
         if not width or browse.isFloating() or not self.days.isVisible():
             return
-        target = browse.width() + width - self.days.scroll.viewport().width()
+        rounding = 0
         for _ in range(20):
+            remaining = width - self.days.scroll.viewport().width()
+            if remaining == 0:
+                return
             before = browse.width()
+            target = before + remaining + rounding
             self.resizeDocks([browse], [target], QtCore.Qt.Horizontal)
             self.layout().activate()
-            if browse.width() in (target, before):
+            # Splitter division can round one pixel below the request. Re-measure the viewport after
+            # relayout and nudge once, so an otherwise fitted set of columns has no spurious scrollbar.
+            if browse.width() == before and rounding:
                 return
+            rounding = 1 if remaining > 0 and browse.width() == before else 0
 
     def closeEvent(self, event):
         # a failed layout save still releases the run's lock
@@ -359,7 +414,7 @@ class App(QtWidgets.QMainWindow):
         prev = self._verdict_of(row.cellid_a, row.cellid_b)
         self.evidence.notes.setPlainText(prev['notes'] if prev else '')
         self.evidence.status.setText(
-            f"already curated: {prev['verdict']} by {prev['curator']}" if prev else 'not yet curated')
+            f"pair verdict: {prev['verdict']} by {prev['curator']}" if prev else 'no pair verdict saved')
 
     def import_result_dialog(self):
         if self.state.data is None:
@@ -421,7 +476,8 @@ class App(QtWidgets.QMainWindow):
         try:
             state = curation.replay(self.curation.result.tracks, self.curation.result.unmatched,
                                     curation.read_history(self.curation.curation_dir))
-            out = curation.write_export(state, self.state.sites, self.curation.curation_dir)
+            out = curation.write_export(state, self.state.sites, self.curation.curation_dir,
+                                       result=self.curation.result)
         except Exception as exc:
             self.statusBar().showMessage(str(exc), 12000)
             return
@@ -565,9 +621,11 @@ class App(QtWidgets.QMainWindow):
         }
         for label, on in enabled.items():
             panel.buttons[label].setEnabled(bool(on))
-        for control in (list(self.evidence.verdict_buttons) + list(self.verdict_shortcuts)
-                        + list(self.undo_shortcuts) + list(self.day_shortcuts)):
+        for control in list(self.undo_shortcuts) + list(self.day_shortcuts):
             control.setEnabled(writable)
+        for control in list(self.evidence.verdict_buttons) + list(self.verdict_shortcuts):
+            control.setEnabled(writable and self.pair_review_enabled)
+        self.evidence.notes.setEnabled(writable and self.pair_review_enabled)
         for button in self.days.buttons.values():
             button.setEnabled(writable)
         if self.export_btn is not None:
@@ -714,7 +772,7 @@ class App(QtWidgets.QMainWindow):
     def set_verdict(self, verdict):
         r = self.state.row
         # a verdict is one Curation.do row; inspect-only writes nothing, a refusal shows its message
-        if r is None or self.curation is None:
+        if not self.pair_review_enabled or r is None or self.curation is None:
             return
         try:
             self.curation.do('verdict', cellid_a=r.cellid_a, cellid_b=r.cellid_b, verdict=verdict,

@@ -109,10 +109,10 @@ def test_tracked_flags_proposed_link_and_queues_review(qt):
     panel, _, _ = _day_table_panel()
     rows = panel._rows.set_index('cluster_id')
     track = rows.loc[cl.cluster_id(['A-1', 'B-1'])]
-    assert track.flag_text == 'proposed link · A-2'
+    assert track.flag_text == 'candidate match · A-2'
     assert bool(track.review) is True
     a2 = rows.loc[cl.cluster_id(['A-2'])]
-    assert a2.flag_text == 'proposed link · A-1 B-1'
+    assert a2.flag_text == 'candidate match · A-1 B-1'
     assert bool(a2.review) is True
     a3 = rows.loc[cl.cluster_id(['A-3'])]
     assert a3.flag_text == 'unmatched'
@@ -125,7 +125,7 @@ def test_proposed_flag_stays_after_accept(qt):
     controller.do('accept', cluster_id=cl.cluster_id(['A-1', 'B-1']))
     panel.refresh_list()
     track = panel._rows.set_index('cluster_id').loc[cl.cluster_id(['A-1', 'B-1'])]
-    assert track.flag_text == 'proposed link · A-2'
+    assert track.flag_text == 'candidate match · A-2'
     assert bool(track.review) is False
     assert track.status == 'accepted'
     panel.close()
@@ -137,14 +137,14 @@ def test_rejected_track_units_stay_out_of_review(qt):
     panel.refresh_list()
     rows = panel._rows.set_index('cluster_id')
     a1 = rows.loc[cl.cluster_id(['A-1'])]
-    assert a1.flag_text == 'proposed link · A-2'
+    assert a1.flag_text == 'candidate match · A-2'
     assert bool(a1.review) is False
     assert a1.status == 'unmatched'
     b1 = rows.loc[cl.cluster_id(['B-1'])]
-    assert b1.flag_text == 'proposed link · A-2'
+    assert b1.flag_text == 'candidate match · A-2'
     assert bool(b1.review) is False
     a2 = rows.loc[cl.cluster_id(['A-2'])]
-    assert a2.flag_text == 'proposed link · A-1 B-1'
+    assert a2.flag_text == 'candidate match · A-1 B-1'
     assert bool(a2.review) is True
     controller.do('reopen', cluster_id=cl.cluster_id(['A-1', 'B-1']))
     panel.refresh_list()
@@ -248,8 +248,9 @@ def test_other_days_sort_track_then_distance(qt):
     assert panel.column_ids('C') == ['C-2', 'C-1', 'C-3']
     assert _texts(panel.tables['C'], 1) == ['0', '35', '210']
     b = panel.tables['B']
-    assert [b.horizontalHeaderItem(i).toolTip() for i in range(4)] == \
-        ['', 'distance to A-1 · µm', 'score to A-1', 'status · u unmatched · m matched · a accepted']
+    from multiphy.viewer.panels.tables.days import HEADER_TIPS
+    assert [b.horizontalHeaderItem(i).toolTip() for i in range(5)] == \
+        ['', 'distance to A-1 · µm', 'score to A-1', *HEADER_TIPS[3:]]
     panel.close()
     panel, _, _, _ = _day_panel(data=day_table_data(depth=[100, 120, 400, 150, 90, 300, 110], x_um=[0] * 7))
     panel.pick('A-1')
@@ -261,17 +262,17 @@ def test_other_days_sort_track_then_distance(qt):
 def test_spread_shares_spare_width(qt):
     from PySide6 import QtTest
     from multiphy.viewer.panels.tables import days
-    assert days.spread(244) == [90, 56, 56, 42]
-    assert days.spread(172) == [64, 40, 40, 28]
-    assert days.spread(186) == [69, 43, 43, 31]
-    assert days.spread(100) == [64, 40, 40, 28]
+    total = sum(days.WIDTHS)
+    assert days.spread(total) == list(days.WIDTHS)
+    assert days.spread(total * 2) == [2 * w for w in days.WIDTHS]
+    assert sum(days.spread(total + 17)) == total + 17
+    assert days.spread(100) == list(days.WIDTHS)
     t = days._day_table()
     t.setRowCount(60)
-    t.setFixedWidth(260)
+    t.setFixedWidth(total * 2 + 16)
     t.show()
     QtTest.QTest.qWait(50)
-    assert t.viewport().width() == 244
-    assert [t.columnWidth(i) for i in range(4)] == [90, 56, 56, 42]
+    assert [t.columnWidth(i) for i in range(5)] == days.spread(t.viewport().width())
     t.close()
 
 
@@ -301,7 +302,7 @@ def test_actions_keep_held_order(qt):
     panel.pick('A-2')
     panel.buttons['Accept'].click()
     assert panel.column_ids('A') == ['A-2', 'A-3', 'A-4', 'A-5', 'A-1']
-    assert _cell(panel, 'A', 'A-2', 3).text() == 'a'
+    assert _tone(panel, 'A-2') == 'accept'
     panel.close()
 
 
@@ -321,7 +322,7 @@ def test_unit_cells_mark_proposed_links(qt):
     panel, _, _, _ = _day_panel()
     a2 = _cell(panel, 'A', 'A-2')
     assert a2.text() == '2 ⇄'
-    assert a2.toolTip() == 'proposed link · A-1 · 0.90\nproposed link · B-1 · 0.80'
+    assert a2.toolTip() == 'candidate match · A-1 · 0.90\ncandidate match · B-1 · 0.80'
     a3 = _cell(panel, 'A', 'A-3')
     assert a3.text() == '3'
     assert a3.toolTip() == ''
@@ -337,7 +338,8 @@ def test_pick_draws_wash_and_curation_text(qt):
     for c in ('A-3', 'A-4', 'A-5', 'B-2'):
         assert _fill(panel, c) is None
     assert [c for c in ('A-1', 'A-2', 'A-3', 'A-4', 'A-5', 'B-1', 'B-2') if _bold(panel, c)] == ['A-1', 'B-1']
-    assert [c for c in ('A-1', 'A-2', 'A-3', 'A-4', 'A-5', 'B-1', 'B-2') if _tone(panel, c)] == []
+    assert [c for c in ('A-1', 'A-2', 'A-3', 'A-4', 'A-5', 'B-1', 'B-2') if _tone(panel, c)] == ['A-1', 'B-1']
+    assert _tone(panel, 'A-1') == _tone(panel, 'B-1') == 'linked'
     controller.do('accept', cluster_id=cl.cluster_id(['A-1', 'B-1']))
     panel.refresh()
     assert _tone(panel, 'A-1') == 'accept'
@@ -346,7 +348,8 @@ def test_pick_draws_wash_and_curation_text(qt):
     panel, controller, _, _ = _day_panel()
     controller.do('reject', cluster_id=cl.cluster_id(['A-1', 'B-1']))
     panel.pick('A-1')
-    assert _tone(panel, 'B-1') == 'reject'
+    assert _tone(panel, 'B-1') is None
+    assert 'association with the picked unit was rejected' in _cell(panel, 'B', 'B-1', 4).toolTip()
     assert _bold(panel, 'B-1') is False
     assert _fill(panel, 'B-1') == 'proposal_tint'
     panel.close()
@@ -355,6 +358,81 @@ def test_pick_draws_wash_and_curation_text(qt):
 def _indicator(panel, site):
     header = panel.tables[site].horizontalHeader()
     return (header.sortIndicatorSection(), header.sortIndicatorOrder())
+
+
+def test_comparison_selection_preserves_assignments_and_only_members_get_colored(qt):
+    import copy
+    from multiphy.viewer import theme
+    panel, controller, state, _ = _day_panel()
+    before = copy.deepcopy(controller.state)
+    panel.pick('A-1')
+    panel.toggle('B-2')
+    assert panel.selected == ['A-1', 'B-2']
+    assert controller.state == before
+    assert controller.rows == []
+    for c in ('A-1', 'B-1'):
+        for column in range(5):
+            assert _cell(panel, c[0], c, column).data(theme.TONE_ROLE) == 'linked'
+    for column in range(5):
+        candidate = _cell(panel, 'B', 'B-2', column)
+        assert candidate.data(theme.FILL_ROLE) == 'accent_tint'
+        assert candidate.data(theme.TONE_ROLE) is None
+    assert state.data.result.tracks == (('A-1', 'B-1'),)
+    panel.close()
+
+
+def test_match_accept_unlink_keep_original_backend_label_and_color_current_members(qt):
+    from multiphy.viewer import theme
+    panel, controller, _, _ = _day_panel()
+    original = {c: (_cell(panel, c[0], c, 3).text(), _cell(panel, c[0], c, 3).toolTip())
+                for c in ('A-1', 'A-3', 'B-1', 'B-2')}
+    panel.pick('A-3')
+    assert _tone(panel, 'A-3') is None
+    panel.toggle('B-2')
+    assert _tone(panel, 'B-2') is None
+    panel.merge()
+    tid = cl.cluster_id(['A-3', 'B-2'])
+    for c in ('A-3', 'B-2'):
+        assert _cell(panel, c[0], c, 4).text() == 'm'
+        assert tid in _cell(panel, c[0], c, 4).toolTip()
+        assert 'unreviewed' in _cell(panel, c[0], c, 4).toolTip()
+        for column in range(5):
+            assert _cell(panel, c[0], c, column).data(theme.TONE_ROLE) == 'linked'
+    panel.accept()
+    for c in ('A-3', 'B-2'):
+        assert _cell(panel, c[0], c, 4).text() == 'm'
+        assert 'accepted for export' in _cell(panel, c[0], c, 4).toolTip()
+        for column in range(5):
+            assert _cell(panel, c[0], c, column).data(theme.TONE_ROLE) == 'accept'
+    panel.unmatch_unit()
+    for c in ('A-3', 'B-2'):
+        assert _cell(panel, c[0], c, 4).text() == 'u'
+        assert 'unreviewed' in _cell(panel, c[0], c, 4).toolTip()
+        assert _tone(panel, c) is None
+    assert {c: (_cell(panel, c[0], c, 3).text(), _cell(panel, c[0], c, 3).toolTip())
+            for c in original} == original
+    panel.pick('A-1')
+    panel.reject()
+    for c in ('A-1', 'B-1'):
+        assert _cell(panel, c[0], c, 3).text() == 'm'
+        assert _cell(panel, c[0], c, 4).text() == 'u'
+        assert 'unreviewed' in _cell(panel, c[0], c, 4).toolTip()
+        assert _tone(panel, c) is None
+    panel.close()
+
+
+def test_accepted_singleton_is_green_only_when_its_track_is_picked(qt):
+    from multiphy.viewer import theme
+    panel, _, _, _ = _day_panel()
+    panel.pick('A-3')
+    panel.accept()
+    for column in range(5):
+        assert _cell(panel, 'A', 'A-3', column).data(theme.TONE_ROLE) == 'accept'
+    panel.pick('A-1')
+    panel.toggle('A-3')
+    assert _tone(panel, 'A-3') is None
+    assert 'accepted for export' in _cell(panel, 'A', 'A-3', 4).toolTip()
+    panel.close()
 
 
 def _header_click(panel, site, section):
@@ -375,24 +453,24 @@ def test_header_sorts_become_held_order(qt):
     _header_click(panel, 'A', 2)
     assert panel.column_ids('A') == ['A-1', 'A-2', 'A-3', 'A-4', 'A-5']
     assert _indicator(panel, 'A') == (2, QtCore.Qt.DescendingOrder)
-    _header_click(panel, 'A', 3)
+    _header_click(panel, 'A', 4)
     assert panel.column_ids('A') == ['A-2', 'A-3', 'A-4', 'A-5', 'A-1']
-    assert _indicator(panel, 'A') == (3, QtCore.Qt.AscendingOrder)
+    assert _indicator(panel, 'A') == (4, QtCore.Qt.AscendingOrder)
     panel.close()
 
 
 def test_header_sort_on_other_day_lasts_until_pick(qt):
     panel, _, _, _ = _day_panel()
     panel.pick('A-1')
-    _header_click(panel, 'B', 3)
+    _header_click(panel, 'B', 4)
     assert panel.column_ids('B') == ['B-2', 'B-1']
-    assert _indicator(panel, 'B')[0] == 3
+    assert _indicator(panel, 'B')[0] == 4
     panel.pick('A-2')
     assert panel.column_ids('B') == ['B-1', 'B-2']
     assert _indicator(panel, 'B')[0] == -1
     panel.pick('B-1')
     assert panel.column_ids('B') == ['B-2', 'B-1']
-    assert _indicator(panel, 'B')[0] == 3
+    assert _indicator(panel, 'B')[0] == 4
     panel.close()
 
 
@@ -456,7 +534,7 @@ def test_same_day_column_sorts_distance_then_score(qt):
     assert _texts(t, 1) == ['20', '120', '300', '304']
     assert _texts(t, 2) == ['0.90', '--', '0.30', '--']
     assert [t.item(i, 0).toolTip() for i in range(4)] == \
-        ['proposed link · A-1 · 0.90\nproposed link · B-1 · 0.80', '', '', '']
+        ['candidate match · A-1 · 0.90\ncandidate match · B-1 · 0.80', '', '', '']
     panel.close()
     panel, _, _, _ = _day_panel()
     panel.pick('A-1')
@@ -506,12 +584,12 @@ def test_same_day_header_sorts_until_pick(qt):
 def test_same_day_header_again_reverses_held_list(qt):
     panel, controller, _, _ = _day_panel()
     panel.pick('A-2')
-    _same_header_click(panel, 3)
+    _same_header_click(panel, 4)
     assert panel.same_column_ids() == ['A-3', 'A-4', 'A-5', 'A-1']
     controller.do('reject', cluster_id=cl.cluster_id(['A-1', 'B-1']))
     panel.refresh()
     assert panel.same_column_ids() == ['A-3', 'A-4', 'A-5', 'A-1']
-    _same_header_click(panel, 3)
+    _same_header_click(panel, 4)
     assert panel.same_column_ids() == ['A-1', 'A-5', 'A-4', 'A-3']
     panel.close()
 
@@ -571,13 +649,13 @@ def test_decided_track_leaves_review(qt):
                   members=['A-1', 'B-1', 'A-2'])
     panel.refresh_list()
     track = panel._rows.set_index('cluster_id').loc[merged]
-    assert track.flag_text == '2 units on one day, proposed link · A-1 A-2 B-1'
+    assert track.flag_text == '2 units on one day, candidate match · A-1 A-2 B-1'
     assert bool(track.review) is True
     assert track.status == 'proposed'
     controller.do('accept', cluster_id=merged)
     panel.refresh_list()
     track = panel._rows.set_index('cluster_id').loc[merged]
-    assert track.flag_text == '2 units on one day, proposed link · A-1 A-2 B-1'
+    assert track.flag_text == '2 units on one day, candidate match · A-1 A-2 B-1'
     assert bool(track.review) is False
     assert track.status == 'accepted'
     panel.close()
@@ -597,46 +675,60 @@ def test_decided_track_leaves_review(qt):
 
 def test_same_day_column_fits_its_columns(qt):
     from PySide6 import QtTest
-    from multiphy.viewer.panels.tables import DayTablePanel
+    from multiphy.viewer.panels.tables import DayTablePanel, days
     panel, _, _, _ = _day_panel()
     panel.resize(900, 400)
     panel.show()
     qt.processEvents()
     t = panel.same_table
-    assert t.width() == 188
+    narrowest = days._narrowest(t)
+    assert t.width() == narrowest
     assert not t.horizontalScrollBar().isVisible()
     panel.pick('A-1')
-    assert t.width() == 188
-    assert [t.columnWidth(i) for i in range(4)] == [69, 43, 43, 31]
+    assert t.width() == narrowest
+    assert [t.columnWidth(i) for i in range(5)] == days.spread(t.viewport().width())
     t.setRowCount(60)
     QtTest.QTest.qWait(50)
-    assert t.width() == 188
+    assert t.width() == narrowest
     assert t.verticalScrollBar().isVisible()
     assert not t.horizontalScrollBar().isVisible()
-    assert t.viewport().width() == 172
-    assert [t.columnWidth(i) for i in range(4)] == [64, 40, 40, 28]
+    assert t.viewport().width() == sum(days.WIDTHS)
+    assert [t.columnWidth(i) for i in range(5)] == list(days.WIDTHS)
     assert DayTablePanel.__doc__ == ("One column per day of every unit: the picked unit's own day in its held order, "
                                      "every other day sorted to its reference unit, and the picked unit's other "
                                      "own-day units in the pinned same-day column.")
     panel.close()
 
 
-def test_day_headers_and_status_letters(qt):
+def test_day_headers_keep_backend_and_track_compact_with_review_on_hover(qt):
+    from multiphy.viewer.panels.tables.days import HEADERS, HEADER_TIPS
     panel, _, _, _ = _day_panel()
-    tips = ['', 'distance to the picked unit · µm', 'score to the picked unit',
-            'status · u unmatched · m matched · a accepted']
     for t in [panel.same_table, *panel.tables.values()]:
-        assert [t.horizontalHeaderItem(i).text() for i in range(4)] == ['unit', 'µm', 'sc', 's']
-        assert [t.horizontalHeaderItem(i).toolTip() for i in range(4)] == tips
-    assert [(_cell(panel, c[0], c, 3).text(), _cell(panel, c[0], c, 3).toolTip()) for c in ('A-1', 'B-1', 'A-3')] \
-        == [('m', 'matched'), ('m', 'matched'), ('u', 'unmatched')]
+        assert t.columnCount() == 5
+        assert HEADERS == ('unit', 'µm', 'sc', 'b', 't')
+        assert [t.horizontalHeaderItem(i).text() for i in range(5)] == list(HEADERS)
+        assert [t.horizontalHeaderItem(i).toolTip() for i in range(5)] == list(HEADER_TIPS)
+    tid = cl.cluster_id(['A-1', 'B-1'])
+    for c in ('A-1', 'B-1'):
+        assert _cell(panel, c[0], c, 3).text() == 'm'
+        assert tid in _cell(panel, c[0], c, 3).toolTip()
+        assert _cell(panel, c[0], c, 4).text() == 'm'
+        assert tid in _cell(panel, c[0], c, 4).toolTip()
+        assert 'unreviewed' in _cell(panel, c[0], c, 4).toolTip()
+    assert [_cell(panel, 'A', 'A-3', i).text() for i in (3, 4)] == ['u', 'u']
     panel.pick('A-2')
     panel.buttons['Accept'].click()
-    assert (_cell(panel, 'A', 'A-2', 3).text(), _cell(panel, 'A', 'A-2', 3).toolTip()) == ('a', 'accepted')
+    assert _tone(panel, 'A-2') == 'accept'
+    assert 'accepted for export' in _cell(panel, 'A', 'A-2', 4).toolTip()
+    assert _cell(panel, 'A', 'A-2', 4).text() == 'u'
+    assert cl.cluster_id(['A-2']) in _cell(panel, 'A', 'A-2', 4).toolTip()
     panel.pick('A-1')
-    rows = {panel.same_table.item(i, 0).data(QtCore.Qt.UserRole): panel.same_table.item(i, 3).text()
+    rows = {panel.same_table.item(i, 0).data(QtCore.Qt.UserRole):
+            'accepted for export' in panel.same_table.item(i, 4).toolTip()
             for i in range(panel.same_table.rowCount())}
-    assert rows == {'A-2': 'a', 'A-3': 'u', 'A-4': 'u', 'A-5': 'u'}
+    assert rows == {'A-2': True, 'A-3': False, 'A-4': False, 'A-5': False}
+    assert [b.text() for b in panel.buttons.values()] == ['Accept track', 'Reject track', 'Match', 'Unmatch unit']
+    assert 'matched / unreviewed' in panel.legend.text() and 'accepted for export' in panel.legend.text()
     panel.close()
 
 
@@ -646,25 +738,25 @@ def test_day_columns_keep_their_narrowest_width_and_scroll(qt):
     panel.resize(panel.same_table.width() + 120, 400)
     panel.show()
     qt.processEvents()
-    assert len(panel.tables) == 2 and panel.scroll.viewport().width() < 2 * 188
+    narrowest = days._narrowest(panel.same_table)
+    assert len(panel.tables) == 2 and panel.scroll.viewport().width() < 2 * narrowest
     assert panel.scroll.horizontalScrollBar().isVisible()
     for t in panel.tables.values():
-        assert t.width() == 188
+        assert t.width() == narrowest
         assert not t.horizontalScrollBar().isVisible()
     panel.resize(1200, 400)
     qt.processEvents()
     assert not panel.scroll.horizontalScrollBar().isVisible()
     for t in panel.tables.values():
-        assert t.width() > 188
-        assert sum(t.columnWidth(i) for i in range(4)) == t.viewport().width()
-        for i in range(4):
+        assert t.width() > narrowest
+        assert sum(t.columnWidth(i) for i in range(5)) == t.viewport().width()
+        for i in range(5):
             assert t.columnWidth(i) > days.WIDTHS[i], i
     panel.close()
 
 
 def test_day_widths_fit_under_the_theme(qt):
-    """Under the app style sheet each of the four headers shows unelided beside its sort arrow, and ``318-1 ⇄``,
-    ``9999``, ``0.97`` and every status letter fit their columns at ``WIDTHS``."""
+    """Compact headers, measurement values and assignment letters fit at ``WIDTHS``."""
     from multiphy.viewer import display, theme
     from multiphy.viewer.panels.tables import days
     panel, _, _, _ = _day_panel()
@@ -673,7 +765,7 @@ def test_day_widths_fit_under_the_theme(qt):
     qt.processEvents()
     t = panel.tables['A']
     h = t.horizontalHeader()
-    assert len(days.WIDTHS) == 4
+    assert len(days.WIDTHS) == 5
     for section, width in enumerate(days.WIDTHS):
         h.setSortIndicatorShown(True)
         h.setSortIndicator(section, QtCore.Qt.AscendingOrder)
@@ -691,7 +783,8 @@ def test_day_widths_fit_under_the_theme(qt):
     assert fm.horizontalAdvance('318-1 ⇄') + margin <= days.WIDTHS[0]
     assert fm.horizontalAdvance('9999') + margin <= days.WIDTHS[1]
     assert fm.horizontalAdvance('0.97') + margin <= days.WIDTHS[2]
-    assert max(fm.horizontalAdvance(x) for x in days.STATUS_LETTERS.values()) + margin <= days.WIDTHS[3]
+    for section in (3, 4):
+        assert max(fm.horizontalAdvance(value) for value in ('m', 'u')) + margin <= days.WIDTHS[section]
     panel.close()
 
 
@@ -763,7 +856,7 @@ def test_track_key_strings_current_track(qt):
     assert state.selection == ['A-2', 'B-3', 'C-3']
     panel.pick('A-1')
     panel.string_track()
-    assert panel.status.text() == 'no link'
+    assert panel.status.text() == 'no match'
     controller.do('merge', parent_ids=[cl.cluster_id(['A-2', 'B-3', 'C-3']), cl.cluster_id(['A-1']),
                                        cl.cluster_id(['B-1'])],
                   members=['A-2', 'B-3', 'C-3', 'A-1', 'B-1'])

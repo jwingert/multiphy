@@ -118,7 +118,7 @@ def write_day(folder: Path, day: str, *, seed: int = 0, date: str = '2026-01-01'
         "dtype = 'int16'\n"
         'offset = 0\n'
         f'sample_rate = {SAMPLE_RATE!r}\n'
-        'hp_filtered = False\n')
+        'hp_filtered = False\n', encoding='utf-8')
 
     voltage = rng.normal(0, 5, (N_SAMPLES, N_CHANNELS))
     half = TEMPLATE_SAMPLES // 2

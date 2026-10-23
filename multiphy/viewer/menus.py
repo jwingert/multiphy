@@ -3,7 +3,7 @@
 ``install_menus`` adds ``Settings`` (a ``Theme`` submenu, then a ``Unit colours`` submenu, then any
 window-specific settings) and ``Help`` (one guide per ``GUIDES`` entry, then ``Keyboard shortcuts``, then
 ``About multiphy`` after a separator). The menus write only the ``theme``, ``unit_palette`` and
-``shortcuts/<action id>`` settings, through ``theme.switch_theme``, ``theme.switch_unit_palette`` and the
+``shortcuts/<action id>`` settings (and their ``shortcut_versions`` metadata), through ``theme.switch_theme``, ``theme.switch_unit_palette`` and the
 ``Keyboard shortcuts`` window (``keys.save_binding``, ``keys.reset_bindings``); the guides and the About window
 are read-only. Every window's ``Theme`` and ``Unit colours`` menus follow a switch made in any window. Qt comes
 only from ``.qt``.

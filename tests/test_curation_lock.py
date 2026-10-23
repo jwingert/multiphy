@@ -211,8 +211,11 @@ def test_write_keeps_file_mode(tmp_path):
     a = _open(tmp_path)
     a.do('accept', cluster_id=T)
     os.chmod(d / 'history.csv', 0o664)
+    # Windows supports only a subset of POSIX mode bits. Preserve the actual
+    # mode the filesystem accepted rather than requiring unsupported bits.
+    before = os.stat(d / 'history.csv').st_mode & 0o777
     a.do('accept', cluster_id=cluster_id(['D1:1']))
-    assert os.stat(d / 'history.csv').st_mode & 0o777 == 0o664
+    assert os.stat(d / 'history.csv').st_mode & 0o777 == before
     assert _data_lines(d) == 2
 
 
@@ -277,15 +280,23 @@ def test_lock_close_failure_leaves_no_lock(tmp_path, monkeypatch):
 def test_failed_acquisition_keeps_successor_lock(tmp_path, monkeypatch):
     lock = _dir(tmp_path) / 'history.lock'
     successor = json.dumps({'pid': 1, 'host': 'elsewhere', 'token': 'succ'})
+    staged_successor = tmp_path / 'successor.lock'
+    staged_successor.write_text(successor)
     real_write = os.write
+    real_close = os.close
 
     def short(fd, data):
-        os.remove(lock)  # another controller takes over the incomplete lock
-        lock.write_text(successor)
         return real_write(fd, data[:1])
 
+    def close_then_take_over(fd):
+        real_close(fd)
+        # Windows permits replacement only after closing the original handle.
+        # The successor still arrives before failed-acquisition cleanup runs.
+        os.replace(staged_successor, lock)
+
     monkeypatch.setattr(os, 'write', short)
-    with pytest.raises(OSError):
+    monkeypatch.setattr(os, 'close', close_then_take_over)
+    with pytest.raises(OSError, match='short write'):
         _open(tmp_path)
     monkeypatch.undo()
     assert lock.read_text() == successor

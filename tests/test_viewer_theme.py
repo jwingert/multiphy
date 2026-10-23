@@ -28,19 +28,19 @@ UNITS = ['a-01', 'b-01', 'c-01', 'd-01']
 GRAPHITE = {
     'ground': '#0F1114', 'panel': '#171A1F', 'raised': '#1F232A', 'border': '#262B33',
     'text': '#ECEEF1', 'muted': '#9097A3', 'accent': '#5B9DFF', 'accent_ink': '#0F1114',
-    'accent_tint': '#1A2740', 'accept': '#3DD68C', 'reject': '#FF7B72', 'unsure': '#E3B341',
+    'accent_tint': '#1A2740', 'linked': '#68C7F4', 'accept': '#3DD68C', 'reject': '#FF7B72', 'unsure': '#E3B341',
     'plot_fill': '#2A2F37', 'plot_line': '#ECEEF1', 'plot_second': '#7AA2F7',
     'plot_grid': '#22262D', 'plot_spine': '#3A414C', 'proposal_tint': '#18202F'}
 DARK = {
     'ground': '#0B1119', 'panel': '#18222F', 'raised': '#212D3D', 'border': '#2A3646', 'text': '#E6EDF3',
     'muted': '#8B98A9', 'accent': '#7DD3FC', 'accent_ink': '#0B1119', 'accent_tint': '#173247',
-    'accept': '#3FB950', 'reject': '#F0883E', 'unsure': '#D29922',
+    'linked': '#79B8FF', 'accept': '#3FB950', 'reject': '#F0883E', 'unsure': '#D29922',
     'plot_fill': '#3A4757', 'plot_line': '#E6EDF3', 'plot_second': '#6CB6FF',
     'plot_grid': '#243041', 'plot_spine': '#3A4757', 'proposal_tint': '#172A3B'}
 LIGHT = {
     'ground': '#EEF1F5', 'panel': '#FFFFFF', 'raised': '#F3F5F8', 'border': '#D5DBE3', 'text': '#18202B',
     'muted': '#5F6B7A', 'accent': '#0284C7', 'accent_ink': '#FFFFFF', 'accent_tint': '#E0F2FE',
-    'accept': '#1F6F4A', 'reject': '#B5451F', 'unsure': '#A08A2A',
+    'linked': '#1766B0', 'accept': '#1F6F4A', 'reject': '#B5451F', 'unsure': '#A08A2A',
     'many': ['#1F6F4A', '#B5451F', '#3F6FA0', '#7A5C9E', '#B08B1E', '#2F8F8F', '#A33D6B', '#5D7D2F',
              '#8A6A4A', '#4A4A8A'],
     'plot_fill': '#CFD6DE', 'plot_line': '#222222', 'plot_second': '#3F6FA0',
@@ -124,20 +124,17 @@ def test_theme_failures(qt, theme_env, monkeypatch):
     tmp_path = theme_env
     app = QtWidgets.QApplication.instance()
     ro = tmp_path / 'ro'
-    ro.mkdir(mode=0o500)
-    os.chmod(ro, 0o500)
-    try:
-        QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
-        assert theme.switch_theme('light') == f"theme not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-        assert display.theme_name() == 'light'
-        assert '#0284C7' in app.styleSheet()
-        assert list(ro.iterdir()) == []
-    finally:
-        os.chmod(ro, 0o700)
+    ro.write_text('a file cannot hold a settings directory')
+    QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
+    assert theme.switch_theme('light') == f"theme not saved · {(ro / 'multiphy' / 'multiphy.ini').as_posix()}"
+    assert display.theme_name() == 'light'
+    assert '#0284C7' in app.styleSheet()
+    assert ro.is_file()
     display.set_theme('dark')
     sheet = app.styleSheet()
     monkeypatch.setattr(theme, '_assets', None)
-    monkeypatch.setenv('TMPDIR', str(tmp_path / 'missing'))
+    monkeypatch.setattr(QtCore, 'QTemporaryDir', lambda *args: type('FailedTemp', (), {
+        'isValid': lambda self: False, 'errorString': lambda self: 'cannot create temporary directory'})())
     with pytest.raises(OSError, match='theme assets'):
         theme.apply_theme(app, 'light')
     assert display.theme_name() == 'dark'
@@ -208,6 +205,7 @@ def test_switch_keeps_selection_and_notes(qt, theme_env):
     panels = _plot_panels(window)
     assert panels
     assert all(_hex(p.fig.get_facecolor()) == '#171a1f' for p in panels)
+    assert display.colors()['linked'] in window.days.legend.text()
     selection_before = list(window.state.selection)
     spy = []
 
@@ -215,6 +213,7 @@ def test_switch_keeps_selection_and_notes(qt, theme_env):
         spy.append(True)
     window.state.changed.connect(record)
     assert theme.switch_theme('light') == ''
+    assert display.colors()['linked'] in window.days.legend.text()
     assert (window.state.row.cellid_a, window.state.row.cellid_b) == ('a-01', 'b-01')
     assert list(window.state.selection) == selection_before
     assert window.evidence.notes.toPlainText() == 'keep me'

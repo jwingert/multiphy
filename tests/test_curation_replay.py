@@ -146,3 +146,32 @@ def test_columns_are_fixed():
                'target_op', 'cellid_a', 'cellid_b', 'verdict', 'notes')
     assert curation.COLUMNS == literal
     assert set(curation.make_row('accept', cluster_id=T)) == set(literal)
+
+
+def test_rapid_actions_remain_distinct_when_clock_does_not_advance(monkeypatch):
+    monkeypatch.setattr(curation.time, 'time_ns', lambda: 1234567890)
+    single = cluster_id(['D1:1'])
+    accepted = curation.make_row('accept', cluster_id=T)
+    accepted_single = curation.make_row('accept', cluster_id=single)
+    first = curation.make_row('verdict', cellid_a='D1:0', cellid_b='D2:0', verdict='accept')
+    second = curation.make_row('verdict', cellid_a='D1:0', cellid_b='D2:0', verdict='reject')
+    rows = [accepted, accepted_single, first, second, _undo(second), _undo(first)]
+
+    assert len({row['op_id'] for row in rows}) == len(rows)
+    state = _replay(*rows)
+    assert state.skipped == []
+    assert state.tracks[T]['status'] == state.tracks[single]['status'] == 'accepted'
+    assert state.verdicts == {}
+    assert state.redo_target == first['op_id']
+    restored = _replay(*rows, curation.make_row('redo', target_op=first['op_id']))
+    assert restored.skipped == []
+    assert restored.verdicts[('D1:0', 'D2:0')]['verdict'] == 'accept'
+
+
+def test_legacy_operation_ids_still_replay():
+    accepted = curation.make_row('accept', cluster_id=T)
+    accepted['op_id'] = 'op_0123456789ab'
+    state = _replay(accepted, _undo(accepted))
+    assert state.skipped == []
+    assert state.tracks[T]['status'] == 'proposed'
+    assert state.redo_target == accepted['op_id']

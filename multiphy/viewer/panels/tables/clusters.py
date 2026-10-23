@@ -9,6 +9,7 @@ from multiphy.viewer.data import Words
 from multiphy.viewer import theme
 from multiphy.viewer.panels.tables.base import NumericItem, _table
 from multiphy.viewer.state import Actions, PairState
+from multiphy.viewer.track_labels import backend_assignments, short_track_id
 from multiphy.viewer.qt import QtCore, QtWidgets
 
 
@@ -29,6 +30,7 @@ class ClusterPanel(QtWidgets.QWidget):
     """
     panel_id, panel_title = 'clusters', 'Tracked units'
     track_shown = QtCore.Signal(list)
+    track_chosen = QtCore.Signal(list)
 
     def __init__(self, state: PairState, actions: Actions, words: Words, parent=None):
         super().__init__(parent)
@@ -75,22 +77,27 @@ class ClusterPanel(QtWidgets.QWidget):
         top.addWidget(self.count)
         lay.addLayout(top)
 
-        self.table = _table([words.track_column, 'units', 'flags', 'weakest', 'status'],
-                            [44, 44, 104, 58, 62])
+        self.table = _table([words.track_column, 'units', 'flags', 'weakest', 'review', 'backend', 'track'],
+                            [44, 44, 104, 58, 82, 78, 78])
+        self.table.horizontalHeaderItem(4).setToolTip('Reviewer decision for this grouping')
+        self.table.horizontalHeaderItem(5).setToolTip('Original backend assignment; curation never changes it')
+        self.table.horizontalHeaderItem(6).setToolTip('Current grouping; full identity and members on hover')
         self.table.setMinimumWidth(1)
         self.table.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
         self.table.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.table.currentCellChanged.connect(lambda r, *a: self.on_cluster(r))
+        # A click can keep the same current row while deliberately leaving a day comparison.
+        self.table.cellClicked.connect(lambda r, _column: self.on_cluster(r))
         lay.addWidget(self.table, 2)
 
         members_row = QtWidgets.QHBoxLayout()
         members_row.addWidget(QtWidgets.QLabel('<b>Members</b>'))
-        members_hint = QtWidgets.QLabel('click one to open its strongest link')
+        members_hint = QtWidgets.QLabel('click one to open its strongest pair')
         members_hint.setProperty('role', 'hint')
         members_row.addWidget(members_hint)
         members_row.addStretch(1)
         lay.addLayout(members_row)
-        self.members = _table(['unit', words.member_column, 'best link'], [96, 82, 72])
+        self.members = _table(['unit', words.member_column, 'best score'], [96, 82, 72])
         self.members.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
         self.members.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.members.setMinimumWidth(1)
@@ -114,6 +121,8 @@ class ClusterPanel(QtWidgets.QWidget):
                 ('Reopen', 'back to undecided', self.reopen),
                 )):
             b = QtWidgets.QPushButton(label)
+            b.setText({'Accept': 'Accept track', 'Reject': 'Reject track',
+                       'Merge': 'Match'}.get(label, label))
             b.setToolTip(tip)
             b.setMinimumWidth(1)
             b.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Fixed)
@@ -159,11 +168,11 @@ class ClusterPanel(QtWidgets.QWidget):
             if info['same_day_collision']:
                 marks.append(f"{info['max_per_day']} units on one day")
             if info['weak_link']:
-                marks.append('weak internal link')
+                marks.append('weak pair evidence')
             # members are not removed from the partners, so the flag never clears (D16)
             partners = sorted({p for m in r.members for p in links.get(m, [])})
             if partners:
-                marks.append('proposed link · ' + ' '.join(partners))
+                marks.append('candidate match · ' + ' '.join(partners))
             # a decision (accepted or rejected) takes the track out of the queue for every flag (D35)
             review = r.status in ('proposed', 'unmatched') and (cl.needs_review(info) or (bool(partners) and (
                 r.status == 'proposed' or not set(r.members) & settled)))
@@ -185,12 +194,21 @@ class ClusterPanel(QtWidgets.QWidget):
         t.clearSelection()
         t.setSortingEnabled(False)
         t.setRowCount(len(self._shown))
+        backend = backend_assignments(self.state.data.result)
         for i, r in self._shown.iterrows():
+            review = r.status if r.status in ('accepted', 'rejected') else 'unreviewed'
+            original_ids = {backend.get(m) for m in r.members}
+            original = next(iter(original_ids)) if len(original_ids) == 1 else None
+            backend_text = short_track_id(original) if original else ('unmatched' if original_ids == {None} else 'mixed')
             cells = [NumericItem(r.n_days, str(r.n_days)),
                      NumericItem(r.n_members, str(r.n_members)),
                      QtWidgets.QTableWidgetItem(r.flag_text),
                      NumericItem(r.min_internal_posterior),
-                     QtWidgets.QTableWidgetItem(r.status)]
+                     QtWidgets.QTableWidgetItem(review),
+                     QtWidgets.QTableWidgetItem(backend_text),
+                     QtWidgets.QTableWidgetItem(short_track_id(r.cluster_id))]
+            cells[5].setToolTip('\n'.join(f'{m}: {backend.get(m) or "unmatched"}' for m in r.members))
+            cells[6].setToolTip(r.cluster_id + '\n' + ', '.join(r.members))
             cells[0].setData(QtCore.Qt.UserRole, r.cluster_id)
             if r.review:
                 theme.tone(cells[2], 'unsure')
@@ -198,6 +216,8 @@ class ClusterPanel(QtWidgets.QWidget):
                 theme.tone(cells[4], 'accept')
             elif r.status == 'rejected':
                 theme.tone(cells[4], 'reject')
+            elif len(r.members) >= 2:
+                theme.tone(cells[6], 'linked')
             for j, it in enumerate(cells):
                 t.setItem(i, j, it)
         t.setSortingEnabled(True)
@@ -221,7 +241,7 @@ class ClusterPanel(QtWidgets.QWidget):
             t.setCurrentCell(-1, -1)
         del blocker
         # A rebuild can leave the same row current, so Qt emits no change.
-        self.on_cluster(t.currentRow())
+        self.on_cluster(t.currentRow(), preserve_comparison=True)
 
     def _update_skipped(self, skipped):
         if not skipped:
@@ -265,7 +285,7 @@ class ClusterPanel(QtWidgets.QWidget):
         hit = self._rows[self._rows.cluster_id == cid]
         return cid, (list(hit.iloc[0].members) if len(hit) else [])
 
-    def on_cluster(self, _row):
+    def on_cluster(self, _row, *, preserve_comparison=False):
         cid, members = self.current_cluster()
         self._fill_members(members)
         # the controls follow the current row's unit count and status
@@ -274,6 +294,8 @@ class ClusterPanel(QtWidgets.QWidget):
         if len(members) == 2:
             self._open_best_pair(members[0], members)
         if cid is not None:
+            if not preserve_comparison:
+                self.track_chosen.emit(list(members))
             self.track_shown.emit(list(members))
 
     def show_track_of(self, cellid: str) -> None:
@@ -301,7 +323,7 @@ class ClusterPanel(QtWidgets.QWidget):
         self._controls_changed()
 
     def _fill_members(self, members):
-        """List ``members`` in the members table, each with its day and best link."""
+        """List ``members`` in the members table, each with its day and best pair score."""
         blocker = QtCore.QSignalBlocker(self.members)
         self.members.clearSelection()
         self.members.setSortingEnabled(False)
@@ -389,7 +411,12 @@ class ClusterPanel(QtWidgets.QWidget):
         if not self._do(op, cluster_id=cid, members=members):
             return
         self.status.setText(f'{op}ed {cid} ({len(members)} units)')
-        self.refresh_list()
+        self.refresh_list(preferred_id=cid, fallback=False)
+        if self.current_cluster()[0] is None:
+            # A filter can hide the decided track. Leave no actionable row instead of silently
+            # advancing, and clear plots/evidence that would otherwise imply a visible selection.
+            self.state.set_selection([])
+            self.track_shown.emit(list(members))
 
     def split_selected(self):
         cid, members = self.current_cluster()

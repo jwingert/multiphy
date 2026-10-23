@@ -10,6 +10,7 @@ import typing
 
 import pytest
 from PySide6 import QtCore, QtWidgets
+from PySide6.QtTest import QTest
 
 from multiphy.contract import registry
 from multiphy.contract.backend import Availability
@@ -161,6 +162,191 @@ def test_only_root_locked_while_busy(qt, runs):
     assert window.running() is False
     assert window.root_action.isEnabled() is True
     assert {name: b.isEnabled() for name, b in window.run_buttons.items()} == before
+    _close(window)
+
+
+def test_project_check_button_and_menu_do_not_keep_verification_enabled(qt, tmp_path):
+    root = tmp_path / 'lab'
+    Project.ensure(root, 'P')
+    window = _window(root, 'P')
+    window.check_project_button.click()
+    assert window.process.calls[0][1] == ['-m', 'multiphy.launch', '--root', str(root), 'status', 'P']
+    window.process.ended.emit(0)
+
+    window.verify_files_action.trigger()
+    assert window.process.calls[0][1] == [
+        '-m', 'multiphy.launch', '--root', str(root), 'status', 'P', '--verify']
+    window.process.ended.emit(0)
+
+    window.check_project_button.click()
+    assert window.process.calls[0][1][-2:] == ['status', 'P']
+    window.process.ended.emit(0)
+    window.quick_check_action.trigger()
+    assert window.process.calls[0][1][-2:] == ['status', 'P']
+    window.process.ended.emit(0)
+    _close(window)
+
+
+@pytest.mark.parametrize('action_name, verify', [('quick_check_action', False), ('verify_files_action', True)])
+@pytest.mark.parametrize('label_role', ['check_title', 'check_detail'])
+def test_project_check_menu_rows_clickable_and_close(qt, tmp_path, action_name, verify, label_role):
+    root = tmp_path / 'lab'
+    Project.ensure(root, 'P')
+    window = _window(root, 'P')
+    window.show()
+    menu = window.check_project_button.menu()
+    menu.popup(window.check_project_button.mapToGlobal(QtCore.QPoint(0, window.check_project_button.height())))
+    qt.processEvents()
+    action = getattr(window, action_name)
+    button = action.defaultWidget()
+    label = next(label for label in button.findChildren(QtWidgets.QLabel) if label.property('role') == label_role)
+    assert label.isVisible()
+    assert menu.rect().contains(button.mapTo(menu, button.rect().bottomRight()))
+    assert button.accessibleName() == action.text()
+    assert button.accessibleDescription()
+    QTest.mouseClick(button, QtCore.Qt.LeftButton, pos=label.mapTo(button, label.rect().center()))
+    assert not menu.isVisible()
+    assert window.process.calls[0][1] == [
+        '-m', 'multiphy.launch', '--root', str(root), 'status', 'P', *(['--verify'] if verify else [])]
+    assert len(window.process.calls) == 1
+    assert window.queue == []
+    window.process.ended.emit(0)
+    _close(window)
+
+
+def test_project_check_menu_keyboard_navigation_and_escape(qt, tmp_path):
+    root = tmp_path / 'lab'
+    Project.ensure(root, 'P')
+    window = _window(root, 'P')
+    window.show()
+    QTest.mouseMove(window, window.rect().bottomRight())
+    menu = window.check_project_button.menu()
+    position = window.check_project_button.mapToGlobal(QtCore.QPoint(0, window.check_project_button.height()))
+    menu.popup(position)
+    qt.processEvents()
+    QTest.keyClick(menu, QtCore.Qt.Key_Down)
+    assert menu.activeAction() is window.quick_check_action
+    assert window.quick_check_action.defaultWidget().property('menu_active') is True
+    QTest.keyClick(menu, QtCore.Qt.Key_Down)
+    assert menu.activeAction() is window.verify_files_action
+    assert window.verify_files_action.defaultWidget().property('menu_active') is True
+    assert window.quick_check_action.defaultWidget().property('menu_active') is False
+    QTest.keyClick(menu, QtCore.Qt.Key_Up)
+    assert menu.activeAction() is window.quick_check_action
+    QTest.keyClick(menu, QtCore.Qt.Key_Down)
+    QTest.keyClick(menu, QtCore.Qt.Key_Return)
+    assert not menu.isVisible()
+    assert window.process.calls[0][1][-3:] == ['status', 'P', '--verify']
+    assert window.verify_files_action.defaultWidget().property('menu_active') is False
+    window.process.ended.emit(0)
+
+    menu.popup(position)
+    qt.processEvents()
+    QTest.keyClick(menu, QtCore.Qt.Key_Down)
+    QTest.keyClick(menu, QtCore.Qt.Key_Escape)
+    assert not menu.isVisible()
+    assert not window.running()
+    assert window.queue == []
+    _close(window)
+
+
+def test_project_check_menu_mouse_and_keyboard_share_selection(qt, tmp_path):
+    root = tmp_path / 'lab'
+    Project.ensure(root, 'P')
+    window = _window(root, 'P')
+    window.show()
+    menu = window.check_project_button.menu()
+    menu.popup(window.check_project_button.mapToGlobal(QtCore.QPoint(0, window.check_project_button.height())))
+    qt.processEvents()
+    quick = window.quick_check_action.defaultWidget()
+    verify = window.verify_files_action.defaultWidget()
+    QTest.mouseMove(quick, quick.rect().center())
+    assert menu.activeAction() is window.quick_check_action
+    assert quick.property('menu_active') is True
+    assert verify.property('menu_active') is False
+    QTest.keyClick(menu, QtCore.Qt.Key_Down)
+    assert menu.activeAction() is window.verify_files_action
+    assert quick.property('menu_active') is False
+    assert verify.property('menu_active') is True
+    QTest.mouseMove(quick, quick.rect().center() + QtCore.QPoint(1, 0))
+    assert menu.activeAction() is window.quick_check_action
+    assert quick.property('menu_active') is True
+    assert verify.property('menu_active') is False
+    QTest.keyClick(menu, QtCore.Qt.Key_Escape)
+    assert not window.running()
+    _close(window)
+
+
+def test_queued_project_verification_keeps_clicked_project(qt, tmp_path):
+    root = tmp_path / 'lab'
+    for name in ('P', 'R'):
+        Project.ensure(root, name)
+    window = _window(root, 'P')
+    window.check_project_button.click()
+    first_process = window.process
+    window.verify_files_action.trigger()
+    assert len(window.queue) == 1
+    assert window.queue[0]['argv'] == ['status', 'P', '--verify']
+
+    _set_project(window, 'R')
+    first_process.ended.emit(0)
+    assert window.process is not first_process
+    assert window.process.calls[0][1][-3:] == ['status', 'P', '--verify']
+    assert window.project_combo.currentText() == 'R'
+    assert window.queue == []
+    window.process.ended.emit(0)
+    _close(window)
+
+
+def test_project_checks_disabled_without_readable_project(qt, tmp_path):
+    root = tmp_path / 'lab'
+    window = _window(root)
+    controls = (window.check_project_button, window.quick_check_action, window.verify_files_action)
+    assert not any(control.isEnabled() for control in controls)
+    assert not window.quick_check_action.defaultWidget().isEnabled()
+    assert not window.verify_files_action.defaultWidget().isEnabled()
+    window.check_project_button.click()
+    window.verify_files_action.trigger()
+    assert not window.running()
+
+    Project.ensure(root, 'P')
+    window.reload()
+    _set_project(window, 'P')
+    assert all(control.isEnabled() for control in controls)
+    assert window.quick_check_action.defaultWidget().isEnabled()
+    assert window.verify_files_action.defaultWidget().isEnabled()
+    (root / 'P' / 'project.json').write_text('{')
+    window.reload()
+    assert not any(control.isEnabled() for control in controls)
+    window.quick_check_action.trigger()
+    window.verify_files_action.trigger()
+    assert not window.running()
+    assert window.queue == []
+    _close(window)
+
+
+def test_project_check_survives_root_switch_without_duplicate_submission(qt, tmp_path):
+    first, second = tmp_path / 'first', tmp_path / 'second'
+    Project.ensure(first, 'P')
+    Project.ensure(second, 'R')
+    window = _window(first, 'P')
+    button, verify = window.check_project_button, window.verify_files_action
+    assert window.set_root(second) is True
+    _set_project(window, 'R')
+    assert window.run_buttons['status'] is button
+    assert window.check_project_button is button
+    assert window.verify_files_action is verify
+
+    button.click()
+    assert window.process.calls[0][1] == ['-m', 'multiphy.launch', '--root', str(second), 'status', 'R']
+    assert window.queue == []
+    window.process.ended.emit(0)
+    verify.trigger()
+    assert window.process.calls[0][1] == [
+        '-m', 'multiphy.launch', '--root', str(second), 'status', 'R', '--verify']
+    assert window.queue == []
+    window.process.ended.emit(0)
+    assert not window.running()
     _close(window)
 
 
@@ -461,7 +647,7 @@ def test_project_field_prefill_and_new_project(qt, tmp_path):
 def test_labels_hover_placeholders(qt, runs, tmp_path):
     window = _window(runs['root'], 'P')
     assert [window.tabs.tabText(i) for i in range(window.tabs.count())] == [
-        'Initialization', 'Extract features', 'Run matching', 'Export tracks', 'Status']
+        'Initialization', 'Extract features', 'Run matching', 'Export tracks']
     assert window.tabs.tabToolTip(0) == 'launch init'
     label = _label(window, 'init', 'uv_per_bit')
     assert label.text() == 'uv per bit'
@@ -475,8 +661,8 @@ def test_labels_hover_placeholders(qt, runs, tmp_path):
 
     root = _plugin_root(tmp_path / 'plugin_lab', 'tests.example_plugin')
     window = _window(root, plugins=load_plugins(root))
-    assert window.tabs.tabText(5) == 'hello'
-    assert window.tabs.tabToolTip(5) == 'launch hello'
+    assert window.tabs.tabText(4) == 'hello'
+    assert window.tabs.tabToolTip(4) == 'launch hello'
     _close(window)
 
 

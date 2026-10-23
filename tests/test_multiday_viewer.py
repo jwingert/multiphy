@@ -261,7 +261,7 @@ def test_reject_shows_singletons(qt, tracked_run, clean_curation):
     panel.reject()
     rows = _rows(panel)
     assert track_id not in rows
-    assert all(rows[cluster_id([m])] == 'unmatched' for m in track['members'])
+    assert all(rows[cluster_id([m])] == 'unreviewed' for m in track['members'])
     shown = len(rows)
     panel.hide_done.setChecked(False)
     rows = _rows(panel)
@@ -285,11 +285,12 @@ def test_verdict_appends_history_row(qt, tracked_run, clean_curation, theme_env)
     import csv
     from PySide6.QtTest import QTest
     window = open_run(tracked_run)
+    window.pair_review_action.setChecked(True)
     window.show()
     window.activateWindow()
     QTest.qWaitForWindowActive(window, 2000)
     assert window.state.row is not None
-    QTest.keyClick(window, QtCore.Qt.Key_E)
+    QTest.keyClick(window, QtCore.Qt.Key_E, QtCore.Qt.AltModifier)
     history = clean_curation / 'runs' / tracked_run.name / 'history.csv'
     with open(history, newline='') as stream:
         rows = list(csv.DictReader(stream))
@@ -341,6 +342,7 @@ def test_failed_verdict_write_disables_controls(qt, tracked_run, clean_curation,
     import errno
     from multiphy import curation
     window = open_run(tracked_run)
+    window.pair_review_action.setChecked(True)
     assert window.state.row is not None
     assert all(b.isEnabled() for b in window.evidence.verdict_buttons)
 
@@ -422,6 +424,11 @@ def test_ctrl_z_undoes_and_ctrl_shift_z_redoes(qt, tracked_run, clean_curation, 
     QTest.keyClick(window, QtCore.Qt.Key_Z, QtCore.Qt.ControlModifier)
     assert _status_of(panel, track_id) == 'proposed'
     QTest.keyClick(window, QtCore.Qt.Key_Z, QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
+    # Windows QTest can leave the final modifier in QApplication's cached state
+    # after a multi-modifier shortcut; a real key release would clear it. Without
+    # this release, subsequent selectRow() calls inherit Shift and select nothing.
+    QTest.keyRelease(window, QtCore.Qt.Key_Shift, QtCore.Qt.NoModifier)
+    assert QtWidgets.QApplication.keyboardModifiers() == QtCore.Qt.NoModifier
     assert _status_of(panel, track_id) == 'accepted'
     history = clean_curation / 'runs' / tracked_run.name / 'history.csv'
     with open(history, newline='') as stream:

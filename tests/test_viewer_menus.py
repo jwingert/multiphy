@@ -2,7 +2,6 @@
 theme test makes lives under ``tmp_path`` (``theme_env``)."""
 from __future__ import annotations
 
-import os
 import typing
 from pathlib import Path
 
@@ -79,7 +78,8 @@ def test_menus_in_both_windows(qt, runs, theme_env):
     assert _texts(viewer.menuBar().actions()) == ['&View', '&Settings', '&Help']
     assert _texts(viewer.help_menu.actions()) == ['Launcher guide', 'Viewer guide', 'Keyboard shortcuts', '',
                                                   'About multiphy']
-    assert _texts(viewer.settings_menu.actions()) == ['&Theme', '&Unit colours']
+    assert _texts(viewer.settings_menu.actions()) == ['&Theme', '&Unit colours', '', 'Pair review (advanced)']
+    assert viewer.pair_review_action.isCheckable() and not viewer.pair_review_action.isChecked()
     launcher.close()
     viewer.close()
 
@@ -107,18 +107,14 @@ def test_theme_action_switches_all_windows(qt, runs, theme_env):
 def test_theme_failure_shown_in_status_bar(qt, theme_env, monkeypatch):
     tmp_path = theme_env
     viewer = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
-    ro = tmp_path / 'ro'
-    ro.mkdir(mode=0o500)
-    os.chmod(ro, 0o500)
-    try:
-        QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
-        viewer.theme_actions['light'].trigger()
-        assert viewer.statusBar().currentMessage() == f"theme not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-        assert display.theme_name() == 'light'
-    finally:
-        os.chmod(ro, 0o700)
-    monkeypatch.setattr(theme, '_assets', None)
-    monkeypatch.setenv('TMPDIR', str(tmp_path / 'missing'))
+    settings = _failed_settings(monkeypatch)
+    viewer.theme_actions['light'].trigger()
+    assert viewer.statusBar().currentMessage() == f'theme not saved · {settings.fileName()}'
+    assert display.theme_name() == 'light'
+
+    def fail_assets(_name):
+        raise OSError('theme assets: cannot create directory')
+    monkeypatch.setattr(theme, 'write_assets', fail_assets)
     viewer.theme_actions['dark'].trigger()
     assert viewer.statusBar().currentMessage().startswith('theme not switched · theme assets:')
     assert display.theme_name() == 'light'
@@ -168,19 +164,13 @@ def test_unit_palette_action_switches_all_windows(qt, runs, theme_env):
     viewer.close()
 
 
-def test_unit_palette_save_failure_tagged(qt, theme_env):
+def test_unit_palette_save_failure_tagged(qt, theme_env, monkeypatch):
     tmp_path = theme_env
     viewer = App(FAKE_MODE, layout_file=tmp_path / 'l.json')
-    ro = tmp_path / 'ro'
-    ro.mkdir(mode=0o500)
-    os.chmod(ro, 0o500)
-    try:
-        QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
-        viewer.unit_palette_actions['okabe'].trigger()
-        assert viewer.statusBar().currentMessage() == f"unit colours not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-        assert unit_palettes.palette_name() == 'okabe'
-    finally:
-        os.chmod(ro, 0o700)
+    settings = _failed_settings(monkeypatch)
+    viewer.unit_palette_actions['okabe'].trigger()
+    assert viewer.statusBar().currentMessage() == f'unit colours not saved · {settings.fileName()}'
+    assert unit_palettes.palette_name() == 'okabe'
     viewer.close()
 
 
@@ -323,9 +313,9 @@ def test_menus_signatures():
 
 
 # the default key of each action, in ACTIONS order
-DEFAULTS = {'up': 'W', 'down': 'S', 'left': 'A', 'right': 'D', 'track': 'F', 'clear': 'Esc', 'skip': 'X',
-            'accept': 'E', 'reject': 'R', 'unsure': 'U', 'merge': 'Q', 'accept_track': 'Shift+E',
-            'reject_track': 'Shift+R', 'unmatch': 'Shift+X', 'undo': 'Ctrl+Z', 'redo': 'Ctrl+Shift+Z'}
+DEFAULTS = {'up': 'W', 'down': 'S', 'left': 'A', 'right': 'D', 'track': 'F', 'clear': 'Esc',
+            'merge': 'Q', 'accept_track': 'E', 'reject_track': 'R', 'unmatch': 'X', 'skip': 'Shift+X',
+            'accept': 'Alt+E', 'reject': 'Alt+R', 'unsure': 'Alt+U', 'undo': 'Ctrl+Z', 'redo': 'Ctrl+Shift+Z'}
 
 
 def _refusal(action_id, key) -> str:
@@ -336,12 +326,38 @@ def _refusal(action_id, key) -> str:
 
 
 def test_bindings_default(qt, theme_env):
-    assert keys.bindings() == {'up': 'W', 'down': 'S', 'left': 'A', 'right': 'D', 'track': 'F', 'clear': 'Esc',
-                               'skip': 'X', 'accept': 'E', 'reject': 'R', 'unsure': 'U', 'merge': 'Q',
-                               'accept_track': 'Shift+E', 'reject_track': 'Shift+R', 'unmatch': 'Shift+X',
-                               'undo': 'Ctrl+Z', 'redo': 'Ctrl+Shift+Z'}
-    assert list(keys.bindings()) == ['up', 'down', 'left', 'right', 'track', 'clear', 'skip', 'accept', 'reject',
-                                     'unsure', 'merge', 'accept_track', 'reject_track', 'unmatch', 'undo', 'redo']
+    assert keys.bindings() == DEFAULTS
+    assert list(keys.bindings()) == list(DEFAULTS)
+
+
+def test_legacy_defaults_follow_track_defaults_without_rewriting_settings(qt, theme_env):
+    settings = theme.settings()
+    for action, key in keys.LEGACY_DEFAULTS.items():
+        settings.setValue('shortcuts/' + action, key)
+    settings.sync()
+    path = Path(settings.fileName())
+    before = path.read_bytes()
+    assert keys.bindings() == DEFAULTS
+    assert path.read_bytes() == before
+
+
+def test_custom_bindings_take_priority_over_new_defaults(qt, theme_env):
+    settings = theme.settings()
+    settings.setValue('shortcuts/accept', 'X')  # custom pair action overlaps the new unlink default
+    settings.setValue('shortcuts/merge', 'L')
+    settings.sync()
+    bound = keys.bindings()
+    assert bound['accept'] == 'X'
+    assert bound['unmatch'] == ''
+    assert bound['merge'] == 'L'
+    assert bound['accept_track'] == 'E'
+
+
+def test_deliberately_saved_former_default_is_preserved(qt, theme_env):
+    keys.save_binding('accept_track', '')
+    keys.save_binding('accept', 'E')
+    assert keys.bindings()['accept'] == 'E'
+    assert keys.bindings()['accept_track'] == ''
 
 
 def test_save_binding_round_trips(qt, theme_env):
@@ -355,7 +371,7 @@ def test_save_binding_round_trips(qt, theme_env):
 
 def test_save_binding_refuses_clash_and_bad_keys(qt, theme_env):
     spy = QSignalSpy(keys.notifier().changed)
-    assert _refusal('merge', 'shift+e') == 'Shift+E · taken by accept track'
+    assert _refusal('merge', 'e') == 'E · taken by accept track'
     assert _refusal('merge', 'Ctrl+X, Ctrl+C') == 'Ctrl+X, Ctrl+C · not one key'
     assert _refusal('nope', 'W') == 'nope · no such action'
     assert _refusal('right', 76) == '76 · not one key'
@@ -379,20 +395,21 @@ def test_reset_bindings(qt, theme_env):
     assert keys.bindings() == DEFAULTS
 
 
-def test_shortcuts_save_failure_tagged(qt, theme_env):
-    ro = theme_env / 'ro'
-    (ro / 'multiphy').mkdir(parents=True)
-    # one saved key, so the reset has a line to remove: a reset with nothing saved writes nothing
-    (ro / 'multiphy' / 'multiphy.ini').write_text('[shortcuts]\nmerge=Q\n')
-    os.chmod(ro / 'multiphy', 0o500)
-    os.chmod(ro, 0o500)
-    try:
-        QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
-        assert keys.save_binding('right', 'L') == f"shortcuts not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-        assert keys.reset_bindings() == f"shortcuts not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-    finally:
-        os.chmod(ro, 0o700)
-        os.chmod(ro / 'multiphy', 0o700)
+def _failed_settings(monkeypatch):
+    """Simulate a settings storage failure without relying on POSIX directory permissions."""
+    settings = theme.settings()
+    monkeypatch.setattr(settings, 'status', lambda: QtCore.QSettings.AccessError)
+    monkeypatch.setattr(settings, 'setValue', lambda *_: None)
+    monkeypatch.setattr(settings, 'remove', lambda *_: None)
+    monkeypatch.setattr(settings, 'sync', lambda: None)
+    monkeypatch.setattr(theme, 'settings', lambda: settings)
+    return settings
+
+
+def test_shortcuts_save_failure_tagged(qt, theme_env, monkeypatch):
+    settings = _failed_settings(monkeypatch)
+    assert keys.save_binding('right', 'L') == f'shortcuts not saved · {settings.fileName()}'
+    assert keys.reset_bindings() == f'shortcuts not saved · {settings.fileName()}'
 
 
 def test_keys_signatures():
@@ -442,12 +459,14 @@ def test_shortcuts_window_lists_actions(qt, theme_env):
     assert w.windowTitle() == 'Keyboard shortcuts'
     assert [w.table.horizontalHeaderItem(c).text() for c in range(w.table.columnCount())] == ['action', 'key']
     assert [w.table.item(r, 0).text() for r in range(w.table.rowCount())] == [
-        'up', 'down', 'previous day', 'next day', 'string track', 'clear string', 'drop day', 'accept pair',
-        'reject pair', 'unsure pair', 'merge', 'accept track', 'reject track', 'unmatch unit', 'undo', 'redo']
+        'up', 'down', 'previous day', 'next day', 'string track', 'clear string', 'match selected tracks',
+        'accept track', 'reject track', 'unmatch unit', 'drop day from comparison', 'pair same (advanced)',
+        'pair different (advanced)', 'pair unsure (advanced)', 'undo', 'redo']
     assert [w.edits[a[0]].keySequence().toString() for a in keys.ACTIONS] == [
-        'W', 'S', 'A', 'D', 'F', 'Esc', 'X', 'E', 'R', 'U', 'Q', 'Shift+E', 'Shift+R', 'Shift+X', 'Ctrl+Z',
+        'W', 'S', 'A', 'D', 'F', 'Esc', 'Q', 'E', 'R', 'X', 'Shift+X', 'Alt+E', 'Alt+R', 'Alt+U', 'Ctrl+Z',
         'Ctrl+Shift+Z']
-    assert w.table.item(10, 0).toolTip() == 'joins the tracks of the selected units'
+    assert 'whole tracks' in w.table.item(6, 0).toolTip()
+    assert 'does not approve a track' in w.table.item(11, 0).toolTip()
     # one key per editor, a clear button and no placeholder once painted; nothing in the table selects
     QtWidgets.QApplication.processEvents()
     edit = w.edits['merge']
@@ -467,13 +486,13 @@ def test_shortcuts_window_edits_and_refuses(qt, theme_env):
     assert keys.bindings()['right'] == 'L'
     assert viewer.shortcuts['right'].key().toString() == 'L'
     assert w.status.text() == ''
-    _record(w, 'merge', QtCore.Qt.Key_E, QtCore.Qt.ShiftModifier)
-    assert w.status.text() == 'Shift+E · taken by accept track'
+    _record(w, 'merge', QtCore.Qt.Key_E)
+    assert w.status.text() == 'E · taken by accept track'
     assert w.status.property('tone') == 'reject'
     assert w.edits['merge'].keySequence().toString() == 'Q'
     assert keys.bindings()['merge'] == 'Q'
-    assert keys.bindings()['accept_track'] == 'Shift+E'
-    assert w.edits['accept_track'].keySequence().toString() == 'Shift+E'
+    assert keys.bindings()['accept_track'] == 'E'
+    assert w.edits['accept_track'].keySequence().toString() == 'E'
     # the clear button
     QTest.mouseClick(w.edits['up'].findChild(QtWidgets.QLineEdit).findChild(QtWidgets.QToolButton),
                      QtCore.Qt.LeftButton)
@@ -493,26 +512,20 @@ def test_shortcuts_window_saves_on_finish(qt, theme_env):
     assert keys.bindings()['merge'] == 'Q'
     assert w.edits['merge'].keySequence().toString() == 'Q'
     assert w.status.text() == ''
-    _shift_then(w, 'merge', QtCore.Qt.Key_E)
+    _shift_then(w, 'merge', QtCore.Qt.Key_X)
     assert keys.bindings()['merge'] == 'Q'
     assert w.edits['merge'].keySequence().toString() == 'Q'
-    assert w.status.text() == 'Shift+E · taken by accept track'
+    assert w.status.text() == 'Shift+X · taken by drop day from comparison'
     _shift_then(w, 'right', QtCore.Qt.Key_L)
     assert keys.bindings()['right'] == 'Shift+L'
     assert w.status.text() == ''
     w.close()
 
 
-def test_shortcuts_window_save_failure_tagged(qt, theme_env):
+def test_shortcuts_window_save_failure_tagged(qt, theme_env, monkeypatch):
     w = menus.open_shortcuts()
-    ro = theme_env / 'ro'
-    ro.mkdir(mode=0o500)
-    os.chmod(ro, 0o500)
-    try:
-        QtCore.QSettings.setPath(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope, str(ro))
-        _record(w, 'right', QtCore.Qt.Key_K)
-        assert w.status.text() == f"shortcuts not saved · {ro / 'multiphy' / 'multiphy.ini'}"
-        assert w.status.property('tone') == 'reject'
-    finally:
-        os.chmod(ro, 0o700)
+    settings = _failed_settings(monkeypatch)
+    _record(w, 'right', QtCore.Qt.Key_K)
+    assert w.status.text() == f'shortcuts not saved · {settings.fileName()}'
+    assert w.status.property('tone') == 'reject'
     w.close()

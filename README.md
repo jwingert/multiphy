@@ -114,8 +114,8 @@ has no baseline windows, and no event-response stream is fitted. `launch run` pr
 fallback as a `warning · <reason>` line, and the run saves the reasons as `run_evidence`
 in its provenance.
 
-Split partitions the selected members from the remainder. Drop detaches a
-member into an unmatched singleton. Merge combines selected groups, including
+Split partitions the selected members from the remainder. Unmatch unit detaches a
+member into an unmatched singleton. Match combines selected groups, including
 unmatched units. Tables and plots refresh together after edits. Each across-days
 run has its own history, `curation/runs/<run>/history.csv`, so switching runs
 does not touch another run's curation.
@@ -233,7 +233,28 @@ the science is testable without a display and the viewer is replaceable.
 python -m multiphy.viewer --run DIR
 ```
 
-Keyboard (defaults; `Help` ▸ `Keyboard shortcuts` changes them): `W` / `S` up / down in the active day, `A` / `D` previous / next day, `F` string the picked unit's track, `Esc` clear the string, `X` drop the active day's unit; `E` accept, `R` reject, `U` unsure (a pair verdict, then a step down); `Q` merge, `Shift+E` / `Shift+R` accept / reject the picked unit's track, `Shift+X` unmatch the active unit; `Ctrl+Z` / `Ctrl+Shift+Z` undo / redo.
+To build a track, click one unit and Ctrl-click its counterparts on other days, press `Q` to
+Match, then `E` to accept the picked unit's track for export. Selection alone changes no matches.
+The day browser shows the original backend assignment in `b` and the current grouping in `t`.
+Both use `m` for matched and `u` for unmatched: `b` describes the original result, while `t`
+describes whether the unit is currently matched to another unit. Members of the picked track
+have cyan cell values while matched and unreviewed, and green values once accepted; an accepted
+singleton stays `u` in green. Comparison selections use a background highlight. Hover shows
+the full track IDs and review decision.
+
+Keyboard (defaults; `Help` ▸ `Keyboard shortcuts` changes them): `W` / `S` up / down in the active day,
+`A` / `D` previous / next day, `F` show the picked unit's track, `Esc` clear the comparison,
+`Shift+X` drop the active day's unit from the comparison; `Q` match selected tracks, `E` accept
+the picked track, `R` reject and dissolve the picked track, `X` unmatch the active unit;
+`Ctrl+Z` / `Ctrl+Shift+Z` undo / redo. Editing a track's membership resets its review decision.
+Match joins the whole tracks of selected units, including members outside the comparison.
+Accepting an unmatched unit approves a singleton; it does not match the comparison selection.
+In the Tracked units panel, these keys use its selected track rows or active member, matching
+the panel's buttons; in the day browser they use the picked track and active day unit.
+
+`Settings` ▸ `Pair review (advanced)` exposes separate pair annotations and their consistency
+panel. `Alt+E` / `Alt+R` / `Alt+U` annotate the displayed pair as same / different / unsure and
+advance to the next candidate. These annotations never change track membership or export eligibility.
 
 An across-days run's curation is `<project>/curation/runs/<run>/history.csv`,
 one line per curator action, undo and redo included; the file is replaced whole

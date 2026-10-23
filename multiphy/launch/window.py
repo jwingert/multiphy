@@ -46,9 +46,9 @@ ACROSS_DAYS = 'across days'
 TITLE = 'Cross-day unit match launcher'
 _ENTRY_ROLE = QtCore.Qt.UserRole
 TAB_LABELS = {'init': 'Initialization', 'extract': 'Extract features', 'run': 'Run matching',
-              'export': 'Export tracks', 'status': 'Status'}
+              'export': 'Export tracks'}
 REPO = Path(__file__).resolve().parents[2]
-_BUILTIN_TABS = ('init', 'extract', 'run', 'export', 'status')
+_BUILTIN_TABS = ('init', 'extract', 'run', 'export')
 _NEEDS_PROJECT = ('extract', 'run', 'status', 'export')  # disabled while project_ok is False (D38)
 _UNSET = object()
 KILL_AFTER_MS = 10000  # read each time the kill timer starts
@@ -287,6 +287,68 @@ class _ElidedButton(QtWidgets.QPushButton):
         return QtCore.QSize(hint.width(), max(hint.height(), spun.height()))
 
 
+class _CheckOptionButton(QtWidgets.QPushButton):
+    """Size a menu row from its labels rather than the button's empty text."""
+
+    def sizeHint(self) -> QtCore.QSize:
+        layout = self.layout()
+        return layout.sizeHint() if layout is not None else super().sizeHint()
+
+
+class _ProjectCheckMenu(QtWidgets.QMenu):
+    """Menu actions with visible explanations and native menu keyboard navigation."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName('project_checks')
+        self.setToolTipsVisible(True)
+        self.hovered.connect(self._highlight)
+        self.aboutToHide.connect(lambda: self._highlight(None))
+
+    def add_option(self, title: str, description: str) -> QtWidgets.QWidgetAction:
+        action = QtWidgets.QWidgetAction(self)
+        action.setText(title)
+        button = _CheckOptionButton()
+        button.setFocusPolicy(QtCore.Qt.NoFocus)  # QMenu owns arrow keys, Enter and Escape.
+        button.setMouseTracking(True)
+        button.installEventFilter(self)
+        button.setAccessibleName(title)
+        button.setAccessibleDescription(description.replace('\n', ' '))
+        layout = QtWidgets.QVBoxLayout(button)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(3)
+        layout.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
+        for text, role in ((title, 'check_title'), (description, 'check_detail')):
+            label = QtWidgets.QLabel(text)
+            label.setProperty('role', role)
+            label.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+            layout.addWidget(label)
+        button.clicked.connect(lambda _checked=False: action.trigger())
+        action.setDefaultWidget(button)
+        action.changed.connect(lambda: button.setToolTip(action.toolTip()))
+        self.addAction(action)
+        return action
+
+    def eventFilter(self, widget, event) -> bool:
+        if event.type() in (QtCore.QEvent.Enter, QtCore.QEvent.MouseMove, QtCore.QEvent.Leave):
+            for action in self.actions():
+                if isinstance(action, QtWidgets.QWidgetAction) and action.defaultWidget() is widget:
+                    active = action if action.isEnabled() and event.type() != QtCore.QEvent.Leave else None
+                    self.setActiveAction(active)
+                    self._highlight(active)
+                    break
+        return super().eventFilter(widget, event)
+
+    def _highlight(self, active) -> None:
+        for action in self.actions():
+            if isinstance(action, QtWidgets.QWidgetAction):
+                button = action.defaultWidget()
+                button.setProperty('menu_active', action is active)
+                button.style().unpolish(button)
+                button.style().polish(button)
+                button.update()
+
+
 def _space_form(form: QtWidgets.QFormLayout) -> None:
     """``FORM_ROWS`` px between ``form``'s rows; ``FORM_ROWS + 4`` px between a label and its field."""
     form.setVerticalSpacing(FORM_ROWS)
@@ -399,7 +461,11 @@ class LauncherWindow(QtWidgets.QMainWindow):
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(SPACING)
         column.addWidget(self.root_label)
-        column.addWidget(self.project_combo)
+        project_row = QtWidgets.QHBoxLayout()
+        project_row.setSpacing(SPACING)
+        project_row.addWidget(self.project_combo, 1)
+        project_row.addWidget(self._build_project_check())
+        column.addLayout(project_row)
         column.addWidget(QtWidgets.QLabel('Days'))
         column.addWidget(self.days_list, 1)
         column.addWidget(QtWidgets.QLabel('Runs'))
@@ -436,6 +502,44 @@ class LauncherWindow(QtWidgets.QMainWindow):
         body.setContentsMargins(EDGE, EDGE, EDGE, EDGE)
         body.setHandleWidth(GAP)
         self.setCentralWidget(body)
+
+    def _build_project_check(self) -> QtWidgets.QToolButton:
+        """Project checks share one control; the full file read is an explicit menu choice."""
+        self.check_project_button = QtWidgets.QToolButton()
+        self.check_project_button.setObjectName('project_check')
+        self.check_project_button.setText('Check')
+        self.check_project_button.setAccessibleName('Check project')
+        self.check_project_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Ignored)
+        self.check_project_button.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
+        self.check_project_button.setToolTip(
+            'Quick check of source files, extracted feature status and run counts for every day. '
+            'Results appear in the log. Use the arrow to verify file contents.')
+        self.check_project_button.clicked.connect(lambda _checked=False: self._check_project())
+        menu = _ProjectCheckMenu(self.check_project_button)
+        self.quick_check_action = menu.add_option(
+            'Quick status check',
+            'Check file availability, feature status and runs.\n'
+            'Uses file sizes and timestamps; results in the log.')
+        self.quick_check_action.setToolTip(
+            'Check missing or changed source files by size and modification time, '
+            'feature manifests and run counts. Results appear in the log.')
+        self.quick_check_action.triggered.connect(lambda _checked=False: self._check_project())
+        menu.addSeparator()
+        self.verify_files_action = menu.add_option(
+            'Verify file contents',
+            'Read source files and compare checksums.\n'
+            'Includes raw recordings; large files take longer.')
+        self.verify_files_action.setToolTip(
+            'Read all recorded source files, including raw recordings, and compare checksums. '
+            'Save the first checksum for a raw file that has none. '
+            'Large recordings can take time. Results appear in the log.')
+        self.verify_files_action.triggered.connect(lambda _checked=False: self._check_project(verify=True))
+        self.check_project_button.setMenu(menu)
+        return self.check_project_button
+
+    def _check_project(self, *, verify: bool = False) -> None:
+        if self._ready('status'):
+            self._submit_command('status', {'verify': verify})
 
     def _build_close_bar(self) -> QtWidgets.QFrame:
         """``close_bar``: the close confirmation, hidden until a close arrives while a command runs (D18)."""
@@ -704,7 +808,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
     # --- tabs -----------------------------------------------------------------------------------
     def _build_tabs(self) -> None:
-        """One tab per command: the built-ins, then each plugin command in its order (D10, D45, D46)."""
+        """Command forms, then plugin tabs; status stays in the project controls across root changes."""
         self._building = True
         while self.tabs.count():
             page = self.tabs.widget(0)
@@ -716,6 +820,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         for name in names:
             index = self.tabs.addTab(self._build_tab(name), TAB_LABELS.get(name, name))
             self.tabs.setTabToolTip(index, f'launch {name}')
+        self.run_buttons['status'] = self.check_project_button
         self._prefilled = _UNSET
         self._building = False
 
@@ -1054,6 +1159,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
             return
         for name, button in self.run_buttons.items():
             button.setEnabled(not self._close_after and self._ready(name))
+        for action in (self.quick_check_action, self.verify_files_action):
+            action.setEnabled(self.check_project_button.isEnabled())
 
     # --- running --------------------------------------------------------------------------------
     def running(self) -> bool:
@@ -1067,9 +1174,12 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def run_command(self, command: str) -> None:
         """Run ``command`` from its form as a CLI child; while one runs, it waits in ``queue`` (D8, D40).
         After the close bar's ``Yes`` nothing is queued or started (D79)."""
+        self._submit_command(command, self._values(command))
+
+    def _submit_command(self, command: str, values: dict) -> None:
+        """Freeze form or project-check options into the same queued CLI job."""
         if self._close_after:
             return
-        values = self._values(command)
         shown = self._shown()
         try:
             argv = command_argv(command, self._fields(command), values, project=shown,

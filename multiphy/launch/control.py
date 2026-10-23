@@ -16,6 +16,7 @@ import threading
 
 STDIN_CONTROL_ENV = 'MULTIPHY_LAUNCH_CONTROL_STDIN'
 INTERRUPT = b'\x03'
+_stdin_control_claimed = False
 
 
 def start_control_reader() -> None:
@@ -26,9 +27,12 @@ def start_control_reader() -> None:
     the flag prevents commands' subprocesses from inheriting this protocol.
     Call inside the CLI's KeyboardInterrupt handler's protected region.
     """
+    global _stdin_control_claimed
     if os.environ.pop(STDIN_CONTROL_ENV, None) != '1':
         return
     fd = os.dup(sys.stdin.fileno())
+    # The pipe stays private even after EOF or cancellation stops its reader.
+    _stdin_control_claimed = True
 
     def receive() -> None:
         try:
@@ -84,12 +88,18 @@ def run_captured(command: list, *, cwd, env: dict) -> subprocess.CompletedProces
     KeyboardInterrupt to the launcher. This does not promise graceful backend
     cleanup or terminate arbitrary grandchildren created by a backend/plugin.
     Both pipe draining and reaping during exceptional cleanup have deadlines.
+    An opted-in GUI's stdin is a private cancellation channel, not backend input;
+    ordinary CLI backends keep inheriting stdin.
     """
     process = None
     try:
         with _defer_sigint_during_spawn():
+            # An inherited pipe with a pending reader can hang Windows Python
+            # startup (CPython #78961). Never pass our private channel to a backend.
+            stdin = subprocess.DEVNULL if _stdin_control_claimed else None
             process = subprocess.Popen(command, cwd=cwd, env=dict(env, PYTHONIOENCODING='utf-8'),
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+                                       stdin=stdin, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       encoding='utf-8')
         while True:
             try:
                 out, err = process.communicate(timeout=0.1)

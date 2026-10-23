@@ -523,6 +523,55 @@ def test_cancellable_backend_captures_output(tmp_path, exit_code):
     assert (proc.returncode, proc.stdout, proc.stderr) == (exit_code, 'café\n', '← error\n')
 
 
+@pytest.mark.parametrize('control', (False, True))
+def test_cancellable_backend_stdin_isolates_only_private_control(tmp_path, control):
+    """Private control stays open in the launcher; ordinary backend input is inherited."""
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8')
+    if control:
+        env['MULTIPHY_LAUNCH_CONTROL_STDIN'] = '1'
+    else:
+        env.pop('MULTIPHY_LAUNCH_CONTROL_STDIN', None)
+    script = f'''
+import os
+import sys
+from multiphy.launch import control
+control.start_control_reader()
+control.start_control_reader()  # consuming the flag must not forget channel ownership
+original = control.subprocess.Popen
+def checked(*args, **kwargs):
+    # Fail before spawning on a regression, so a stuck stdin reader cannot orphan
+    # the test's backend when the outer launcher must be killed after its deadline.
+    expected = control.subprocess.DEVNULL if {control!r} else None
+    assert kwargs.get('stdin') == expected, 'backend inherited private control stdin'
+    return original(*args, **kwargs)
+control.subprocess.Popen = checked
+result = control.run_captured(
+    [sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'],
+    cwd={str(tmp_path)!r}, env=dict(os.environ))
+assert result.returncode == 0, result.stderr
+assert result.stderr == ''
+print(result.stdout, end='')
+'''
+    proc = subprocess.Popen([sys.executable, '-c', script], cwd=REPO, env=env,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            encoding='utf-8')
+    try:
+        if not control:
+            proc.stdin.write('ordinary input')
+            proc.stdin.close()
+        # The control writer remains open until AFTER successful backend/launcher exit.
+        assert proc.wait(timeout=30) == 0, proc.stderr.read()
+        assert proc.stdout.read() == ("''\n" if control else "'ordinary input'\n")
+        assert proc.stderr.read() == ''
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+        proc.stdin.close()
+        proc.stdout.close()
+        proc.stderr.close()
+
+
 def test_cancellable_backend_cleanup_is_bounded(monkeypatch):
     from multiphy.launch import control
 

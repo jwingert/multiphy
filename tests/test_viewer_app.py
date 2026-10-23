@@ -4,9 +4,10 @@ import os
 import re
 from pathlib import Path
 
+import matplotlib
 import pandas as pd
 import pytest
-from PySide6 import QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from multiphy.viewer import display
 from multiphy.viewer.app import App
@@ -633,23 +634,51 @@ def _wholly_shown(days):
 def _drag_browse(qt, window, width):
     """Drag the Browse dock to ``width``, as a user drags its edge."""
     browse = window._docks['browse']
-    requested = width
-    sizes = []
-    for _ in range(40):
-        window.resizeDocks([browse], [requested], QtCore.Qt.Horizontal)
-        window.layout().activate()
-        # Native layout work can still change the dock after activate() returns.
-        # Measure each correction only after those queued events have settled.
-        _settle(qt)
-        settled = browse.width()
-        sizes.append((requested, settled))
-        if settled == width:
-            return
-        # Qt distributes dock sizes using native layout/frame metrics; correct the
-        # measured outer-width error instead of assuming the API request is exact.
-        requested += width - settled
-    pytest.fail(f'Browse dock did not settle at {width}; requested/settled widths: {sizes}; '
-                f'minimum widths: {browse.minimumWidth()}, {browse.minimumSizeHint().width()}')
+    separator = window.style().pixelMetric(QtWidgets.QStyle.PM_DockWidgetSeparatorExtent, None, window)
+    start = QtCore.QPoint(browse.geometry().right() + 1 + separator // 2,
+                         browse.geometry().center().y())
+    end = start + QtCore.QPoint(width - browse.width(), 0)
+    # QWindow events preserve the pressed-button state through the mouse move.
+    # A real splitter drag also avoids resizeDocks' proportional redistribution.
+    handle = window.windowHandle()
+    QTest.mousePress(handle, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, start)
+    try:
+        QTest.mouseMove(handle, end)
+    finally:
+        QTest.mouseRelease(handle, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier, end)
+    _settle(qt)
+
+
+@pytest.fixture(params=('current', 'application-font', 'application-theme'))
+def browse_style(qt, tmp_path, monkeypatch, request):
+    """Exercise the entrypoint's font/theme as well as the caller's current style."""
+    sheet, font, palette = qt.styleSheet(), QtGui.QFont(qt.font()), QtGui.QPalette(qt.palette())
+    active_theme, plot_settings = display.theme_name(), matplotlib.rcParams.copy()
+    # A stylesheet wraps the base QStyle. Save its name, not the owned QStyle
+    # instance, because apply_theme replaces and deletes the old style.
+    qt.setStyleSheet('')
+    style = qt.style().name()
+    qt.setStyleSheet(sheet)
+    temporary_dir = QtCore.QTemporaryDir
+    monkeypatch.setattr(QtCore, 'QTemporaryDir', lambda *args: temporary_dir(str(tmp_path / 'theme-XXXXXX')))
+    monkeypatch.setattr(theme, '_assets', None)
+    try:
+        if request.param != 'current':
+            theme.apply_theme(qt, 'graphite')
+            if request.param == 'application-font':
+                # Reproduce the full-suite state after a theme test's teardown:
+                # Fusion and the application's installed font, without its sheet.
+                qt.setStyleSheet('')
+                qt.setPalette(qt.style().standardPalette())
+        yield request.param
+    finally:
+        qt.setStyleSheet('')
+        qt.setStyle(style)
+        qt.setFont(font)
+        qt.setPalette(palette)
+        qt.setStyleSheet(sheet)
+        display.set_theme(active_theme)
+        matplotlib.rcParams.update(plot_settings)
 
 
 def _fitted_window(qt, tmp_path, n_days):
@@ -681,14 +710,32 @@ def test_browse_fits_up_to_three_days_then_scrolls(qt, tmp_path):
     window.close()
 
 
-def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path):
+def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path, browse_style, request):
     window = _fitted_window(qt, tmp_path, 3)
+    request.addfinalizer(window.close)
     days = window.days
     narrowest = days.same_table.width()
-    _drag_browse(qt, window, 560)
-    _settle(qt)
+    assert _wholly_shown(days) == ['D00a', 'D01a', 'D02a']
+    assert not days.scroll.horizontalScrollBar().isVisible()
     browse = window._docks['browse']
-    assert browse.width() == 560, (browse.width(), browse.minimumWidth(), browse.minimumSizeHint().width())
+    tab_group = [browse, *window.tabifiedDockWidgets(browse)]
+    minima = {dock.objectName(): (dock.minimumWidth(), dock.minimumSizeHint().width()) for dock in tab_group}
+    minimum = max(max(widths) for widths in minima.values())
+    fit_threshold = browse.width() - days.scroll.viewport().width() + days.fit_width()
+    diagnostics = {'style': browse_style, 'font': qt.font().toString(), 'tabbed_minima': minima,
+                   'fit_threshold': fit_threshold}
+    # A fixed 560px request can be below the tabbed Tracked units dock's native
+    # minimum. Require a real interval between that group minimum and three-day
+    # fitting, then drag to its midpoint without overriding any size constraint.
+    assert minimum < fit_threshold, diagnostics
+    narrow_width = (minimum + fit_threshold) // 2
+    diagnostics.update(initial_width=browse.width(), requested_width=narrow_width)
+    assert narrow_width < browse.width(), diagnostics
+    _drag_browse(qt, window, narrow_width)
+    _settle(qt)
+    diagnostics.update(settled_width=browse.width())
+    print(diagnostics)
+    assert browse.width() == narrow_width, diagnostics
     assert days.scroll.horizontalScrollBar().isVisible()
     assert len(_wholly_shown(days)) < 3
     assert [t.width() for t in days.tables.values()] == [narrowest] * 3
@@ -704,7 +751,6 @@ def test_narrower_browse_scrolls_and_reset_fits_again(qt, tmp_path):
     assert _wholly_shown(days) == ['D00a', 'D01a', 'D02a']
     assert not days.scroll.horizontalScrollBar().isVisible()
     assert [t.width() for t in days.tables.values()] == [narrowest] * 3
-    window.close()
 
 
 def _activate(window):

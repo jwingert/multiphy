@@ -8,13 +8,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python: ['3.9', '3.12']
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: '0'
       PYTHONDONTWRITEBYTECODE: '1'
-      PYTHONPATH: '.'
       QT_QPA_PLATFORM: offscreen
+      UV_MANAGED_PYTHON: '1'
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux Qt runtime libraries
@@ -22,10 +21,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libegl1 libgl1 libxkbcommon0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
       - uses: astral-sh/setup-uv@v6
-      - run: uv venv --python python
-      - run: uv pip install -e ".[gui,test]"
+        with:
+          version: '0.13.4'
+      - name: Install pinned Python
+        run: uv python install
+      - name: Install locked core, GUI and test environment
+        run: uv sync --locked --extra gui --extra test
+      - name: Record the environment
+        run: |
+          uv --version
+          uv run --no-sync python --version
+          uv pip freeze
       - run: uv run --no-sync python -B -m pytest tests -q -ra --durations=10 -p no:cacheprovider

@@ -12,17 +12,31 @@ within-session temporal splits does not by itself establish reinsertion accuracy
 
 ## Install
 
-Python 3.9 or newer. The core needs numpy, pandas, scipy and matplotlib; the
-launcher window and the viewer also need PySide6 (the `gui` extra).
+The supported core/GUI/test baseline is **Python 3.12**, with **CPython 3.12.15**
+as the pinned reference patch and **uv 0.13.4** as the environment tool. The core
+needs numpy, pandas, scipy and matplotlib; the launcher window and viewer also
+need PySide6 (the `gui` extra). Install that uv version using the
+[official uv installation instructions](https://docs.astral.sh/uv/getting-started/installation/),
+then use the committed cross-platform lockfile:
 
 ```bash
 git clone https://github.com/jwingert/multiphy.git
 cd multiphy
-python -m pip install -e ".[gui]"  # add ,test for pytest: ".[gui,test]"
+uv python install
+uv sync --locked --extra gui
 ```
 
-The same Python install command works on Linux and Windows. On minimal
-Debian/Ubuntu installations, install Qt's native graphics libraries as well:
+uv reads `.python-version` and installs the same managed CPython patch on Linux
+and Windows, including Windows builds supplied by Astral's
+[python-build-standalone](https://docs.astral.sh/uv/guides/install-python/).
+Run commands through `uv run --no-sync python ...`, or activate `.venv` before
+using the `python ...` examples below (`source .venv/bin/activate` on Linux;
+`.\.venv\Scripts\Activate.ps1` in Windows PowerShell). `--no-sync` retains the
+extras installed above. An unpinned `pip install -e ".[gui]"` still works on
+Python 3.12, but does not reproduce this tested dependency set.
+
+On minimal Debian/Ubuntu installations, install Qt's native graphics libraries
+as well:
 
 ```bash
 sudo apt-get update
@@ -31,8 +45,36 @@ sudo apt-get install --no-install-recommends -y libegl1 libgl1 libxkbcommon0
 
 Headless Linux tests use `QT_QPA_PLATFORM=offscreen`, but still need these shared
 libraries. Leave that variable unset when using the interactive launcher/viewer.
-CI runs the full suite, including GUI and interprocess workflow-lock tests, on
-both Ubuntu and Windows with Python 3.9 and 3.12.
+CI installs the locked core, GUI and test extras and runs the full suite,
+including GUI and interprocess workflow-lock tests, on both Ubuntu and Windows.
+The packaging test also builds and installs a wheel offline into a temporary
+environment, checks its resource files and installed CLI, and verifies imports
+come from that wheel rather than the repository or an inherited `PYTHONPATH`.
+The lockfile pins all transitive dependencies; the reference stack includes
+numpy 2.5.4, pandas 3.1.0, scipy 1.18.1, matplotlib 3.11.2, PySide6 6.12.0 and
+pytest 9.1.1. CI prints the actual Python, uv and installed package versions.
+
+### Support policy and refreshing the baseline
+
+Python 3.9 reached [end of life in October 2025](https://peps.python.org/pep-0596/).
+The previous `>=3.9` claim and 3.9 CI lane have intentionally been replaced with
+`>=3.12,<3.13`: neither older minors nor newer minors are currently supported.
+Keeping Windows coverage is part of this policy; reducing Python minors is not
+a substitute for fixing Windows failures. macOS is not currently covered by CI.
+
+The exact patch and dependency lock are a reproducible reference, not a promise
+to freeze security updates indefinitely. To refresh them, choose and review the
+new Python patch in `.python-version`, keep uv's version in `pyproject.toml` and
+CI aligned, review the build-tool constraints, then run `uv lock --upgrade` and
+verify a fresh environment on **both** CI operating systems before publishing
+the new baseline. To reproduce the test environment and run the suite:
+
+```bash
+uv sync --locked --extra gui --extra test
+uv run --no-sync python -B -m pytest tests -q -ra --durations=10 -p no:cacheprovider
+```
+
+Set `QT_QPA_PLATFORM=offscreen` when running that command without a display.
 
 ## Optional backends
 
@@ -47,12 +89,16 @@ interpreter can run. A run picks the interpreter for an optional backend in this
 
 With none of these, the launcher greys the backend out and shows the reason on hover.
 
+The lockfile and Linux/Windows core/GUI tests do **not** establish compatibility
+for optional upstream inference or model training. Those dependencies,
+checkpoints and base environment must be provisioned and smoke-tested separately.
+
 **The shared environment.** One per lab root, built once; everyone who uses the root can then
 run all three. It holds the UnitMatch, DeepUnitMatch and pyDANT sources at pinned revisions,
 plus hdbscan 0.8.42 and mat73 0.65, on top of a base Python. Each run passes the caller's own
 multiphy to it. The base is a conda environment (or a system Python) in which multiphy is
 installed with `gui` and which also has torch, scikit-learn, h5py, tqdm, joblib and networkx.
-It cannot be a venv: the environment is a venv with system site packages, and it does not see
+It cannot be a venv (including the locked `.venv`): the environment is a venv with system site packages, and it does not see
 packages installed in another venv. With the base Python:
 
 ```bash
@@ -63,7 +109,14 @@ git -C pyDANT checkout 741240511e6a4ed9315b2c80d71ab5cfe4c588eb
 python -m pip install --no-deps --target overlay hdbscan==0.8.42 mat73==0.65
 python -m multiphy.dependency_setup --root /path/to/lab_root \
     --unitmatch-source UnitMatch --dant-source pyDANT --overlay overlay
+# Linux / Unix
 /path/to/lab_root/dependencies/inference-v3/venv/bin/python -m multiphy.run list-backends
+```
+
+On Windows, use the environment's `Scripts\python.exe` instead:
+
+```powershell
+C:\path\to\lab_root\dependencies\inference-v3\venv\Scripts\python.exe -m multiphy.run list-backends
 ```
 
 The setup refuses a checkout that differs from its pinned revision, and an existing

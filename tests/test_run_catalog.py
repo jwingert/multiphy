@@ -117,4 +117,4 @@ def test_labels_show_method_and_date_adding_time_then_folder_only_on_collision()
         'Functional likelihood · 09-18 · e', 'Functional likelihood · 09-18 · g']
     assert catalog.run_labels([_entry('plugin_backend', day)]) == ['plugin_backend · 09-18']
     tip = catalog.run_tooltip(entries[0])
-    assert 'UnitMatch' in tip and '2026-09-18 14:13' in tip and '/runs/a' in tip
+    assert 'UnitMatch' in tip and '2026-09-18 14:13' in tip and str(Path('/runs') / 'a') in tip

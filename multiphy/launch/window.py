@@ -33,6 +33,7 @@ from ..viewer import logo
 from .__main__ import build_parser
 from . import forms as form_module  # backend_refusal is read through the module, so tests can replace it
 from .commands import _pythonpath
+from .control import INTERRUPT, STDIN_CONTROL_ENV
 from .forms import BOUND, command_argv, commands_of, form_fields, has_value
 from .plugins import PluginApi, load_plugins
 from ..contract.inputs import evidence_tags
@@ -84,8 +85,11 @@ def child_command(root: Path, argv: list) -> tuple:
 
 
 def _child_env() -> dict:
-    """The child's environment: the repo first on ``PYTHONPATH``, no bytecode, UTF-8 output."""
-    return dict(os.environ, PYTHONPATH=_pythonpath(REPO), PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
+    """The child's environment: repo first, UTF-8, and console-free Windows cancellation."""
+    env = dict(os.environ, PYTHONPATH=_pythonpath(REPO), PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
+    if sys.platform == 'win32':
+        env[STDIN_CONTROL_ENV] = '1'
+    return env
 
 
 class CommandProcess(QtCore.QObject):
@@ -159,12 +163,26 @@ class CommandProcess(QtCore.QObject):
         self._process.setWorkingDirectory(cwd)
         self._reset()
         self._running = True
+        self._stdin_control = env.get(STDIN_CONTROL_ENV) == '1'
+        self._interrupt_sent = False
         self._process.start(program, list(arguments))
 
     def interrupt(self) -> None:
-        """Send SIGINT to the running child; a child that just exited is ignored."""
+        """Request SIGINT once, via the private stdin channel on Windows.
+
+        Never broadcast console events or use Windows' terminating os.kill(SIGINT).
+        A child that does not stop remains subject to the window's kill timer.
+        """
         pid = self._process.processId()
-        if pid > 0 and self._process.state() == QtCore.QProcess.Running:
+        if pid > 0 and self._process.state() == QtCore.QProcess.Running and not self._interrupt_sent:
+            self._interrupt_sent = True
+            if self._stdin_control:
+                self._process.write(INTERRUPT)
+                self._process.closeWriteChannel()
+                return
+            if sys.platform == 'win32':
+                self.stderr_line.emit('error: child does not support graceful cancellation')
+                return
             try:
                 os.kill(pid, signal.SIGINT)
             except ProcessLookupError:  # the child just exited

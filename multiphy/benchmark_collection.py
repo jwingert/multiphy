@@ -7,6 +7,7 @@ import math
 from numbers import Integral, Real
 from pathlib import Path
 import shutil
+import sys
 import tempfile
 
 import pandas as pd
@@ -161,7 +162,7 @@ def create_collection(inputs, output, *, dataset_id, omissions=None, omission_ru
     output.parent.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix='.collection-', dir=output.parent))
     try:
-        (stage / 'manifest.json').write_text(json.dumps(manifest, indent=2, allow_nan=False))
+        (stage / 'manifest.json').write_text(json.dumps(manifest, indent=2, allow_nan=False), encoding='utf-8')
         (stage / 'METHODS.md').write_text(f'''# Benchmark collection — methods notes
 
 - **Output folder:** `{output}`
@@ -185,9 +186,15 @@ No figures. The collection contains {len(dataset.units)} retained observations a
 ## Caveats
 
 Conditional source-sort identity is not verified multiday ground truth. Missing-counterpart tests remove complete observations, not raw spikes. Unit IDs selected for omission must be specified before comparing method outcomes. Reference archives must remain available and unchanged. Lowering the required stimulus repeats changes evidence availability, not the recorded number of trials or uncertainty: one trial cannot yield an independent within-observation trial-half reliability estimate. No labels or matching outcomes choose the requested pair settings.
-''')
-        output.mkdir()
-        stage.replace(output)
+''', encoding='utf-8')
+        if sys.platform == 'win32':
+            # Windows rename refuses an existing destination, including an
+            # empty directory, so publish directly without a placeholder.
+            stage.rename(output)
+        else:
+            # Reserve the destination before replacing our empty directory.
+            output.mkdir()
+            stage.replace(output)
     except BaseException:
         shutil.rmtree(stage, ignore_errors=True)
         raise

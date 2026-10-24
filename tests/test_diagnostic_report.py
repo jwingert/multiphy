@@ -59,7 +59,7 @@ def test_report_writes_only_new_cache_directory_with_lineage(tmp_path, monkeypat
     monkeypatch.setattr(diagnostic, 'load_result', lambda _: result)
     monkeypatch.setattr(diagnostic, '_plot_misses', lambda *args: None)
     target = diagnostic.write_report('dataset', 'result', output_dir='diagnostic', root=tmp_path)
-    text = (target / 'report.md').read_text()
+    text = (target / 'report.md').read_text(encoding='utf-8')
     assert '1 of 2 available same-source pairs' in text
     assert 'uniquely first in both directions' in text
     assert 'each internal mean uses 10 snippets' in text

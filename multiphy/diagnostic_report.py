@@ -188,7 +188,7 @@ def write_report(dataset_path, result_path, *, output_dir=None, root=None):
     observed.to_csv(target / 'waveform_quality.csv', index=False)
     pairs.to_csv(target / 'identity_pairs.csv', index=False)
     (target / 'names.py').write_text('"""Display labels for this diagnostic artifact."""\nNAMES = ' + repr(NAMES) +
-        '\n\ndef display(key):\n    return NAMES[key]\n')
+        '\n\ndef display(key):\n    return NAMES[key]\n', encoding='utf-8')
     missed = pairs[~pairs.matched]
     columns = ['source_unit_id', 'waveform_r', 'fingerprint_r', 'rank_a', 'rank_b', 'match_score', 'half_r_min', 'dominant_delta']
     table = '| ' + ' | '.join(display(c) for c in columns) + ' |\n|' + '|'.join(['---'] * len(columns)) + '|\n'
@@ -250,7 +250,7 @@ The figure selects one shared electrode per pair by the largest peak-to-peak amp
 
 Input dataset: `{Path(dataset_path).resolve()}`. Matching result: `{Path(result_path).resolve()}`. Detailed observation and pair values are in `waveform_quality.csv` and `identity_pairs.csv`.
 '''
-    (target / 'report.md').write_text(report)
+    (target / 'report.md').write_text(report, encoding='utf-8')
     (target / 'METHODS.md').write_text(f'''# Waveform diagnostics — figure & methods notes
 
 - **Output folder:** `{target}`
@@ -275,7 +275,7 @@ Check gross timing and reproducibility of extracted temporal waveforms, and desc
 
 ## Caveats
 Source identity assumes the original sorter was correct. Two time segments from one recording do not reproduce probe reinsertion. A common timestamp offset cannot be inferred from waveform averages alone. Full multichannel correlations include low-amplitude electrodes. Response rankings use observed test features descriptively and are not a fitted matching method.
-''')
-    (target / 'missed_waveforms_legend.md').write_text('**Waveform overlays reveal whether missed source-identity pairs retain consistent timing and shape.**\n' + '\n'.join(f'**({chr(65 + i)})** Original sorted unit {pair.source_unit_id}: first (blue) and second (orange) recording-segment means on the shared electrode selected by largest peak-to-peak amplitude of their average.' for i, pair in enumerate(missed.itertuples())) + '\nTime is relative to the exported spike timestamp; voltage is filtered, referenced microvolts. Panel titles report Pearson correlation over all electrodes and samples, not the single displayed trace. Each line averages ' + waveform_counts + ' spike snippets. No temporal realignment or amplitude normalization is applied.\n')
+''', encoding='utf-8')
+    (target / 'missed_waveforms_legend.md').write_text('**Waveform overlays reveal whether missed source-identity pairs retain consistent timing and shape.**\n' + '\n'.join(f'**({chr(65 + i)})** Original sorted unit {pair.source_unit_id}: first (blue) and second (orange) recording-segment means on the shared electrode selected by largest peak-to-peak amplitude of their average.' for i, pair in enumerate(missed.itertuples())) + '\nTime is relative to the exported spike timestamp; voltage is filtered, referenced microvolts. Panel titles report Pearson correlation over all electrodes and samples, not the single displayed trace. Each line averages ' + waveform_counts + ' spike snippets. No temporal realignment or amplitude normalization is applied.\n', encoding='utf-8')
     _plot_misses(dataset, pairs, target)
     return target

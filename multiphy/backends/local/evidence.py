@@ -390,7 +390,7 @@ class LogLR:
         return out
 
 
-def _logistic_fit(X, y, l2=1.0):
+def _logistic_fit(X, y, l2=1.0, *, diagnostics=None):
     """Weights for combining stream scores, fitted on the labelled references.
 
     Rate, interval histogram and autocorrelogram are not independent -- rate
@@ -398,7 +398,8 @@ def _logistic_fit(X, y, l2=1.0):
     intervals -- so summing their likelihood ratios is overconfident. Fitting
     the stream weights on labelled data, and then calibrating the combined
     score against the same references, absorbs that rather than trusting the
-    product.
+    product. Optional ``diagnostics`` records the optimizer outcome without
+    changing its inputs, returned parameters or convergence policy.
     """
     from scipy.optimize import minimize
     X = np.asarray(X, float); y = np.asarray(y, float)
@@ -409,6 +410,16 @@ def _logistic_fit(X, y, l2=1.0):
         return float(np.sum(np.log1p(np.exp(-y * z))) + l2 * np.sum(w[:-1] ** 2))
 
     r = minimize(nll, np.zeros(A.shape[1]), method='L-BFGS-B')
+    if diagnostics is not None:
+        diagnostics.update(attempted=True, method='L-BFGS-B')
+        for name, field, cast in (('success', 'success', bool), ('status', 'status', int),
+                                  ('message', 'message', str), ('iterations', 'nit', int)):
+            value = getattr(r, field, None)
+            if value is not None:
+                diagnostics[name] = cast(value)
+        objective = getattr(r, 'fun', None)
+        if objective is not None:
+            diagnostics['objective'] = float(objective) if np.isfinite(objective) else None
     return r.x
 
 
@@ -419,6 +430,7 @@ class Ensemble:
     means ``STREAMS``. Weights are fitted from the reference data, one per stream in dict order,
     so the balance between event response, physiology and waveform is measured rather than
     asserted. A stream left out of ``streams`` is not scored at all.
+    ``fit_diagnostics`` records convergence separately from ``fitted`` without changing score availability.
     """
 
     def __init__(self, same_ref, diff_ref, streams=None):
@@ -431,6 +443,7 @@ class Ensemble:
         self.weights = {stream: 1.0 for stream in self.streams}
         self.bias = 0.0
         self.fitted = False
+        self.fit_diagnostics = dict(attempted=False)
         self._fit(same_ref, diff_ref)
 
     def stream_score(self, values, stream):
@@ -450,17 +463,20 @@ class Ensemble:
                 continue
             vals = {p: np.asarray(ref.get(p, [np.nan] * n), float) for p in properties}
             if any(len(vals[p]) != n for p in properties):
+                self.fit_diagnostics['reason'] = 'references are not row-aligned'
                 return                       # references must be row-aligned
             s = np.column_stack([self.stream_score(vals, stream) for stream in self.streams])
             rows.append(s)
             labels.append(np.full(len(s), lab))
         if len(rows) != 2:
+            self.fit_diagnostics['reason'] = 'both reference classes are required'
             return
         X = np.vstack(rows); y = np.concatenate(labels)
         keep = np.isfinite(X).all(1)
         if keep.sum() < 20:
+            self.fit_diagnostics['reason'] = 'fewer than 20 finite reference rows'
             return
-        w = _logistic_fit(X[keep], y[keep])
+        w = _logistic_fit(X[keep], y[keep], diagnostics=self.fit_diagnostics)
         # a stream may be uninformative but must never argue against a match:
         # a negative weight would make disagreement on it count as evidence FOR
         # the same neuron, so clamp at zero rather than trusting the sign

@@ -151,6 +151,7 @@ def run_functional_likelihood(units, features, geometry, timing_by_session, *, t
                                          n_splits=n_splits, seed=seed, evidence=evidence)
     scored, session_pairs = [], []
     offsets_um, diagnostics, reference_counts, mixture_references = {}, {}, {}, {}
+    ensemble_fits = {}
     for g in groups:
         e = evidence[g.group]
         streams = ev.run_streams(e.events, waveform=True)
@@ -168,6 +169,8 @@ def run_functional_likelihood(units, features, geometry, timing_by_session, *, t
             offsets, diagnostics[g.group] = functional_offsets(obs_by_session, ensemble, diff_ref, g.keys,
                                                                method=registration, null_quantile=NULL_QUANTILE,
                                                                aligned=True)
+        ensemble_fits[g.group] = dict(scoring=dict(ensemble.fit_diagnostics),
+                                      registration=dict((registering if e.events else ensemble).fit_diagnostics))
         offsets_um.update({s: float(offsets[s]) for s in g.sessions})
         different = examples[~examples.same_unit.astype(bool)]
         reference_counts[g.group] = dict(
@@ -208,7 +211,7 @@ def run_functional_likelihood(units, features, geometry, timing_by_session, *, t
         waveform_jitter_um=WAVEFORM_JITTER_UM, n_splits=n_splits, seed=seed,
         null_quantile=NULL_QUANTILE, criteria=crit.to_dict(),
         registration=dict(method=registration, offsets_um=offsets_um, diagnostics=diagnostics),
-        reference_counts=reference_counts, mixture_references=mixture_references,
+        reference_counts=reference_counts, mixture_references=mixture_references, ensemble_fits=ensemble_fits,
         session_pairs=session_pairs, skipped_groups=skipped,
         timing_provenance={session: timing_by_session[session].provenance for session in read})
     n_sessions = sessions.recording_group.astype(str).value_counts()

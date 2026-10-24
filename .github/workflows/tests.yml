@@ -8,19 +8,35 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python: ['3.9', '3.12']
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: '0'
       PYTHONDONTWRITEBYTECODE: '1'
-      PYTHONPATH: '.'
       QT_QPA_PLATFORM: offscreen
+      UV_MANAGED_PYTHON: '1'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
+      - name: Install Linux Qt runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y libegl1 libgl1 libxkbcommon0
       - uses: astral-sh/setup-uv@v6
-      - run: uv venv --python python
-      - run: uv pip install -e ".[gui,test]"
-      - run: uv run --no-sync python -B -m pytest tests -q -p no:cacheprovider
+        with:
+          version: '0.13.4'
+      - name: Install pinned Python
+        run: uv python install
+      - name: Install locked core, GUI and test environment
+        run: uv sync --locked --extra gui --extra test
+      - name: Record the environment
+        run: |
+          uv --version
+          uv run --no-sync python --version
+          uv pip freeze
+      - name: Check native Windows startup and layout regressions
+        id: platform_smoke
+        if: runner.os == 'Windows'
+        run: uv run --no-sync python -B -m pytest tests/test_launch_cli.py::test_cli_stdin_cancel_reaps_external_backend tests/test_launch_cli.py::test_cancellable_backend_sigint_before_popen_returns tests/test_viewer_app.py::test_narrower_browse_scrolls_and_reset_fits_again -v -raP -o faulthandler_timeout=300 -p no:cacheprovider
+      - name: Run the full suite even after a platform smoke failure
+        if: ${{ !cancelled() && (success() || steps.platform_smoke.outcome == 'failure') }}
+        run: uv run --no-sync python -B -m pytest tests -v -ra -o faulthandler_timeout=300 --durations=10 -p no:cacheprovider

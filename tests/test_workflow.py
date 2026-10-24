@@ -1,3 +1,4 @@
+import errno
 import json
 from pathlib import Path
 import subprocess
@@ -52,17 +53,76 @@ def test_failed_stage_uses_new_attempt_directory_on_resume(tmp_path):
     flow.close()
 
 
-def test_lifetime_lock_blocks_another_process_and_releases_on_context_exit(tmp_path):
+@pytest.mark.parametrize('lock_contents', [b'', b'existing lock file'])
+def test_lifetime_lock_blocks_another_process_and_releases_on_context_exit(tmp_path, lock_contents):
     output = tmp_path / 'flow'
-    program = ('import fcntl,sys; f=open(sys.argv[1], "a+"); '
-               'fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)')
+    output.mkdir()
+    (output / 'workflow.lock').write_bytes(lock_contents)
+    program = ('import sys; from multiphy.benchmark_workflow import Workflow; '
+               'flow=Workflow(sys.argv[1], {}, root=sys.argv[2]); flow.close()')
+    command = [sys.executable, '-c', program, str(output), str(tmp_path)]
     with Workflow(output, {}, root=tmp_path):
+        before = (output / 'workflow.json').read_bytes()
         with pytest.raises(RuntimeError, match='Another process'):
             Workflow(output, {}, root=tmp_path)
-        child = subprocess.run([sys.executable, '-c', program, str(output / 'workflow.lock')],
-                               capture_output=True, text=True)
-        assert child.returncode != 0 and 'BlockingIOError' in child.stderr
-    subprocess.run([sys.executable, '-c', program, str(output / 'workflow.lock')], check=True)
+        child = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        assert child.returncode != 0 and 'Another process owns this workflow' in child.stderr
+        assert (output / 'workflow.json').read_bytes() == before
+    subprocess.run(command, check=True, timeout=30)
+    assert (output / 'workflow.lock').read_bytes() == lock_contents
+
+
+def test_lifetime_lock_releases_when_owner_exits_without_cleanup(tmp_path):
+    output = tmp_path / 'flow'
+    program = ('import os,sys; from multiphy.benchmark_workflow import Workflow; '
+               'flow=Workflow(sys.argv[1], {}, root=sys.argv[2]); os._exit(0)')
+    subprocess.run([sys.executable, '-c', program, str(output), str(tmp_path)],
+                   check=True, timeout=30)
+    with Workflow(output, {}, root=tmp_path):
+        pass
+
+
+def test_lifetime_lock_releases_on_context_error_and_close_is_idempotent(tmp_path):
+    output = tmp_path / 'flow'
+    with pytest.raises(ValueError, match='body failed'):
+        with Workflow(output, {}, root=tmp_path) as flow:
+            raise ValueError('body failed')
+    flow.close()
+    with pytest.raises(RuntimeError, match='lifetime lock'):
+        flow.save()
+    with Workflow(output, {}, root=tmp_path):
+        pass
+
+
+@pytest.mark.parametrize('error_number', [errno.EACCES, errno.EAGAIN, errno.EIO])
+def test_lock_acquisition_failure_closes_file_and_preserves_unrelated_errors(
+        tmp_path, monkeypatch, error_number):
+    from multiphy import benchmark_workflow
+    opened = []
+    def fail_lock(file):
+        opened.append(file)
+        raise OSError(error_number, 'synthetic lock failure')
+    monkeypatch.setattr(benchmark_workflow, '_lock_file', fail_lock)
+    expected = OSError if error_number == errno.EIO else RuntimeError
+    with pytest.raises(expected) as caught:
+        Workflow(tmp_path / 'flow', {}, root=tmp_path)
+    assert opened[0].closed
+    if error_number == errno.EIO:
+        assert caught.value.errno == errno.EIO
+    else:
+        assert 'Another process' in str(caught.value)
+
+
+def test_initialization_failure_releases_lifetime_lock(tmp_path, monkeypatch):
+    output = tmp_path / 'flow'
+    with monkeypatch.context() as patch:
+        def fail_save(self):
+            raise OSError('synthetic save failure')
+        patch.setattr(Workflow, 'save', fail_save)
+        with pytest.raises(OSError, match='synthetic save failure'):
+            Workflow(output, {}, root=tmp_path)
+    with Workflow(output, {}, root=tmp_path):
+        pass
 
 
 @pytest.mark.parametrize('status', ['running', 'uncertain', 'unknown'])
@@ -166,8 +226,13 @@ def mock_pipeline(monkeypatch, tmp_path, fail_training=False, bad_partition=Fals
 
 
 def test_mocked_complete_workflow_waits_checks_partitions_and_reuses_all_stages(monkeypatch, tmp_path):
+    original_write = Path.write_text
+    def legacy_write(path, data, encoding=None, errors=None):
+        return original_write(path, data, encoding=encoding or 'cp1252', errors=errors)
+    monkeypatch.setattr(Path, 'write_text', legacy_write)
     calls, kwargs = mock_pipeline(monkeypatch, tmp_path)
     output = run_workflow(**kwargs)
+    assert '\u2190' in (output / 'METHODS.md').read_text(encoding='utf-8')
     state = json.loads((output / 'workflow.json').read_text())
     assert state['status'] == 'completed'
     assert len(state['stages']) == 15

@@ -82,7 +82,7 @@ def test_docs_name_no_fixed_model_path(tmp_path):
                          r'|local combined|stimulus-only and physiology-only|local probability calibration', re.I)
     documents = sorted(Path(package.__file__).parent.rglob('*.md')) + [repo / 'README.md']
     hits = [f'{p.name}:{n}' for p in documents
-            for n, line in enumerate(p.read_text().splitlines(), 1)
+            for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1)
             if removed.search(line)]
     assert hits == []
 

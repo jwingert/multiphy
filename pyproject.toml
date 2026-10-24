@@ -8,12 +8,18 @@ dynamic = ["version"]
 description = "Cross-day single-unit matching and curation"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
+requires-python = ">=3.12,<3.13"
 dependencies = ["numpy", "pandas", "scipy", "matplotlib"]
 
 [project.optional-dependencies]
 gui = ["PySide6"]
-test = ["pytest"]
+# The wheel-content test builds offline without build isolation.
+test = ["pytest", "pip", "setuptools>=77", "wheel"]
+
+[tool.uv]
+required-version = "==0.13.4"
+# Build isolation has its own resolution; keep it on the tested build tools too.
+build-constraint-dependencies = ["setuptools==84.2.1", "wheel==0.48.0"]
 
 [project.scripts]
 multiphy = "multiphy.launch.__main__:main"

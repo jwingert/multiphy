@@ -79,7 +79,7 @@ def test_runtime_temporary_files_stay_under_cache_and_restore_environment(tmp_pa
 
 def test_run_backend_defaults_to_test_partition_and_saves_portable_result(tmp_path, monkeypatch):
     (tmp_path / 'input').mkdir()
-    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}')
+    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}', encoding='utf-8')
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())
     seen = {}
     def run(units, pairs, **kwargs):
@@ -98,14 +98,14 @@ def test_run_backend_defaults_to_test_partition_and_saves_portable_result(tmp_pa
     assert result.tracks == (('c', 'd'),)
     assert result.provenance.get('cache_built') == 'fixture'
     assert len(result.provenance.get('input_manifest_sha256')) == 64
-    assert json.loads((output / 'run_manifest.json').read_text())['status'] == 'completed'
-    assert json.loads((output / 'evaluation.json').read_text())['combined']['true_positive_pairs'] == 1
-    assert '## Data lineage' in (output / 'METHODS.md').read_text()
+    assert json.loads((output / 'run_manifest.json').read_text(encoding='utf-8'))['status'] == 'completed'
+    assert json.loads((output / 'evaluation.json').read_text(encoding='utf-8'))['combined']['true_positive_pairs'] == 1
+    assert '## Data lineage' in (output / 'METHODS.md').read_text(encoding='utf-8')
 
 
 def test_failed_backend_leaves_failure_manifest_without_fake_results(tmp_path, monkeypatch):
     (tmp_path / 'input').mkdir()
-    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}')
+    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}', encoding='utf-8')
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())
     def unavailable(*args, **kwargs):
         raise BackendUnavailable('official package missing')
@@ -114,14 +114,14 @@ def test_failed_backend_leaves_failure_manifest_without_fake_results(tmp_path, m
     with pytest.raises(BackendUnavailable):
         runners.run_backend_dataset(tmp_path / 'input', 'unitmatch', output_dir=output, root=tmp_path)
     assert not (output / 'result.json').exists()
-    assert json.loads((output / 'run_manifest.json').read_text())['status'] == 'failed'
+    assert json.loads((output / 'run_manifest.json').read_text(encoding='utf-8'))['status'] == 'failed'
     with pytest.raises(FileExistsError):
         runners.run_backend_dataset(tmp_path / 'input', 'unitmatch', output_dir=output, root=tmp_path)
 
 
 def test_matching_never_pools_independent_original_recordings(tmp_path, monkeypatch):
     (tmp_path / 'input').mkdir()
-    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}')
+    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}', encoding='utf-8')
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())
     groups = []
     def run(units, pairs, **kwargs):
@@ -139,7 +139,7 @@ def test_matching_never_pools_independent_original_recordings(tmp_path, monkeypa
     assert result.provenance.get('independent_groups')
     assert len(result.provenance.get('group_runs')) == 2
     assert result.provenance.get('group') is None
-    evaluation = json.loads((output / 'evaluation.json').read_text())
+    evaluation = json.loads((output / 'evaluation.json').read_text(encoding='utf-8'))
     assert evaluation['combined']['n_unknown_predicted_pairs'] == 0
     assert len(evaluation['groups']) == 2
 
@@ -226,7 +226,7 @@ def test_one_off_extraction_dependency_requires_completed_dataset(tmp_path, monk
     def already_finished(pid):
         raise ProcessLookupError
     monkeypatch.setattr(runners.os, 'pidfd_open', already_finished)
-    (tmp_path / 'manifest.json').write_text('{}')
+    (tmp_path / 'manifest.json').write_text('{}', encoding='utf-8')
     runners.wait_for_extraction(123456, tmp_path)
     with pytest.raises(ValueError, match='separate'):
         runners.wait_for_extraction(runners.os.getpid(), tmp_path)
@@ -239,13 +239,13 @@ def test_dependency_wait_without_pidfd_rejects_pid_reuse(tmp_path, monkeypatch):
     monkeypatch.setattr(runners, '_process_identity', lambda pid: next(identities))
     sleeps = []
     monkeypatch.setattr(runners.time, 'sleep', sleeps.append)
-    (tmp_path / 'manifest.json').write_text('{}')
+    (tmp_path / 'manifest.json').write_text('{}', encoding='utf-8')
     runners.wait_for_extraction(123456, tmp_path)
     assert sleeps == [10]
 def test_run_backend_dataset_refuses_an_undeclared_option(tmp_path, monkeypatch):
     from multiphy.contract.errors import ContractViolation
     (tmp_path / 'input').mkdir()
-    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}')
+    (tmp_path / 'input' / 'manifest.json').write_text('{"fixture": "mock dataset"}', encoding='utf-8')
     monkeypatch.setattr(runners, '_load_dataset', lambda _: Dataset())
     _patch_unitmatch(monkeypatch, lambda *a, **k: pytest.fail('a typo must fail before the backend runs'))
     with pytest.raises(ContractViolation, match='treshold'):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -50,7 +51,7 @@ def unavailable(monkeypatch):
     """functional_likelihood reports itself unavailable; returns the recorders of the lab interpreter and subprocess."""
     backend = registry.get(FL)
     monkeypatch.setattr(backend, 'available', lambda: SimpleNamespace(ok=False, reason='missing package'))
-    calls = SimpleNamespace(interpreter=[], run=[], found='/lab/python')
+    calls = SimpleNamespace(interpreter=[], run=[], found=str(Path('/lab/python')))
 
     def interpreter(*args, **kwargs):
         calls.interpreter.append((args, kwargs))
@@ -61,7 +62,7 @@ def unavailable(monkeypatch):
         return subprocess.CompletedProcess(command, 0, '', '')
 
     monkeypatch.setattr(commands, 'verified_interpreter', interpreter)
-    monkeypatch.setattr(commands.subprocess, 'run', run)
+    monkeypatch.setattr(commands, 'run_captured', run)
     # '/lab/python' is not a file here; the recorded command only has to name it.
     monkeypatch.setattr(sp, '_program', lambda program: Path(program))
     return calls
@@ -108,17 +109,18 @@ def test_launch_run_child_failure_keeps_selection(tmp_path):
 
 
 def test_unavailable_backend_runs_in_lab_interpreter(clean, unavailable, monkeypatch):
-    monkeypatch.setenv('PYTHONPATH', '/existing/path')
+    existing = str(Path('/existing/path'))
+    monkeypatch.setenv('PYTHONPATH', existing)
     result = commands.run(clean.root, 'P', backend=FL, options={'seed': 7})
     assert unavailable.interpreter == [((), {'root': clean.root})]
     ((command, kwargs),) = unavailable.run
-    assert command[:17] == ['/lab/python', '-u', '-m', 'multiphy.run', 'run-backend',
+    assert command[:17] == [unavailable.found, '-u', '-m', 'multiphy.run', 'run-backend',
                             '--project', str(clean.path), '--days', 'D1', 'D2', '--backend', FL,
                             '--output', str(result['run']), '--min-repeats', '5', '--min-spikes']
     assert command[command.index('--seed') + 1] == '7'
     repo = Path(commands.__file__).resolve().parents[2]
-    assert (kwargs['cwd'], kwargs['capture_output'], kwargs['text']) == (repo, True, True)
-    assert kwargs['env']['PYTHONPATH'] == f'{repo}:/existing/path'
+    assert kwargs['cwd'] == repo
+    assert kwargs['env']['PYTHONPATH'] == os.pathsep.join((str(repo), existing))
     assert kwargs['env']['PYTHONDONTWRITEBYTECODE'] == '1'
     assert not _runs(clean)
 

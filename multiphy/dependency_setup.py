@@ -32,6 +32,18 @@ def _pth_lines(output: Path) -> list:
     return [output / 'sources', output / 'overlay', Path(__file__).resolve().parents[1]]
 
 
+def _pth_text(output: Path) -> str:
+    # Older Python 3.12 patches read .pth files with the locale encoding. ASCII
+    # escapes preserve these same three paths under both that reader and UTF-8.
+    paths = ascii(list(map(str, _pth_lines(output))))
+    return f'import sys; sys.path.extend(p for p in {paths} if p not in sys.path)\n'
+
+
+def _venv_interpreter(venv: Path) -> Path:
+    """Use the executable layout created by Python's native venv builder."""
+    return venv / 'Scripts' / 'python.exe' if sys.platform == 'win32' else venv / 'bin' / 'python'
+
+
 def _git(checkout, *args):
     return subprocess.check_output(['git', '-C', str(checkout), *args])
 
@@ -66,7 +78,7 @@ def _overlay_files(overlay, package, version):
     metadata = f'{package}-{version}.dist-info'
     record = overlay / metadata / 'RECORD'
     files, recorded = [], set()
-    for relative, signature, size in csv.reader(record.read_text().splitlines()):
+    for relative, signature, size in csv.reader(record.read_text(encoding='utf-8').splitlines()):
         item = Path(relative)
         if '__pycache__' in item.parts or item.suffix == '.pyc':
             continue
@@ -113,7 +125,7 @@ result = dict(python=sys.executable, prefix=sys.prefix,
     versions={name: version(name) for name in packages},
     model_type=type(model).__name__, parameter_count=sum(p.numel() for p in model.parameters()),
     model_construction='Random initialization only; no checkpoint loaded, no optimization performed')
-pathlib.Path(sys.argv[1]).write_text(json.dumps(result, indent=2))
+pathlib.Path(sys.argv[1]).write_text(json.dumps(result, indent=2), encoding='utf-8')
 '''
 
 
@@ -121,21 +133,21 @@ def verified_interpreter(*, root, directory=DEFAULT_DIRECTORY):
     """Return the durable interpreter only when its completed manifest verifies."""
     try:
         folder = resolve_cache_path(directory, root=root)
-        manifest = json.loads((folder / 'environment.json').read_text())
+        manifest = json.loads((folder / 'environment.json').read_text(encoding='utf-8'))
         if manifest.get('status') != 'completed' or manifest.get('schema_version') != 1:
             return None
-        interpreter = folder / 'venv' / 'bin' / 'python'
+        interpreter = _venv_interpreter(folder / 'venv')
         if manifest['interpreter'] != str(interpreter) or not os.access(interpreter, os.X_OK):
             return None
         files = manifest['sha256']
-        required = {'venv/bin/python', 'venv/pyvenv.cfg', 'smoke.json'}
+        required = {interpreter.relative_to(folder).as_posix(), 'venv/pyvenv.cfg', 'smoke.json'}
         if not required <= set(files) or not any(p.endswith('/unitmatch-inference.pth') for p in files):
             return None
         for relative, expected in files.items():
             path = (folder / relative).resolve()
             if not path.is_relative_to(folder) or _sha(path) != expected:
                 return None
-        smoke = json.loads((folder / 'smoke.json').read_text())
+        smoke = json.loads((folder / 'smoke.json').read_text(encoding='utf-8'))
         if smoke.get('model_type') != 'SpatioTemporalCNN_V2' or smoke.get('parameter_count', 0) <= 0:
             return None
         if set(smoke.get('origins', {})) != {'UnitMatchPy', 'DeepUnitMatch', 'pyDANT', 'hdbscan', 'mat73'}:
@@ -164,7 +176,7 @@ def setup_environment(unitmatch_source, dant_source, overlay, *, output_dir=DEFA
         environment_policy='Isolated venv with copied interpreter; inherit existing system scientific packages; no base modifications',
         training_scope='Durable inference sources, not a full Git source_checkout for training preparation')
     manifest_path = output / 'environment.json'
-    manifest_path.write_text(json.dumps(manifest, indent=2))
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     (output / 'METHODS.md').write_text(f'''# Matching inference dependencies — methods notes
 
 - **Output folder:** `{output}`
@@ -189,7 +201,7 @@ No figures or scientific results. `environment.json` records copied-file hashes,
 ## Caveats
 
 Inherited scientific packages remain tied to the existing base environment. Binary hdbscan compatibility is checked by actual import in the copied interpreter. This source snapshot is for inference; training preparation still requires a separate clean pinned Git checkout.
-''')
+''', encoding='utf-8')
     try:
         for destination, files in (('sources', sources), ('overlay', dependencies)):
             for source, relative in files:
@@ -197,30 +209,31 @@ Inherited scientific packages remain tied to the existing base environment. Bina
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(source, target)
         subprocess.run([sys.executable, '-m', 'venv', '--system-site-packages', '--copies', '--without-pip', str(output / 'venv')], check=True)
-        interpreter = output / 'venv' / 'bin' / 'python'
+        interpreter = _venv_interpreter(output / 'venv')
         env = dict(os.environ)
         env.pop('PYTHONPATH', None)
         runtime = output / 'runtime'
         runtime.mkdir()
-        env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONNOUSERSITE='1', MPLCONFIGDIR=str(runtime),
+        env.update(PYTHONDONTWRITEBYTECODE='1', PYTHONNOUSERSITE='1', PYTHONIOENCODING='utf-8', MPLCONFIGDIR=str(runtime),
                    XDG_CACHE_HOME=str(runtime), TMPDIR=str(runtime), OMP_NUM_THREADS='1')
-        site = Path(subprocess.check_output([str(interpreter), '-c', 'import sysconfig;print(sysconfig.get_path("purelib"))'], env=env, text=True).strip())
-        (site / 'unitmatch-inference.pth').write_text('\n'.join(map(str, _pth_lines(output))) + '\n')
-        with (output / 'setup.log').open('w') as log:
+        site = Path(subprocess.check_output([str(interpreter), '-c', 'import sysconfig;print(sysconfig.get_path("purelib"))'],
+                                           env=env, text=True, encoding='utf-8').strip())
+        (site / 'unitmatch-inference.pth').write_text(_pth_text(output), encoding='utf-8')
+        with (output / 'setup.log').open('w', encoding='utf-8') as log:
             subprocess.run([str(interpreter), '-c', _SMOKE, str(output / 'smoke.json')], env=env,
                            cwd=output, stdout=log, stderr=subprocess.STDOUT, check=True)
-        smoke = json.loads((output / 'smoke.json').read_text())
+        smoke = json.loads((output / 'smoke.json').read_text(encoding='utf-8'))
         if any(not Path(value).is_relative_to(output) for value in smoke['origins'].values()):
             raise ValueError('Smoke test imported an optional backend outside its durable snapshot')
         tracked = [p for directory in ('sources', 'overlay') for p in (output / directory).rglob('*') if p.is_file()]
         tracked += [interpreter, output / 'venv' / 'pyvenv.cfg', site / 'unitmatch-inference.pth', output / 'smoke.json']
         manifest.update(status='completed', interpreter=str(interpreter), smoke=smoke,
-                        sha256={str(p.relative_to(output)): _sha(p) for p in tracked})
+                        sha256={p.relative_to(output).as_posix(): _sha(p) for p in tracked})
     except BaseException as exc:
         manifest.update(status='failed', error=f'{type(exc).__name__}: {exc}')
         raise
     finally:
-        manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False))
+        manifest_path.write_text(json.dumps(manifest, indent=2, allow_nan=False), encoding='utf-8')
     return output
 
 

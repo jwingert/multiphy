@@ -1,5 +1,6 @@
 import copy
 import json
+import platform
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ from multiphy.backends.local.functional_likelihood import run_functional_likelih
 from multiphy.contract import inputs, registry
 from multiphy.contract.backend import RunContext
 from multiphy.contract.inputs import Input, MatchingInput
+from multiphy.contract.provenance import json_safe
 from multiphy.contract.results import ScoreKind, TrackKind
 from multiphy.evaluation import evaluate_result
 import dataclasses
@@ -65,6 +67,29 @@ def _rows(result, entry):
 def _rounded(values):
     values = np.asarray(values, dtype=float)
     return [round(float(x), 4) for x in values[np.isfinite(values)]]
+
+
+def _matching_failure_context(result):
+    """Compact failure evidence, not the large reference/candidate score arrays."""
+    import scipy
+
+    provenance = result.provenance.to_json()
+    pairs = result.pairs
+    details = {key: provenance.get(key) for key in (
+        'score_column', 'threshold', 'ambiguity_margin', 'registration', 'skipped_groups',
+        'reference_counts', 'ensemble_fits', 'input_pair_digest', 'run_config_digest')}
+    details.update(
+        runtime=dict(python=platform.python_version(), numpy=np.__version__, pandas=pd.__version__,
+                     scipy=scipy.__version__),
+        decisions=pairs.decision.value_counts().to_dict(),
+        score_summary=pairs.match_score.describe().to_dict(),
+        ensemble_weights={group: {key: value for key, value in refs.items() if key != 'streams'}
+                          for group, refs in provenance.get('mixture_references', {}).items()},
+        session_pairs=[{**entry, 'streams': {
+            stream: {key: value for key, value in fit.items() if key != 'observed'}
+            for stream, fit in entry.get('streams', {}).items()}}
+            for entry in provenance.get('session_pairs', [])])
+    return json.dumps(json_safe(details), indent=2, sort_keys=True, allow_nan=False)
 
 
 def test_functional_likelihood_is_registered_with_feature_inputs():
@@ -131,7 +156,7 @@ def test_functional_likelihood_tracks_one_per_day():
     features = dict(days.features, **{clone: copy.deepcopy(days.features[original])})
     result = run_functional_likelihood(units, features, days.geometry, days.timing, ambiguity_margin=0.0)
     session_of = dict(zip(units.cellid, units.session_id))
-    assert result.tracks
+    assert result.tracks, _matching_failure_context(result)
     assert all(len({session_of[c] for c in track}) == len(track) for track in result.tracks)
     twins = result.pairs[result.pairs.cellid_a.isin([original, clone]) | result.pairs.cellid_b.isin([original, clone])]
     assert (twins.decision == 'selected').any()
@@ -191,6 +216,40 @@ def test_mixture_references_in_provenance(drift_run, references):
             assert pile['same'] == _rounded(same[col]) and pile['diff'] == _rounded(diff[col])
     json.dumps(result.provenance.get('mixture_references'))
     json.dumps(result.provenance.get('session_pairs'))
+
+
+def test_ensemble_fit_diagnostics_in_provenance(drift_run):
+    _, result = drift_run
+    fits = result.provenance.get('ensemble_fits')
+    assert set(fits) == set(result.provenance.get('mixture_references'))
+    for group in fits.values():
+        assert set(group) == {'scoring', 'registration'}
+        for fit in group.values():
+            assert fit['attempted'] is True and fit['method'] == 'L-BFGS-B'
+            assert isinstance(fit['success'], bool) and isinstance(fit['status'], int)
+            assert isinstance(fit['iterations'], int) and fit['iterations'] >= 0
+            assert isinstance(fit['message'], str)
+            assert fit['objective'] is None or np.isfinite(fit['objective'])
+    assert json.loads(json.dumps(fits, allow_nan=False)) == fits
+    context = json.loads(_matching_failure_context(result))
+    assert context['ensemble_fits'] == fits
+    assert sum(context['decisions'].values()) == len(result.pairs)
+    assert all('observed' not in fit for entry in context['session_pairs'] for fit in entry['streams'].values())
+    assert all('streams' not in entry for entry in context['ensemble_weights'].values())
+
+
+@pytest.mark.parametrize('empty', [False, True])
+def test_matching_failure_context_handles_unavailable_scores(empty):
+    from multiphy.backends.local.tracker import result_from_pairs
+
+    units = pd.DataFrame(dict(cellid=['a', 'b'], session_id=['A', 'B'], recording_group='g', su_type='SU'))
+    pairs = pd.DataFrame(dict(cellid_a=['a'], cellid_b=['b'], match_score=[np.nan]))
+    result = result_from_pairs('diagnostic', '1', units, pairs.iloc[:0] if empty else pairs)
+    context = json.loads(_matching_failure_context(result))
+    assert not result.tracks
+    assert context['score_summary']['count'] == 0 and context['score_summary']['min'] is None
+    assert context['decisions'] == ({} if empty else {'missing_evidence': 1})
+    assert context['ensemble_weights'] == {} and context['session_pairs'] == []
 
 
 def test_offsets_in_provenance(drift_run):

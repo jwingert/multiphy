@@ -491,11 +491,11 @@ def validate_datasets(datasets: Sequence[DriftDataset], output: Path, *, shifts_
     calibration_table.to_csv(output / 'calibration.csv', index=False)
     _drift_figure(summary_table, output / 'drift_recovery.png')
     _calibration_figure(calibration_table, output / 'calibration.png')
-    (output / 'drift_recovery_legend.md').write_text(_drift_legend(summary_table))
-    (output / 'calibration_legend.md').write_text(_calibration_legend(calibration_table))
+    (output / 'drift_recovery_legend.md').write_text(_drift_legend(summary_table), encoding='utf-8')
+    (output / 'calibration_legend.md').write_text(_calibration_legend(calibration_table), encoding='utf-8')
     commit = _git_head()
     (output / 'METHODS.md').write_text(_methods(datasets, shifted, options_by_backend, shifts_um,
-                                                radius_um, seed, commit))
+                                                radius_um, seed, commit), encoding='utf-8')
     files = ['summary.csv', 'calibration.csv', 'drift_recovery.png', 'calibration.png', 'drift_recovery_legend.md',
              'calibration_legend.md', 'METHODS.md', 'manifest.json']
     runs = sorted(str(p.relative_to(output)) for p in (output / 'runs').glob('*/result.json'))

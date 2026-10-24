@@ -11,10 +11,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
+import queue
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
+import time
 
 import pytest
 
@@ -83,7 +87,7 @@ def test_cli_writes_launcher_log(tmp_path, from_dir, capsys):
     features = Project.open(root, 'P').read()['days']['D1']['features']
     out = capsys.readouterr()
     assert out.out == f"D1 · raw · halves {features['halves'][:12]} · full {features['full'][:12]}\n"
-    assert f'Temporary extraction working directory: {scratch.resolve()}/extract-' in out.err
+    assert f"Temporary extraction working directory: {scratch.resolve() / 'extract-'}" in out.err
     assert 'D1 · ' not in out.err
     assert Project.open(root, 'P').read()['days']['D1']['files']['raw']['sha256'] is None
     assert main(['--root', str(root), 'status', 'P', '--verify']) == 0
@@ -202,7 +206,8 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
             (['--root', str(root), 'init', 'P', '--from', str(from_dir), '--uv-per-bit', 'x'],
              "argument --uv-per-bit: invalid float value: 'x'"),
             (['--root', str(root), 'extract', 'P', '--tier', 'voltage'],
-             "argument --tier: invalid choice: 'voltage' (choose from 'raw', 'templates')"),
+             ("argument --tier: invalid choice: 'voltage' (choose from 'raw', 'templates')",
+              "argument --tier: invalid choice: 'voltage' (choose from raw, templates)")),
             (['--root', str(root), 'extract', 'P', '--tier'], 'argument --tier: expected one argument'),
             (['--root', str(root), 'extract', 'P', '--day'], 'argument --day: expected at least one argument'),
             (['--root', str(root), 'status', 'P', '--bogus'], 'unrecognized arguments: --bogus'),
@@ -212,7 +217,8 @@ def test_cli_error_exit(tmp_path, from_dir, capsys, monkeypatch):
             (['--root', '--bogus', 'status', 'P'], 'argument --root: expected one argument'),
     ):
         assert main(argv) == 1, argv
-        assert tuple(capsys.readouterr()) == ('', f'error: {message}\n'), argv
+        messages = message if isinstance(message, tuple) else (message,)
+        assert tuple(capsys.readouterr()) in tuple(('', f'error: {value}\n') for value in messages), argv
         assert log.read_bytes() == before, argv
     assert sorted(Project.open(root, 'P').read()['days']) == ['D1']
     assert list((default_root / 'P').iterdir()) == []  # a --root without its value names no root
@@ -242,10 +248,10 @@ def test_launcher_without_root_refuses(tmp_path, capsys, monkeypatch):
 
 
 def test_cli_help(tmp_path, capsys):
-    env = dict(os.environ, PYTHONPATH=str(REPO))
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8')
     help_root = str(tmp_path / 'help')
     proc = subprocess.run([sys.executable, '-m', 'multiphy.launch', '--root', help_root, '--help'],
-                          cwd=REPO, env=env, capture_output=True, text=True, timeout=120)
+                          cwd=REPO, env=env, capture_output=True, encoding='utf-8', timeout=120)
     assert proc.returncode == 0, proc.stderr
     assert '{init,extract,status,run,export,gui}' in proc.stdout
 
@@ -354,31 +360,412 @@ def test_cli_cancelled_log_failure_keeps_130(tmp_path, from_dir, capsys, monkeyp
     assert 'cancelled' in lines and 'error: read-only' in lines, lines
 
 
+def _send_sigint(proc):
+    """Deliver real Ctrl-C without ever signalling the test runner's console."""
+    if sys.platform != 'win32':
+        proc.send_signal(signal.SIGINT)
+        return
+    # The target owns a separate console. Only this disposable helper detaches
+    # and attaches to it; never call GenerateConsoleCtrlEvent after attach fails.
+    helper = '''
+import ctypes
+import sys
+import time
+kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+def checked(result):
+    if not result:
+        raise ctypes.WinError(ctypes.get_last_error())
+checked(kernel32.FreeConsole())
+checked(kernel32.AttachConsole(int(sys.argv[1])))
+try:
+    checked(kernel32.SetConsoleCtrlHandler(None, True))
+    checked(kernel32.GenerateConsoleCtrlEvent(0, 0))
+    time.sleep(0.2)
+finally:
+    checked(kernel32.FreeConsole())
+'''
+    delivered = subprocess.run([sys.executable, '-c', helper, str(proc.pid)],
+                               capture_output=True, encoding='utf-8', timeout=10,
+                               env=dict(os.environ, PYTHONIOENCODING='utf-8'))
+    assert delivered.returncode == 0, delivered.stderr
+
+
+def _wait_for_stderr(proc, expected: str, timeout: float = 60) -> None:
+    """Read through a startup marker with a deadline on Windows as well as POSIX."""
+    received = queue.Queue()
+
+    def read():
+        try:
+            for line in proc.stderr:
+                if line.rstrip('\n') == expected:
+                    received.put(True)
+                    return
+            received.put(False)
+        except Exception as exc:
+            received.put(exc)
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    try:
+        result = received.get(timeout=timeout)
+    except queue.Empty:
+        raise AssertionError(f'no {expected!r} line within {timeout}s') from None
+    reader.join(timeout=5)
+    assert result is True, f'no {expected!r} line; exit {proc.poll()}; reader {result!r}'
+
+
 @pytest.mark.parametrize('inherited', ('default', 'ignored'))
-def test_cli_sigint_real_process(tmp_path, inherited):
-    import signal
+@pytest.mark.parametrize('transport', ('signal', 'stdin'))
+def test_cli_sigint_real_process(tmp_path, inherited, transport):
     root = tmp_path / 'root'
     root.mkdir()
     (root / 'multiphy.json').write_text('{"plugins": ["tests.wait_plugin"]}', encoding='utf-8')
     Project.ensure(root, 'P')
-    preexec = (lambda: signal.signal(signal.SIGINT, signal.SIG_IGN)) if inherited == 'ignored' else None
-    proc = subprocess.Popen([sys.executable, '-m', 'multiphy.launch', '--root', str(root), 'wait', 'P'],
-                            cwd=REPO, env=dict(os.environ, PYTHONPATH=str(REPO), PYTHONDONTWRITEBYTECODE='1'),
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=preexec)
+    command = [sys.executable, '-m', 'multiphy.launch']
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
+    options = {}
+    if sys.platform == 'win32':
+        options['creationflags'] = subprocess.CREATE_NEW_CONSOLE
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = subprocess.SW_HIDE
+        options['startupinfo'] = startup
+        if inherited == 'ignored':
+            # Windows cannot use preexec_fn. Start the CLI with SIGINT already
+            # ignored in the same interpreter; main must reset that disposition.
+            command = [sys.executable, '-c', 'import runpy, signal; '
+                       'signal.signal(signal.SIGINT, signal.SIG_IGN); '
+                       'runpy.run_module("multiphy.launch", run_name="__main__")']
+    elif inherited == 'ignored':
+        # Keep the POSIX regression: ignore SIGINT before exec, not just main().
+        options['preexec_fn'] = lambda: signal.signal(signal.SIGINT, signal.SIG_IGN)
+    if transport == 'stdin':
+        env['MULTIPHY_LAUNCH_CONTROL_STDIN'] = '1'
+    else:
+        env.pop('MULTIPHY_LAUNCH_CONTROL_STDIN', None)
+    proc = subprocess.Popen(command + ['--root', str(root), 'wait', 'P'], cwd=REPO, env=env,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            encoding='utf-8', **options)
     try:
-        for line in proc.stderr:
-            if line.rstrip('\n') == 'waiting':
-                break
+        _wait_for_stderr(proc, 'waiting')
+        if transport == 'stdin':
+            proc.stdin.write('\x03\x03')  # duplicate cancellation cannot interrupt logging
+            proc.stdin.flush()
+            proc.stdin.close()
         else:
-            raise AssertionError(f'no waiting line; exit {proc.wait(timeout=30)}')
-        proc.send_signal(signal.SIGINT)
+            _send_sigint(proc)
         assert proc.wait(timeout=30) == 130
         rest = proc.stderr.read()
-        assert 'cancelled' in rest, rest
+        assert rest.splitlines() == ['cancelled'], rest
     finally:
         if proc.poll() is None:
             proc.kill()
             proc.wait()
         proc.stdout.close()
         proc.stderr.close()
+        proc.stdin.close()
     assert _log_lines(root)[-1].endswith(' · wait P · cancelled')
+
+
+@pytest.mark.parametrize('control', (False, True))
+def test_cli_stdin_control_opt_in_and_eof(tmp_path, control):
+    """Normal stdin remains available; an opted-in EOF neither cancels nor hangs exit."""
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8')
+    if control:
+        env['MULTIPHY_LAUNCH_CONTROL_STDIN'] = '1'
+    else:
+        env.pop('MULTIPHY_LAUNCH_CONTROL_STDIN', None)
+    script = ('import os, sys, threading; from multiphy.launch.control import start_control_reader; '
+              'start_control_reader(); start_control_reader(); '
+              'assert "MULTIPHY_LAUNCH_CONTROL_STDIN" not in os.environ; '
+              'readers = [t for t in threading.enumerate() if t.name == "multiphy-cancel"]; '
+              '[t.join(timeout=5) for t in readers]; '
+              'assert not any(t.is_alive() for t in readers); '
+              'print(sys.stdin.read() if not ' + repr(control) + ' else "eof ok")')
+    proc = subprocess.run([sys.executable, '-c', script], input='' if control else 'ordinary input',
+                          cwd=REPO, env=env, capture_output=True, encoding='utf-8', timeout=30)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stderr == ''
+    assert proc.stdout == ('eof ok\n' if control else 'ordinary input\n')
+
+
+def test_cli_stdin_control_does_not_block_success(tmp_path):
+    """An idle control reader cannot keep a successful child alive or break shutdown."""
+    root = tmp_path / 'root'
+    Project.ensure(root, 'P')
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8',
+               MULTIPHY_LAUNCH_CONTROL_STDIN='1')
+    proc = subprocess.Popen([sys.executable, '-m', 'multiphy.launch', '--root', str(root), 'status', 'P'],
+                            cwd=REPO, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, encoding='utf-8')
+    try:
+        # Keep stdin open until AFTER exit, as QProcess does for a normal GUI run.
+        assert proc.wait(timeout=30) == 0
+        assert proc.stdout.read() == 'across days · runs 0\n'
+        assert proc.stderr.read() == ''
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+        proc.stdin.close()
+        proc.stdout.close()
+        proc.stderr.close()
+    assert _log_lines(root)[-1].endswith(' · status P · ok')
+
+
+@pytest.mark.parametrize('exit_code', (0, 7))
+def test_cancellable_backend_captures_output(tmp_path, exit_code):
+    from multiphy.launch.control import run_captured
+
+    proc = run_captured([sys.executable, '-c',
+                         f'import sys; print("caf\\u00e9"); print("\\u2190 error", file=sys.stderr); '
+                         f'sys.exit({exit_code})'], cwd=tmp_path, env=dict(os.environ))
+    assert (proc.returncode, proc.stdout, proc.stderr) == (exit_code, 'café\n', '← error\n')
+
+
+@pytest.mark.parametrize('control', (False, True))
+def test_cancellable_backend_stdin_isolates_only_private_control(tmp_path, control):
+    """Private control stays open in the launcher; ordinary backend input is inherited."""
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8')
+    if control:
+        env['MULTIPHY_LAUNCH_CONTROL_STDIN'] = '1'
+    else:
+        env.pop('MULTIPHY_LAUNCH_CONTROL_STDIN', None)
+    script = f'''
+import os
+import sys
+from multiphy.launch import control
+control.start_control_reader()
+control.start_control_reader()  # consuming the flag must not forget channel ownership
+original = control.subprocess.Popen
+def checked(*args, **kwargs):
+    # Fail before spawning on a regression, so a stuck stdin reader cannot orphan
+    # the test's backend when the outer launcher must be killed after its deadline.
+    expected = control.subprocess.DEVNULL if {control!r} else None
+    assert kwargs.get('stdin') == expected, 'backend inherited private control stdin'
+    return original(*args, **kwargs)
+control.subprocess.Popen = checked
+result = control.run_captured(
+    [sys.executable, '-c', 'import sys; print(repr(sys.stdin.read()))'],
+    cwd={str(tmp_path)!r}, env=dict(os.environ))
+assert result.returncode == 0, result.stderr
+assert result.stderr == ''
+print(result.stdout, end='')
+'''
+    proc = subprocess.Popen([sys.executable, '-c', script], cwd=REPO, env=env,
+                            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            encoding='utf-8')
+    try:
+        if not control:
+            proc.stdin.write('ordinary input')
+            proc.stdin.close()
+        # The control writer remains open until AFTER successful backend/launcher exit.
+        assert proc.wait(timeout=30) == 0, proc.stderr.read()
+        assert proc.stdout.read() == ("''\n" if control else "'ordinary input'\n")
+        assert proc.stderr.read() == ''
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=5)
+        proc.stdin.close()
+        proc.stdout.close()
+        proc.stderr.close()
+
+
+def test_cancellable_backend_cleanup_is_bounded(monkeypatch):
+    from multiphy.launch import control
+
+    interrupt = KeyboardInterrupt('cancel requested')
+    calls = []
+
+    class Process:
+        def communicate(self, timeout):
+            calls.append(('communicate', timeout))
+            if len(calls) == 1:
+                raise interrupt
+            raise subprocess.TimeoutExpired('backend', timeout)
+
+        def poll(self):
+            return None
+
+        def kill(self):
+            calls.append(('kill',))
+
+        def wait(self, timeout):
+            calls.append(('wait', timeout))
+
+    monkeypatch.setattr(control.subprocess, 'Popen', lambda *args, **kwargs: Process())
+    with pytest.raises(KeyboardInterrupt) as caught:
+        control.run_captured(['backend'], cwd=REPO, env={})
+    assert caught.value is interrupt
+    assert calls == [('communicate', 0.1), ('kill',), ('wait', 2), ('communicate', 2)]
+
+
+def test_cancellable_backend_sigint_before_popen_returns(tmp_path, monkeypatch):
+    """A real signal during construction cannot escape before child ownership is recorded."""
+    from multiphy.launch import control
+
+    original = subprocess.Popen
+    children = []
+
+    def interrupt_before_return(*args, **kwargs):
+        child = original(*args, **kwargs)
+        children.append(child)
+        signal.raise_signal(signal.SIGINT)  # child exists, but caller has no reference yet
+        return child
+
+    monkeypatch.setattr(control.subprocess, 'Popen', interrupt_before_return)
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        with pytest.raises(KeyboardInterrupt):
+            control.run_captured([sys.executable, '-c', 'import time; time.sleep(60)'],
+                                 cwd=tmp_path, env=dict(os.environ))
+        assert len(children) == 1 and children[0].poll() is not None
+        assert children[0].returncode != 0
+        assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        for child in children:
+            if child.poll() is None:
+                child.kill()
+                child.communicate(timeout=5)
+
+
+@pytest.mark.parametrize('interrupted', (False, True))
+def test_cancellable_backend_spawn_failure_restores_handler(tmp_path, monkeypatch, interrupted):
+    from multiphy.launch import control
+
+    failure = OSError('spawn failed')
+
+    def fail(*args, **kwargs):
+        if interrupted:
+            signal.raise_signal(signal.SIGINT)
+        raise failure
+
+    monkeypatch.setattr(control.subprocess, 'Popen', fail)
+    previous = signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        with pytest.raises(KeyboardInterrupt if interrupted else OSError) as caught:
+            control.run_captured(['missing'], cwd=tmp_path, env={})
+        if not interrupted:
+            assert caught.value is failure
+        assert signal.getsignal(signal.SIGINT) is signal.default_int_handler
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
+def test_spawn_sigint_deferral_preserves_custom_handlers():
+    from multiphy.launch.control import _defer_sigint_during_spawn
+
+    received = []
+
+    def handler(signum, frame):
+        received.append((signum, frame))
+
+    previous = signal.signal(signal.SIGINT, handler)
+    try:
+        with _defer_sigint_during_spawn():
+            with _defer_sigint_during_spawn():
+                signal.raise_signal(signal.SIGINT)
+                signal.raise_signal(signal.SIGINT)
+            assert received == []
+        assert [signum for signum, _frame in received] == [signal.SIGINT, signal.SIGINT]
+        assert all(frame is not None for _signum, frame in received)
+        assert signal.getsignal(signal.SIGINT) is handler
+        for disposition in (signal.SIG_IGN, signal.SIG_DFL):
+            signal.signal(signal.SIGINT, disposition)
+            with _defer_sigint_during_spawn():
+                assert signal.getsignal(signal.SIGINT) is disposition
+            assert signal.getsignal(signal.SIGINT) is disposition
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
+def test_cancellable_backend_from_worker_thread(tmp_path):
+    from multiphy.launch.control import run_captured
+
+    result = queue.Queue()
+    previous = signal.getsignal(signal.SIGINT)
+
+    def run():
+        try:
+            result.put(run_captured([sys.executable, '-c', 'print("worker")'],
+                                    cwd=tmp_path, env=dict(os.environ)))
+        except BaseException as exc:
+            result.put(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(timeout=10)
+    assert not worker.is_alive()
+    proc = result.get(timeout=1)
+    assert isinstance(proc, subprocess.CompletedProcess), repr(proc)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (0, 'worker\n', '')
+    assert signal.getsignal(signal.SIGINT) is previous
+
+
+def test_cli_stdin_cancel_reaps_external_backend(tmp_path):
+    """The launcher cancels and reaps a real captured child, not just its own wait."""
+    root = tmp_path / 'root'
+    Project.ensure(root, 'P')
+    ready = tmp_path / 'backend.pid'
+    backend = tmp_path / 'backend.py'
+    backend.write_text('import os, time\nfrom pathlib import Path\n'
+                       f'Path({str(ready)!r}).write_text(str(os.getpid()))\n'
+                       'time.sleep(60)\n', encoding='utf-8')
+    script = f'''
+import os
+import sys
+from multiphy.launch import control
+from multiphy.launch import __main__ as cli
+original = control.subprocess.Popen
+children = []
+def tracked(*args, **kwargs):
+    child = original(*args, **kwargs)
+    children.append(child)
+    return child
+control.subprocess.Popen = tracked
+def run(*args):
+    control.run_captured([sys.executable, {str(backend)!r}], cwd={str(tmp_path)!r}, env=dict(os.environ))
+    return []
+cli._run = run
+try:
+    code = cli.main(['--root', {str(root)!r}, 'status', 'P'])
+    assert len(children) == 1 and children[0].poll() is not None, 'backend still alive'
+    print('backend stopped')
+finally:
+    for child in children:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=5)
+sys.exit(code)
+'''
+    env = dict(os.environ, PYTHONPATH=str(REPO), PYTHONIOENCODING='utf-8',
+               MULTIPHY_LAUNCH_CONTROL_STDIN='1')
+    proc = subprocess.Popen([sys.executable, '-c', script], cwd=REPO, env=env, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+    try:
+        deadline = time.monotonic() + 60
+        while not ready.exists() and proc.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert ready.exists(), 'backend did not start before deadline'
+        proc.stdin.write('\x03')
+        proc.stdin.flush()
+        assert proc.wait(timeout=10) == 130
+        assert proc.stdout.read() == 'backend stopped\n'
+        assert proc.stderr.read() == 'cancelled\n'
+        assert _log_lines(root)[-1].endswith(' · status P · cancelled')
+    finally:
+        if proc.poll() is None:
+            # On a failing regression, clean up the known test-owned backend
+            # too rather than leaving it behind when killing the launcher.
+            if ready.exists():
+                try:
+                    os.kill(int(ready.read_text()), signal.SIGTERM)
+                except OSError:
+                    pass
+            proc.kill()
+            proc.wait(timeout=5)
+        proc.stdin.close()
+        proc.stdout.close()
+        proc.stderr.close()

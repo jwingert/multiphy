@@ -16,6 +16,7 @@ import shlex
 import signal
 import re
 import inspect
+from dataclasses import replace
 from pathlib import Path
 import sys
 from typing import Optional
@@ -32,6 +33,7 @@ from ..viewer import unit_palettes
 from ..viewer import logo
 from .__main__ import build_parser
 from . import forms as form_module  # backend_refusal is read through the module, so tests can replace it
+from . import recording_form
 from .commands import _pythonpath
 from .control import INTERRUPT, STDIN_CONTROL_ENV
 from .forms import BOUND, command_argv, commands_of, form_fields, has_value
@@ -237,8 +239,11 @@ def run_groups(project: Project) -> list:
 def _forms(plugins: PluginApi) -> dict:
     """``{command: [Field]}`` for every command of the CLI's parser but ``gui`` (D72)."""
     parser = build_parser(plugins.commands)
-    return {name: form_fields(sub, BOUND.get(name, frozenset()))
-            for name, sub in commands_of(parser).items() if name != 'gui'}
+    forms = {name: form_fields(sub, BOUND.get(name, frozenset()))
+             for name, sub in commands_of(parser).items() if name != 'gui'}
+    forms['init'] = [replace(field, **{key: value for key, value in recording_form.FIELD_COPY[field.dest].items()
+                                    if key != 'hint'}) for field in forms['init']]
+    return forms
 
 
 class _ElidedLabel(QtWidgets.QLabel):
@@ -641,6 +646,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
         """Refill the project combo, then the days and runs of its project (D38); an error is logged
         and leaves both lists empty. Then the init and plugin forms follow the combo, and the Run
         buttons and backend items are recomputed."""
+        self._init_validation_key = None
+        self._init_validation_timer.stop()
         blocked = self.days_list.blockSignals(True)
         try:
             self._fill_lists()
@@ -665,6 +672,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 return
             project = Project.open(self.root, self.project_combo.currentText())
             rows, groups = day_rows(project), run_groups(project)
+            records = project.read()['days']
         except Exception as exc:
             self._filled = None
             self.days_list.clear()
@@ -675,6 +683,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         keep = checked if self._filled == (self.root, project.name) else set()
         for day, tag in rows:
             item = QtWidgets.QListWidgetItem(f'{day} · {tag}')
+            item.setToolTip(f"Recording: {day}\nDate: {records[day]['date']}\nFeatures: {tag}")
             item.setData(_ENTRY_ROLE, day)
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
             item.setCheckState(QtCore.Qt.Checked if day in keep else QtCore.Qt.Unchecked)
@@ -828,6 +837,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def _build_tabs(self) -> None:
         """Command forms, then plugin tabs; status stays in the project controls across root changes."""
         self._building = True
+        if hasattr(self, '_init_validation_timer'):
+            self._init_validation_timer.stop()
+            self._init_validation_timer.deleteLater()
         while self.tabs.count():
             page = self.tabs.widget(0)
             self.tabs.removeTab(0)
@@ -855,11 +867,14 @@ class LauncherWindow(QtWidgets.QMainWindow):
             self.backend_combo.currentIndexChanged.connect(lambda _index: self._backend_changed())
             column.addWidget(self.backend_combo)
             column.addWidget(self._build_evidence_bar())
-        form = QtWidgets.QFormLayout()
-        _space_form(form)
-        column.addLayout(form)
-        for field in self.forms[name]:
-            self._add_row(form, name, field)
+        if name == 'init':
+            self._build_recording_form(column)
+        else:
+            form = QtWidgets.QFormLayout()
+            _space_form(form)
+            column.addLayout(form)
+            for field in self.forms[name]:
+                self._add_row(form, name, field)
         if name == 'run':  # the backend's option rows sit below the run fields, rebuilt per backend (D73)
             self._option_form = QtWidgets.QFormLayout()
             _space_form(self._option_form)
@@ -869,7 +884,7 @@ class LauncherWindow(QtWidgets.QMainWindow):
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(page)
-        button = QtWidgets.QPushButton('Run')
+        button = QtWidgets.QPushButton('Add recording' if name == 'init' else 'Run')
         button.setProperty('primary', True)
         button.clicked.connect(lambda _checked=False, command=name: self.run_command(command))
         self.run_buttons[name] = button
@@ -878,8 +893,146 @@ class LauncherWindow(QtWidgets.QMainWindow):
         outer.setContentsMargins(SPACING + 4, SPACING + 4, SPACING + 4, SPACING + 4)
         outer.setSpacing(SPACING + 4)
         outer.addWidget(scroll, 1)
+        if name == 'init':
+            self.init_status_label = QtWidgets.QLabel()
+            self.init_status_label.setWordWrap(True)
+            self.init_status_label.setProperty('role', 'hint')
+            outer.addWidget(self.init_status_label)
         outer.addWidget(button)
         return tab
+
+    def _build_recording_form(self, column: QtWidgets.QVBoxLayout) -> None:
+        """Two entry modes with examples, local feedback and a raw-data preview."""
+        self._init_labels, self._init_rows, self._init_error_labels = {}, {}, {}
+        self._init_touched = set()
+        self._init_validation = None
+        self._init_validation_key = None
+        self._init_validation_timer = QtCore.QTimer(self)
+        self._init_validation_timer.setSingleShot(True)
+        self._init_validation_timer.setInterval(180)
+        self._init_validation_timer.timeout.connect(self._update_run_buttons)
+        self._init_source_folder = ''
+        self.init_manual_button = QtWidgets.QRadioButton('One recording')
+        self.init_import_button = QtWidgets.QRadioButton('Import folder')
+        for button in (self.init_manual_button, self.init_import_button):
+            button.setProperty('recording_mode', True)
+        self.init_manual_button.setChecked(True)
+        modes = QtWidgets.QHBoxLayout()
+        modes.addWidget(self.init_manual_button)
+        modes.addWidget(self.init_import_button)
+        modes.addStretch(1)
+        column.addLayout(modes)
+        self.init_manual_button.setToolTip('Add one Phy/Kilosort recording to a new or existing project.')
+        self.init_import_button.setToolTip('Import recording folders prepared with sort/ and date.txt.')
+        self.init_manual_button.toggled.connect(self._init_mode_changed)
+        form = QtWidgets.QFormLayout()
+        _space_form(form)
+        form.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
+        column.addLayout(form)
+        fields = {field.dest: field for field in self.forms['init']}
+        for dest in ('project', 'from_dir', 'day', 'date', 'sort', 'raw', 'uv_per_bit', 'events', 'probe'):
+            field = fields[dest]
+            label = QtWidgets.QLabel(field.label + (' *' if dest in ('project', 'from_dir', 'day', 'date', 'sort') else ''))
+            label.setToolTip(field.help)
+            widget, row = self._field_widget('init', field)
+            widget.setToolTip(field.help)
+            widget.setAccessibleName(field.label)
+            widget.setAccessibleDescription(field.help)
+            label.setBuddy(widget)
+            widget.editingFinished.connect(lambda field_dest=dest: self._init_field_finished(field_dest))
+            holder = QtWidgets.QWidget()
+            stack = QtWidgets.QVBoxLayout(holder)
+            stack.setContentsMargins(0, 0, 0, 0)
+            stack.setSpacing(3)
+            stack.addWidget(row)
+            hint = recording_form.FIELD_COPY[dest]['hint']
+            if hint:
+                detail = QtWidgets.QLabel(hint)
+                detail.setWordWrap(True)
+                detail.setProperty('role', 'hint')
+                detail.setToolTip(field.help)
+                stack.addWidget(detail)
+            error = QtWidgets.QLabel()
+            error.setWordWrap(True)
+            error.setTextFormat(QtCore.Qt.PlainText)
+            error.setProperty('role', 'hint')
+            error.setProperty('tone', 'reject')
+            error.hide()
+            stack.addWidget(error)
+            form.addRow(label, holder)
+            self.form_widgets['init'][dest] = widget
+            self._init_labels[dest] = label
+            self._init_rows[dest] = (label, holder)
+            self._init_error_labels[dest] = error
+        self.init_raw_label = QtWidgets.QLabel()
+        self.init_raw_label.setWordWrap(True)
+        self.init_raw_label.setTextFormat(QtCore.Qt.PlainText)
+        self.init_raw_label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.init_raw_label.setProperty('role', 'hint')
+        column.addWidget(self.init_raw_label)
+        self._init_mode_changed()
+
+    def _init_mode(self) -> str:
+        return 'manual' if self.init_manual_button.isChecked() else 'import'
+
+    def _init_mode_changed(self, _checked=False) -> None:
+        self._init_validation_timer.stop()
+        manual = self._init_mode() == 'manual'
+        for dest in recording_form.MANUAL_FIELDS + recording_form.IMPORT_FIELDS:
+            visible = manual if dest in recording_form.MANUAL_FIELDS else not manual
+            for widget in self._init_rows[dest]:
+                widget.setVisible(visible)
+        button = self.run_buttons.get('init')
+        if button is not None:
+            button.setText('Add recording' if manual else 'Import recordings')
+        self._update_run_buttons()
+
+    def _init_field_finished(self, dest: str) -> None:
+        self._init_validation_timer.stop()
+        self._init_validation_key = None
+        self._init_touched.add(dest)
+        self._update_run_buttons()
+
+    def _refresh_init_validation(self, *, show_all: bool = False, force: bool = False) -> bool:
+        values = self._values('init')
+        key = (self.root, self._init_mode(), tuple(values.items()))
+        if force or key != self._init_validation_key:
+            self._init_validation = recording_form.validate_init(self.root, values, self._init_mode())
+            self._init_validation_key = key
+        result = self._init_validation
+        for dest, label in self._init_error_labels.items():
+            message = result.errors.get(dest, '')
+            visible = bool(message and (show_all or values.get(dest) or dest in self._init_touched
+                                        or (dest == 'uv_per_bit' and values.get('raw'))))
+            label.setText(message)
+            label.setVisible(visible)
+            self.form_widgets['init'][dest].setAccessibleDescription(
+                recording_form.FIELD_COPY[dest]['help'] + (' ' + message if visible else ''))
+        self.init_raw_label.setText(result.raw_message)
+        self.init_raw_label.setToolTip(result.raw_message)
+        tone = {'info': 'muted', 'warning': 'unsure', 'error': 'reject'}[result.raw_level]
+        if self.init_raw_label.property('tone') != tone:
+            self.init_raw_label.setProperty('tone', tone)
+            theme.repolish(self.init_raw_label)
+        self.init_status_label.setText(result.message if not result.ready else
+                                       'Ready to add recording.' if self._init_mode() == 'manual' else
+                                       'Ready to import recordings.')
+        return result.ready
+
+    def _reset_recording_form(self, job: dict) -> None:
+        """Prepare another recording after success, preserving any draft edited during the job."""
+        if (job.get('init_mode') != self._init_mode() or job.get('init_root') != self.root
+                or job.get('init_values') != self._values('init')):
+            return
+        fields = recording_form.MANUAL_FIELDS if self._init_mode() == 'manual' else recording_form.IMPORT_FIELDS
+        for dest in (*fields, 'uv_per_bit'):
+            widget = self.form_widgets['init'][dest]
+            blocked = widget.blockSignals(True)
+            widget.clear()
+            widget.blockSignals(blocked)
+        self._init_touched.clear()
+        self._update_run_buttons()
+        self.form_widgets['init']['day' if self._init_mode() == 'manual' else 'from_dir'].setFocus()
 
     def _build_evidence_bar(self) -> QtWidgets.QWidget:
         """``evidence_bar``: the run's evidence tags in a row, hidden while there is none (D20, D25, D55)."""
@@ -913,7 +1066,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 line.setContentsMargins(0, 0, 0, 0)
                 browse = QtWidgets.QToolButton()
                 browse.setText('…')
-                browse.clicked.connect(lambda _checked=False: self._browse(edit, field.browse))
+                browse.setAccessibleName(f'Browse for {field.label}')
+                browse.setToolTip(f'Browse for {field.label}')
+                browse.clicked.connect(lambda _checked=False: self._browse(edit, field.browse, field if name == 'init' else None))
                 line.addWidget(edit, 1)
                 line.addWidget(browse)
                 return edit, row
@@ -932,15 +1087,19 @@ class LauncherWindow(QtWidgets.QMainWindow):
         label = QtWidgets.QLabel(f'CLI only · {field.flag or field.label}')  # 'unsupported' (D35)
         return label, label
 
-    def _browse(self, edit: QtWidgets.QLineEdit, browse: str) -> None:
-        start = edit.text() or str(self.root)
+    def _browse(self, edit: QtWidgets.QLineEdit, browse: str, field=None) -> None:
+        start = edit.text() or (self._init_source_folder if field is not None else '') or str(self.root)
+        title = f'Choose {field.label.lower()}' if field is not None else 'Folder' if browse == 'dir' else 'File'
         if browse == 'dir':
-            path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Folder', start)
+            path = QtWidgets.QFileDialog.getExistingDirectory(self, title, start)
         elif browse == 'save':
             path = QtWidgets.QFileDialog.getSaveFileName(self, 'Save as', start)[0]
         else:
-            path = QtWidgets.QFileDialog.getOpenFileName(self, 'File', start)[0]
+            file_filter = 'CSV files (*.csv);;All files (*)' if field is not None and field.dest == 'events' else 'All files (*)'
+            path = QtWidgets.QFileDialog.getOpenFileName(self, title, start, file_filter)[0]
         if path:
+            if field is not None:
+                self._init_source_folder = str(Path(path) if browse == 'dir' else Path(path).parent)
             edit.setText(path)
 
     def _fill_backend_rows(self) -> None:
@@ -964,6 +1123,11 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._refresh_commands()
 
     def _field_changed(self, name: str, dest: str) -> None:
+        if name == 'init' and not self._building:
+            self._init_validation_timer.start()
+            self.run_buttons['init'].setEnabled(False)
+            self.init_status_label.setText('Checking recording details…')
+            return
         if name == 'run' and dest == 'python':
             self._grey_backends()
         if name == 'run' and dest == 'min_repeats':
@@ -990,8 +1154,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
     def _values(self, name: str) -> dict:
         widgets = self.form_widgets.get(name, {})
-        return {field.dest: self._value(field, widgets[field.dest]) for field in self._fields(name)
-                if field.dest in widgets}
+        values = {field.dest: self._value(field, widgets[field.dest]) for field in self._fields(name)
+                  if field.dest in widgets}
+        return recording_form.init_values(values, self._init_mode()) if name == 'init' else values
 
     def _checked_rows(self) -> list:
         """``[(day, tag)]`` of the checked days, in ``day_rows`` order."""
@@ -1028,7 +1193,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
         for name in ('init', *self.plugins.commands):
             widget = self.form_widgets.get(name, {}).get('project')
             if isinstance(widget, QtWidgets.QLineEdit):
+                blocked = widget.blockSignals(True)
                 widget.setText(shown or '')
+                widget.blockSignals(blocked)
 
     # --- Run buttons and greyed backends ----------------------------------------------------------
     def _refresh_commands(self) -> None:
@@ -1152,6 +1319,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
 
     def _ready(self, name: str) -> bool:
         """Whether ``name``'s Run is enabled; a running or waiting command changes nothing (D8, D77)."""
+        if name == 'init':
+            return not self._init_validation_timer.isActive() and self._refresh_init_validation()
         fields, values = self._fields(name), self._values(name)
         if any(f.kind == 'unsupported' for f in fields):
             return False
@@ -1192,6 +1361,11 @@ class LauncherWindow(QtWidgets.QMainWindow):
     def run_command(self, command: str) -> None:
         """Run ``command`` from its form as a CLI child; while one runs, it waits in ``queue`` (D8, D40).
         After the close bar's ``Yes`` nothing is queued or started (D79)."""
+        if command == 'init':
+            self._init_validation_timer.stop()
+            if not self._refresh_init_validation(show_all=True, force=True):
+                self.run_buttons['init'].setEnabled(False)
+                return
         self._submit_command(command, self._values(command))
 
     def _submit_command(self, command: str, values: dict) -> None:
@@ -1215,6 +1389,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
                 pass
         job = {'command': command, 'argv': argv, 'program': program, 'arguments': arguments,
                'project': project, 'shown': shown, 'selected': self._selected_folder()}
+        if command == 'init':
+            job.update(init_values=dict(values), init_mode=self._init_mode(), init_root=self.root)
         if self._busy:
             self.queue.append(job)
             self._queue_changed()
@@ -1271,6 +1447,8 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._started = self._cancel_requested = self._cancel_pending = self._killed = False
         self.cancel_button.setEnabled(False)
         self.close_bar.hide()
+        if job['command'] == 'init' and code == 0:
+            self._reset_recording_form(job)
         self.reload()
         if shown_now == job['shown']:
             self._follow(job, code)

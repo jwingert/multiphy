@@ -448,8 +448,8 @@ def two_day_from(tmp_path) -> Path:
         sd = write_day(tmp_path / 'in', day, seed=seed, date=date)
         folder = tmp_path / 'from' / day
         folder.mkdir(parents=True)
-        (folder / 'sort').symlink_to(sd.sort_dir)
-        (folder / 'raw.bin').symlink_to(sd.raw_path)
+        shutil.copytree(sd.sort_dir, folder / 'sort')
+        shutil.copyfile(sd.raw_path, folder / 'raw.bin')
         shutil.copyfile(sd.events_path, folder / 'events.csv')
         (folder / 'date.txt').write_text(f'{date}\n')
     return tmp_path / 'from'
@@ -461,6 +461,7 @@ def test_real_process_pipeline(qt, tmp_path, two_day_from):
     window = _window(root, factory=CommandProcess)
     viewer = None
     try:
+        window.init_import_button.click()
         init = window.form_widgets['init']
         init['project'].setText('P')
         init['from_dir'].setText(str(two_day_from))

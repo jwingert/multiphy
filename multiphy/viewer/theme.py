@@ -102,6 +102,11 @@ _RULES = [
     'border-radius: 3px; background: {panel}; }',
     'QCheckBox::indicator:checked, QListWidget::indicator:checked { background: {accent}; '
     'border-color: {accent}; image: url({check}); }',
+    'QRadioButton[recording_mode="true"] { spacing: 6px; }',
+    'QRadioButton[recording_mode="true"]::indicator { width: 12px; height: 12px; border: 1px solid {muted}; '
+    'border-radius: 7px; background: {panel}; }',
+    'QRadioButton[recording_mode="true"]::indicator:checked { border-color: {accent}; background: {accent}; }',
+    'QRadioButton[recording_mode="true"]:focus { color: {accent}; }',
     'QTableWidget, QPlainTextEdit { font-family: "{mono}"; font-size: 12px; }',
     'QHeaderView::section { background: {panel}; color: {muted}; border: none; '
     'border-bottom: 1px solid {border}; padding: 6px 8px; font-size: 12px; }',

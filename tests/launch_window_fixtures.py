@@ -55,6 +55,7 @@ def wait_until(predicate, timeout_s: float) -> bool:
     deadline = time.monotonic() + timeout_s
     while not predicate() and time.monotonic() < deadline:
         QTest.qWait(50)
+        time.sleep(0.001)  # Let Python reader threads run between Qt waits on Windows.
     return predicate()
 
 

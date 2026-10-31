@@ -64,6 +64,8 @@ def _current_folder(window: LauncherWindow) -> Path:
 
 
 def _label(window: LauncherWindow, name: str, dest: str) -> QtWidgets.QLabel:
+    if name == 'init':
+        return window._init_labels[dest]
     widget = window.form_widgets[name][dest]
     page = window.tabs.widget(list(window.run_buttons).index(name))
     for layout in page.findChildren(QtWidgets.QFormLayout):
@@ -75,6 +77,17 @@ def _label(window: LauncherWindow, name: str, dest: str) -> QtWidgets.QLabel:
 
 def _set_project(window: LauncherWindow, name: str) -> None:
     window.project_combo.setCurrentIndex(window.project_combo.findText(name))
+
+
+def _manual_recording(window: LauncherWindow, path: Path) -> None:
+    """Supply the minimum manual-recording form without starting a real command."""
+    path.mkdir(parents=True, exist_ok=True)
+    (path / 'params.py').write_text('sample_rate = 30000\n', encoding='utf-8')
+    for name in ('spike_times.npy', 'spike_clusters.npy', 'channel_positions.npy', 'cluster_group.tsv'):
+        (path / name).touch()
+    for dest, value in {'day': 'D01', 'date': '2026-02-01', 'sort': str(path)}.items():
+        window.form_widgets['init'][dest].setText(value)
+    assert wait_until(lambda: not window._init_validation_timer.isActive(), 2)
 
 
 def _plugin_root(path: Path, module: str) -> Path:
@@ -381,6 +394,7 @@ def test_end_follows_only_unmoved_project(qt, tmp_path):
     Project.ensure(root, 'R')
     window = _window(root, 'P')
     window.form_widgets['init']['project'].setText('NEW')
+    _manual_recording(window, tmp_path / 'sort')
     window.run_command('init')
     _set_project(window, 'R')
     Project.ensure(root, 'NEW')
@@ -389,8 +403,9 @@ def test_end_follows_only_unmoved_project(qt, tmp_path):
 
     _set_project(window, 'P')
     window.form_widgets['init']['project'].setText(str(root / 'NEW2'))
+    _manual_recording(window, tmp_path / 'sort')
     window.run_command('init')
-    assert window.process.calls[0][1][-2:] == ['init', str(root / 'NEW2')]
+    assert window.process.calls[0][1][4:6] == ['init', str(root / 'NEW2')]
     Project.ensure(root, 'NEW2')
     window.process.ended.emit(0)
     assert window.project_combo.currentText() == 'NEW2'
@@ -619,6 +634,9 @@ def test_unreadable_project_disables_commands(qt, initialised):
     window.reload()
     for name in ('extract', 'run', 'status', 'export'):
         assert window.run_buttons[name].isEnabled() is False, name
+    assert window.run_buttons['init'].isEnabled() is False
+    window.form_widgets['init']['project'].setText('NEW')
+    _manual_recording(window, initialised.parent / 'new-project-sort')
     assert window.run_buttons['init'].isEnabled() is True
     _close(window)
 
@@ -635,8 +653,9 @@ def test_project_field_prefill_and_new_project(qt, tmp_path):
     window = _window(plugin_root, 'NEW', plugins=load_plugins(plugin_root))
     assert window.form_widgets['init']['project'].text() == 'NEW'
     assert window.form_widgets['hello']['project'].text() == 'NEW'
+    _manual_recording(window, tmp_path / 'sort')
     window.run_command('init')
-    assert window.process.calls[0][1][-2:] == ['init', 'NEW']
+    assert window.process.calls[0][1][4:6] == ['init', 'NEW']
     window.form_widgets['init']['project'].setText('OTHER')
     Project.ensure(plugin_root, 'NEW')
     window.process.ended.emit(0)
@@ -650,8 +669,9 @@ def test_labels_hover_placeholders(qt, runs, tmp_path):
         'Initialization', 'Extract features', 'Run matching', 'Export tracks']
     assert window.tabs.tabToolTip(0) == 'launch init'
     label = _label(window, 'init', 'uv_per_bit')
-    assert label.text() == 'uv per bit'
-    assert label.toolTip() == 'microvolts per bit of the raw files'
+    assert label.text() == 'Voltage scale (µV/count)'
+    assert 'structure.oebin' in label.toolTip()
+    assert 'bit_volts' in label.toolTip()
     _backend(window, 'functional_likelihood')
     assert window.form_widgets['run']['threshold'].placeholderText() == '0.9'
     registration = window.form_widgets['run']['registration']

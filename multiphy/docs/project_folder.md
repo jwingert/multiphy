@@ -305,6 +305,40 @@ command, and no day is added:
 `--sort`, `--date`, `--events` and `--raw` belong to the `--day` form, and `--from` refuses
 them. `init --day D1 --sort DIR --date YYYY-MM-DD [--events CSV] [--raw FILE]` adds one day.
 
+### Adding recordings in the launcher
+
+The **Initialization** tab has two modes: **One recording** and **Import folder**.
+Choose one recording to enter its details, or import folder to use the layout above.
+Switching modes keeps the entries you have typed; only the selected mode's fields
+are submitted.
+
+- **Recording name** is the identifier used throughout the project, such as `baseline`
+  or `D01`. It must be unique within the project and use the folder-name characters
+  listed above. The command line still calls this `--day`.
+- **Recording date** is the acquisition date, in `YYYY-MM-DD` format. A project currently
+  permits only one recording per calendar date.
+- **Phy/Kilosort folder** is the sorting-output folder containing `params.py`.
+- **Raw voltage file** can be selected explicitly or detected from `dat_path` in
+  `params.py`. The form shows what it finds before you add the recording.
+- **Voltage scale (µV/count)** converts each stored raw sample to microvolts. It must
+  be a positive, finite number when raw voltage is included. Example text in a blank
+  field is guidance, not a submitted value.
+
+For Open Ephys binary recordings, open `structure.oebin` in the recording folder.
+Find the continuous stream matching the raw file, then inspect its channels'
+`bit_volts` and `units`. Headstage channels commonly use microvolts; ADC channels
+can use volts, which must be converted to microvolts. Use metadata for the actual
+recording instead of assuming a fixed scale. All channels read by multiphy must
+share the supplied scale. This help is also available by hovering over the voltage
+scale field. See the [Open Ephys binary format documentation](https://open-ephys.github.io/gui-docs/User-Manual/Data-formats/Binary-format.html)
+and the [metadata schema](https://github.com/open-ephys/open-ephys-python-tools/blob/main/src/open_ephys/analysis/formats/oebin_schema.json).
+
+The form flags missing or invalid entries before enabling **Add recording** or
+**Import recordings**. After a successful addition, it keeps the project and probe
+and clears the submitted recording details, ready for the next recording. Edits
+made for the next recording are kept, including saved entries in the other mode.
+A failed command keeps its inputs so you can correct them and retry.
+
 ## 7. Tiers
 
 | | `raw` | `templates` |

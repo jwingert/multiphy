@@ -10,6 +10,13 @@ within-session temporal splits does not by itself establish reinsertion accuracy
 
 <img width="3745" height="1750" alt="image" src="https://github.com/user-attachments/assets/7430c879-784c-406e-b27f-55cd0e24dc31" />
 
+## Video walkthrough
+
+[Watch the 6½-minute UI tutorial on YouTube](https://youtu.be/b9Ok8NqrHss).
+Follow a microwire project from recording import through extraction, matching and
+accepted-track export, with keyboard curation, drift-map selection and plot layout
+demonstrations. Includes AI narration and on-screen captions.
+
 ## Install
 
 The supported core/GUI/test baseline is **Python 3.12**, with **CPython 3.12.15**

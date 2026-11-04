@@ -11,6 +11,7 @@ import sys
 
 from ..contract import registry
 from ..contract.inputs import CheckpointRef
+from ..runtime import is_frozen
 from . import options as opt, runner
 
 
@@ -48,7 +49,8 @@ def main(argv=None):
     head.add_argument('--backend', required=True, choices=[s.id for s in registry.list_specs()])
     known, _ = head.parse_known_args([a for a in argv if a != 'run-backend'])
     spec = registry.get(known.backend).spec
-    parser = argparse.ArgumentParser(prog='python -m multiphy.run', description=__doc__)
+    program = 'multiphy --multiphy-module multiphy.run' if is_frozen() else 'python -m multiphy.run'
+    parser = argparse.ArgumentParser(prog=program, description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     p = sub.add_parser('run-backend')
     source = p.add_mutually_exclusive_group(required=True)

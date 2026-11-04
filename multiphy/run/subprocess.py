@@ -11,6 +11,7 @@ import sys
 from typing import Optional
 
 from ..contract import registry
+from ..runtime import module_command
 from . import options as opt
 
 
@@ -21,8 +22,7 @@ def build_command(input_path, backend_id, options, *, output, partition=None, gr
         raise ValueError(f'Select an archived dataset containing manifest.json: {source}')
     spec = registry.get(backend_id).spec
     resolved = opt.validate(spec, options)
-    program = _program(interpreter)
-    argv = ['-u', '-m', 'multiphy.run', 'run-backend', '--input', str(source),
+    argv = ['run-backend', '--input', str(source),
             '--backend', backend_id, '--output', str(Path(output).expanduser().absolute())]
     if partition:
         argv += ['--partition', partition]
@@ -31,7 +31,7 @@ def build_command(input_path, backend_id, options, *, output, partition=None, gr
     argv += opt.to_argv(spec, resolved)
     if root is not None:
         argv += ['--root', str(root)]
-    return str(program), argv
+    return module_command('multiphy.run', argv, interpreter=_program(interpreter), unbuffered=True)
 
 
 def _program(interpreter) -> Path:
@@ -46,9 +46,8 @@ def build_selection_command(project_path: Path, days: tuple, backend_id: str, op
                             interpreter: Optional[str] = None) -> tuple:
     """``(program, argv)`` that runs ``backend_id`` on ``days`` of the project at ``project_path``."""
     spec = registry.get(backend_id).spec
-    program = _program(interpreter)
-    argv = (['-u', '-m', 'multiphy.run', 'run-backend', '--project', str(project_path)]
+    argv = (['run-backend', '--project', str(project_path)]
             + (['--day', days[0]] if len(days) == 1 else ['--days', *days])
             + ['--backend', backend_id, '--output', str(output)]
             + opt.to_argv(spec, opt.validate(spec, options)))
-    return str(program), argv
+    return module_command('multiphy.run', argv, interpreter=_program(interpreter), unbuffered=True)

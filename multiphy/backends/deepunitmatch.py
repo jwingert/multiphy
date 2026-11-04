@@ -470,6 +470,9 @@ def prepare_deepunitmatch_training(units, waveform_bundle, *, source_checkout,
 
 def train_deepunitmatch(prepared_dir, *, python_executable=None):
     """Explicitly execute a prepared run, synchronously, logging inside that run."""
+    from ..runtime import is_frozen
+    if is_frozen():
+        raise ValueError('DeepUnitMatch training requires the Python/uv installation and its training environment.')
     root = Path(prepared_dir).resolve()
     manifest = root / 'training_manifest.json'
     recipe = json.loads(manifest.read_text())

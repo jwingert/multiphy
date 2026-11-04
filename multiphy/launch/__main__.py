@@ -37,12 +37,13 @@ from ..extract.pipeline import TIERS
 from ..project.folder import Project
 from ..run import options as opt
 from ..run.config import cache_root
+from ..runtime import is_frozen
 from .commands import extract, init_day, init_from, run, status, status_lines
 from . import commands
 from .plugins import load_plugins
 from .control import start_control_reader
 
-PROG = 'python -m multiphy.launch'
+PROG = 'multiphy' if is_frozen() else 'python -m multiphy.launch'
 INIT_USAGE = ('%(prog)s [-h] PROJECT (--from DIR | --day DAY --sort DIR --date YYYY-MM-DD '
               '[--events CSV] [--raw FILE]) [--uv-per-bit X] [--probe TYPE]')
 OK = 'ok'

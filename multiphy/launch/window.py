@@ -22,6 +22,7 @@ import sys
 from typing import Optional
 
 from .. import dependency_setup
+from .. import runtime
 from ..contract import registry
 from ..contract.names import backend_label
 from ..project.folder import MANIFEST_FILE, RUNS_DIR, Project
@@ -34,7 +35,6 @@ from ..viewer import logo
 from .__main__ import build_parser
 from . import forms as form_module  # backend_refusal is read through the module, so tests can replace it
 from . import recording_form
-from .commands import _pythonpath
 from .control import INTERRUPT, STDIN_CONTROL_ENV
 from .forms import BOUND, command_argv, commands_of, form_fields, has_value
 from .plugins import PluginApi, load_plugins
@@ -50,7 +50,7 @@ TITLE = 'Cross-day unit match launcher'
 _ENTRY_ROLE = QtCore.Qt.UserRole
 TAB_LABELS = {'init': 'Initialization', 'extract': 'Extract features', 'run': 'Run matching',
               'export': 'Export tracks'}
-REPO = Path(__file__).resolve().parents[2]
+REPO = runtime.execution_directory()
 _BUILTIN_TABS = ('init', 'extract', 'run', 'export')
 _NEEDS_PROJECT = ('extract', 'run', 'status', 'export')  # disabled while project_ok is False (D38)
 _UNSET = object()
@@ -83,12 +83,12 @@ def log_tone(line: str) -> str:
 def child_command(root: Path, argv: list) -> tuple:
     """``(program, arguments)`` of the CLI child that runs ``argv`` under ``root``; ``--root`` is always
     passed, so an inherited ``MULTIPHY_CACHE_ROOT`` cannot redirect it."""
-    return sys.executable, ['-m', 'multiphy.launch', '--root', str(root), *argv]
+    return runtime.module_command('multiphy.launch', ['--root', str(root), *argv])
 
 
 def _child_env() -> dict:
     """The child's environment: repo first, UTF-8, and console-free Windows cancellation."""
-    env = dict(os.environ, PYTHONPATH=_pythonpath(REPO), PYTHONDONTWRITEBYTECODE='1', PYTHONIOENCODING='utf-8')
+    env = runtime.child_environment()
     if sys.platform == 'win32':
         env[STDIN_CONTROL_ENV] = '1'
     return env
@@ -831,6 +831,9 @@ class LauncherWindow(QtWidgets.QMainWindow):
         self._build_tabs()
         self._wanted = (None,)
         self.reload()
+        if runtime.is_frozen():
+            from ..desktop import remember_root
+            remember_root(self.root)
         return True
 
     # --- tabs -----------------------------------------------------------------------------------
@@ -1590,5 +1593,8 @@ def run_window(root: Path, project: Optional[str], plugins: PluginApi) -> int:
     unit_palettes.set_palette(theme.saved_unit_palette())
     app.setWindowIcon(logo.icon())
     window = LauncherWindow(root, project, plugins=plugins)
+    if runtime.is_frozen():
+        from ..desktop import remember_root
+        remember_root(root)
     window.show()
     return app.exec()

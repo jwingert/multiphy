@@ -161,6 +161,10 @@ def verified_interpreter(*, root, directory=DEFAULT_DIRECTORY):
 
 def setup_environment(unitmatch_source, dant_source, overlay, *, output_dir=DEFAULT_DIRECTORY, root=None):
     """Build one new local environment; preserve all existing environments/runs."""
+    from .runtime import is_frozen
+    if is_frozen():
+        raise ValueError('Optional backend environments require the Python/uv installation. '
+                         'Set up the matching multiphy release there, then choose that Python in the launcher.')
     output = resolve_cache_path(output_dir, root=root)
     if output.exists():
         raise FileExistsError(output)

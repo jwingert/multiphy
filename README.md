@@ -19,6 +19,38 @@ demonstrations. Includes AI narration and on-screen captions.
 
 ## Install
 
+Choose the Windows desktop application for the launcher and viewer, or the Python/uv
+installation for development, notebooks, custom plugins and optional inference backends.
+Both use the same project folders and curation files.
+
+### Windows desktop application
+
+The Windows x64 application bundles Python, Qt and the core scientific
+libraries. It supports recording import, feature extraction, the built-in
+`functional_likelihood` and `pair_logistic` matchers, curation and export. No separate
+Python or uv installation is needed.
+
+Download the [v0.0.0 Windows desktop preview](https://github.com/jwingert/multiphy/releases/tag/v0.0.0),
+then choose an asset:
+
+- **[Installer](https://github.com/jwingert/multiphy/releases/download/v0.0.0/multiphy-0.0.0-windows-x64-setup.exe)**:
+  install for your user account, then open the **multiphy**
+  shortcut. This is the easiest option for regular use.
+- **[Portable ZIP](https://github.com/jwingert/multiphy/releases/download/v0.0.0/multiphy-0.0.0-windows-x64-portable.zip)**:
+  extract the whole folder and open `multiphy-gui.exe`;
+  keep its companion files together.
+
+This is a prerelease. Its installer and executables are unsigned, so
+Windows may show a publisher warning. Each release includes `SHA256SUMS.txt` for
+checking the downloads.
+
+On first launch, choose the folder that will hold your projects, such as
+`C:\Users\you\multiphy-data`. Keep that folder outside the application installation.
+See [the desktop installation and update guide](multiphy/docs/desktop.md) for first
+launch, command-line use, updates and building the Windows artifacts.
+
+### Python / uv installation
+
 The supported core/GUI/test baseline is **Python 3.12**, with **CPython 3.12.15**
 as the pinned reference patch and **uv 0.13.4** as the environment tool. The core
 needs numpy, pandas, scipy and matplotlib; the launcher window and viewer also
@@ -84,6 +116,10 @@ uv run --no-sync python -B -m pytest tests -q -ra --durations=10 -p no:cacheprov
 Set `QT_QPA_PLATFORM=offscreen` when running that command without a display.
 
 ## Optional backends
+
+The Windows desktop bundle includes the built-in matchers. Use the Python/uv route
+below for custom plugins, UnitMatch, DANT, DeepUnitMatch and their separately provisioned
+dependencies or model checkpoints.
 
 `functional_likelihood` and `pair_logistic` need nothing extra. UnitMatch, DANT and
 DeepUnitMatch are optional; `python -m multiphy.run list-backends` says which ones this

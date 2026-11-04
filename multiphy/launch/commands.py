@@ -33,6 +33,7 @@ from ..contract import registry
 from ..contract.inputs import Input
 from ..contract.results import Decision
 from ..dependency_setup import verified_interpreter
+from .. import runtime
 from ..project.selection import Selection, default_days
 from ..run import options as opt
 from ..run.project_run import check_real_day_run, check_single_unit_days, project_run_path, run_selection
@@ -403,9 +404,11 @@ def run(root: Path, project: str, *, backend: str, days: Optional[list] = None, 
                              'exists; pass --python EXE')
         program, argv = build_selection_command(opened.path, days, backend, options, output=output,
                                                 interpreter=interpreter)
-        repo = Path(__file__).resolve().parents[2]
-        env = dict(os.environ, PYTHONPATH=_pythonpath(repo), PYTHONDONTWRITEBYTECODE='1')
-        proc = run_captured([program, *argv], cwd=repo, env=env)
+        runtime.verify_external_interpreter(program)
+        repo = runtime.execution_directory()
+        env = runtime.child_environment(external=True)
+        with runtime.external_library_path():
+            proc = run_captured([program, *argv], cwd=repo, env=env)
         if proc.returncode != 0:
             lines = proc.stderr.strip().splitlines()
             raise RuntimeError(f'{backend} failed: {lines[-1] if lines else ""} · run folder {output}')

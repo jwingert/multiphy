@@ -24,6 +24,7 @@ DATA_FILES = [
     'multiphy/docs/adding_a_backend.md',
     'multiphy/docs/adding_a_source.md',
     'multiphy/docs/contract.md',
+    'multiphy/docs/desktop.md',
     'multiphy/docs/project_folder.md',
     'multiphy/docs/viewer.md',
     'multiphy/viewer/fonts/Figtree.ttf',
@@ -45,6 +46,7 @@ def test_readme_links_resolve():
     links = [link for link in links if not link.startswith(EXTERNAL)]
     assert links == [
         'multiphy/viewer/logo/logo.svg',
+        'multiphy/docs/desktop.md',
         'multiphy/docs/project_folder.md',
         'multiphy/docs/viewer.md',
         'multiphy/MATCHING_INTERFACE.md',
@@ -52,7 +54,7 @@ def test_readme_links_resolve():
         'multiphy/BENCHMARKS.md',
         'multiphy/docs/project_folder.md',
     ]
-    assert len(links) == 7
+    assert len(links) == 8
     missing = [link for link in links if not (REPO / link).exists()]
     assert missing == []
 

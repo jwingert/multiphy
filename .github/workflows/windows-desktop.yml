@@ -1,0 +1,160 @@
+name: Windows desktop
+
+concurrency:
+  group: windows-desktop-${{ github.ref }}
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - '.github/workflows/windows-desktop.yml'
+      - 'packaging/windows/**'
+      - 'multiphy/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.python-version'
+      - 'tests/synthetic_day.py'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      QT_QPA_PLATFORM: offscreen
+      UV_MANAGED_PYTHON: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.4'
+      - name: Install locked Python and application dependencies
+        run: |
+          uv python install
+          uv sync --locked --extra gui
+          uv pip install --python .venv/Scripts/python.exe --no-deps --require-hashes -r packaging/windows/requirements-build.txt
+      - name: Install verified Inno Setup compiler
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.1-x64.exe'
+          Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe' -OutFile $setup
+          $expected = '8A5A6711C3766A6E5FB74F280BA0E3551E719CE94538D901FDBD1F8F9920B3F0'
+          if ((Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash -ne $expected) { throw 'Inno Setup checksum mismatch' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $setup
+          if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'CN=Pyrsys B\.V\.') { throw 'Inno Setup publisher verification failed' }
+          $compiler = Join-Path $env:RUNNER_TEMP 'multiphy-inno'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', ('/DIR="' + $compiler + '"'))
+          $process = Start-Process -FilePath $setup -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "Inno Setup installation failed: $($process.ExitCode)" }
+          "MULTIPHY_ISCC=$compiler\ISCC.exe" >> $env:GITHUB_ENV
+      - name: Build and smoke-test the packaged application
+        shell: pwsh
+        run: |
+          $arguments = @('-B', 'packaging/windows/build.py', '--installer', '--iscc', $env:MULTIPHY_ISCC)
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $arguments += @('--expected-version', $env:GITHUB_REF_NAME.Substring(1)) }
+          & '.venv/Scripts/python.exe' @arguments
+          exit $LASTEXITCODE
+      - name: Check installation, upgrade and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $setup = @(Get-ChildItem -LiteralPath 'dist/desktop' -Filter '*-setup.exe')
+          if ($setup.Count -ne 1) { throw 'Expected one installer' }
+          $application = Join-Path $env:RUNNER_TEMP 'multiphy-installed'
+          $userData = Join-Path $env:RUNNER_TEMP 'multiphy-user-projects'
+          New-Item -ItemType Directory -Path $userData -Force | Out-Null
+          $sentinel = Join-Path $userData 'preserve.txt'
+          Set-Content -LiteralPath $sentinel -Value 'User project data survives updates and uninstall.'
+          $arguments = @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER', ('/DIR="' + $application + '"'))
+          foreach ($installation in 1..2) {
+            $process = Start-Process -FilePath $setup[0].FullName -ArgumentList $arguments -Wait -PassThru -WindowStyle Hidden
+            if ($process.ExitCode -ne 0) { throw "Installation $installation failed: $($process.ExitCode)" }
+            if (-not (Test-Path -LiteralPath $sentinel)) { throw 'Installation removed user data' }
+          }
+          & '.venv/Scripts/python.exe' -B packaging/windows/smoke.py --dist $application --report-dir dist/desktop/installed-smoke-report
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $uninstaller = Join-Path $application 'unins000.exe'
+          $process = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "Uninstall failed: $($process.ExitCode)" }
+          if (-not (Test-Path -LiteralPath $sentinel)) { throw 'Uninstall removed user data' }
+          if (Test-Path -LiteralPath (Join-Path $application 'multiphy.exe')) { throw 'Uninstall left the application executable behind' }
+      - name: Upload Windows downloads
+        uses: actions/upload-artifact@v7
+        with:
+          name: multiphy-windows-x64
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            dist/desktop/*-portable.zip
+            dist/desktop/*-setup.exe
+            dist/desktop/SHA256SUMS.txt
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: multiphy-windows-diagnostics
+          if-no-files-found: ignore
+          path: |
+            build/desktop/pyinstaller/**/warn-*.txt
+            build/desktop/pyinstaller/**/xref-*.html
+            build/desktop/assets/build-info.json
+            dist/desktop/smoke-report/**
+            dist/desktop/installed-smoke-report/**
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: multiphy-windows-x64
+          path: downloads
+      - name: Publish versioned downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd downloads && sha256sum --check SHA256SUMS.txt)
+          notes="packaging/windows/release-notes/$RELEASE_TAG.md"
+          title="multiphy $RELEASE_TAG"
+          prerelease=false
+          if [[ "$RELEASE_TAG" == "v0.0.0" ]]; then
+            title="$title — Windows desktop preview"
+            prerelease=true
+          elif [[ "$RELEASE_TAG" == *-* ]]; then
+            prerelease=true
+          fi
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json; then
+            if [[ "$(jq -r .isDraft release-state.json)" != true ]]; then
+              echo "Refusing to replace an already published release."
+              exit 1
+            fi
+          else
+            args=("$RELEASE_TAG" --verify-tag --draft --title "$title")
+            if [[ -f "$notes" ]]; then
+              args+=(--notes-file "$notes")
+            else
+              args+=(--generate-notes)
+            fi
+            gh release create "${args[@]}"
+          fi
+          gh release upload "$RELEASE_TAG" downloads/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease="$prerelease" --latest=false

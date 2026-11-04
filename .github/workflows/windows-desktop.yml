@@ -116,7 +116,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
+      checks: read
     steps:
+      - name: Wait for Linux and Windows tests of this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=$(gh run list --workflow tests.yml --branch main --event push \
+            --commit "$GITHUB_SHA" --limit 1 --json databaseId --jq '.[0].databaseId')
+          if [[ -z "$run_id" || "$run_id" == null ]]; then
+            echo "No main-branch test run found for this release commit."
+            exit 1
+          fi
+          gh run watch "$run_id" --exit-status --interval 30
       - uses: actions/checkout@v7
         with:
           persist-credentials: false

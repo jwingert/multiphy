@@ -2,7 +2,7 @@ name: Windows desktop
 
 concurrency:
   group: windows-desktop-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:

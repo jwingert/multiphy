@@ -189,13 +189,19 @@ def test_frozen_training_refuses_before_changing_manifest(bundle, tmp_path):
     assert not (tmp_path / 'prepared').exists()
 
 
-def test_desktop_diagnostic_renders_launcher_and_reports_assets(qt, monkeypatch, tmp_path):
+def test_desktop_diagnostic_renders_launcher_and_reports_assets(tmp_path):
     import json
-    monkeypatch.setattr(desktop, '_configure_streams', lambda: None)
     root = tmp_path / 'data'
     root.mkdir()
     report_path = tmp_path / 'report' / 'check.json'
-    assert desktop.cli_main(['--self-check', str(report_path), '--root', str(root)]) == 0
+    # The shipped diagnostic owns its application. Keep its theme, matplotlib
+    # settings and QSettings path out of pytest's shared QApplication too.
+    process = subprocess.run(
+        [sys.executable, '-B', '-c', 'from multiphy.desktop import cli_main; raise SystemExit(cli_main())',
+         '--self-check', str(report_path), '--root', str(root)],
+        cwd=tmp_path, env=runtime.child_environment(), capture_output=True,
+        text=True, encoding='utf-8', timeout=60)
+    assert process.returncode == 0, process.stdout + process.stderr
     report = json.loads(report_path.read_text(encoding='utf-8'))
     assert report['status'] == 'passed' and report['logo'] is True
     assert Path(report['launcher_screenshot']).is_file()

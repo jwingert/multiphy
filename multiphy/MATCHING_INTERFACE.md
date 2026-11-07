@@ -1,5 +1,8 @@
 # Matching methods and run settings
 
+For installation prerequisites, see the [Python setup guide](docs/installation.md#optional-backends).
+For local scoring, evidence and limitations, see [Matching evidence and interpretation](docs/matching.md).
+
 The viewer opens two kinds of **project runs** (see
 [`docs/project_folder.md`](docs/project_folder.md)). A **same-day run** matches the
 two temporal halves of one extracted day, which are scored against the day's
@@ -244,7 +247,7 @@ error; a failed run keeps its folder and the command exits with an error. Open a
 completed run in its viewer with `--run DIR`; each across-days run keeps its own
 history, `curation/runs/<run>/history.csv`. Training, calibration, and test splits must remain separated when
 estimating performance; temporal reference identity does not establish accuracy
-after a probe is reinserted on a different day.
+across recording days.
 
 ## Durable inference environment
 

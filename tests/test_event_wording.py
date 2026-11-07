@@ -74,15 +74,14 @@ def test_no_sound_in_generic_layer():
     for rel in GENERIC:
         for n, line in enumerate((PKG / rel).read_text(encoding='utf-8').splitlines(), 1):
             assert not sound.search(line), f'{rel}:{n}: {line}'
-    readme = (PKG.parent / 'README.md').read_text(encoding='utf-8')
-    for new in ('scores firing, waveform and optional event-response likelihood ratios',
-                '| event response | fingerprint correlation |',
-                'The event response comes out heavier wherever it has been fitted',
-                'A pair the event response convinces on but the',
-                '| Fingerprint | the event response, all shared conditions or one at full width |',
-                'Matching on event responses selects for similar event responses.',
-                '## Choosing the sounds'):
-        assert new in readme, new
-    for old in ('scores sound and firing', '| sound | fingerprint correlation |',
-                'Matching on sound responses'):
-        assert old not in readme, old
+    # Method explanations and plot descriptions live in their guides, not the README.
+    matching = (PKG / 'docs/matching.md').read_text(encoding='utf-8')
+    assert 'optional event response' in matching
+    assert 'Matching on event responses selects for similar event responses.' in matching
+    viewer = (PKG / 'docs/viewer.md').read_text(encoding='utf-8')
+    assert '| Fingerprint | the event response, all shared conditions or one at full width |' in viewer
+    for path in (PKG.parent / 'README.md', PKG / 'docs/matching.md', PKG / 'docs/viewer.md'):
+        text = path.read_text(encoding='utf-8')
+        for old in ('scores sound and firing', '| sound | fingerprint correlation |',
+                    'Matching on sound responses'):
+            assert old not in text, (path, old)

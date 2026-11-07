@@ -46,6 +46,32 @@ controls, notes and consistency panel. `Alt+E`, `Alt+R`, `Alt+U` record same, di
 for the displayed pair, then advance to the next candidate. They do not change current tracks
 or export eligibility. Old pair annotations remain in the history and can be inspected in this mode.
 
+The [architecture guide](architecture.md#advanced-pair-annotations-and-track-export)
+explains how the advanced panel derives pair chains and flags inconsistent triangles.
+For the export command and CSV columns, see [project exports](project_folder.md#export).
+
+## The views
+
+| view | what it answers |
+|---|---|
+| Waveform | do the peak-channel spikes look alike |
+| Footprint | where on the shank the unit sits, using the run's registration |
+| Probe map | which electrodes each unit appears on |
+| Waveforms on the probe | how each unit's spike varies across the electrodes it is on |
+| Interval histogram | do the inter-spike interval distributions look alike |
+| Autocorrelogram | do the two-sided autocorrelograms look alike |
+| Fingerprint | the event response, all shared conditions or one at full width |
+| Tuning | tone curve, shown only, never scored |
+| Mixture | how each stream's probability and the combined one are formed, when a mixture was fitted |
+
+The probe map splits each electrode into one vertical strip per selected unit,
+and a unit always owns the same strip, so reading down the probe follows one
+colour in one column. Amplitude is deliberately absent: with units of different
+amplitude on one electrode, an amplitude-scaled mark hides the weaker one, and
+the question this view answers is which units touch which electrodes. Amplitude
+is on the footprint, and shape is on the waveform view, which draws each unit's
+template at the measured coordinate of every electrode it was recorded on, after phy.
+
 ## Package map
 
 `multiphy/viewer/`:

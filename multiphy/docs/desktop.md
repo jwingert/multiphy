@@ -3,7 +3,7 @@
 multiphy has two installation options. The Windows x64 desktop application bundles
 Python, Qt and the core scientific libraries. The Python/uv installation provides the
 same application in an environment you can extend for notebooks, plugins and optional
-inference backends. Use the [README's uv instructions](https://github.com/jwingert/multiphy#python--uv-installation)
+inference backends. Use the [Python setup guide](installation.md)
 on Linux and macOS, or when you need that flexibility on Windows. Windows is the only
 platform with an executable build workflow; macOS is not covered by the core CI suite.
 
@@ -20,7 +20,7 @@ Windows downloads.
 | --- | --- |
 | Installer | Run the Windows x64 setup executable, install for your user account, then open the **multiphy** shortcut. A separate Python installation is unnecessary. |
 | Portable ZIP | Extract the ZIP to a writable location and open `multiphy-gui.exe` in the extracted folder. Keep the whole folder, including `multiphy.exe` and `_internal`; the GUI executable is not a standalone file. |
-| Python / uv | Follow the README to install the pinned environment, then launch with `uv run --no-sync python -m multiphy.launch --root C:\path\to\multiphy-data gui`. |
+| Python / uv | Follow the [Python setup guide](installation.md) to install the pinned environment, then launch with `uv run --no-sync python -m multiphy.launch --root C:\path\to\multiphy-data gui`. |
 
 The initial prerelease's installer and executables are unsigned. Windows may
 show a publisher or application-control warning. Check the release source and compare
@@ -72,7 +72,7 @@ or installed application folder:
 ```
 
 These are the same launcher arguments used after `python -m multiphy.launch` in the
-README. Commands that operate on data require `--root DIR` before the command, or the
+[project guide](project_folder.md). Commands that operate on data require `--root DIR` before the command, or the
 `MULTIPHY_CACHE_ROOT` environment variable. The remembered GUI folder is not an implicit
 root for batch commands. `--help` and `--version` work without a root.
 
@@ -104,7 +104,7 @@ appropriate when its format remains compatible.
 
 UnitMatch, DANT and DeepUnitMatch require separate upstream dependencies and, for
 DeepUnitMatch, compatible model checkpoints. They are not bundled. Use the Python/uv
-installation and the README's optional-backend setup to provision these environments.
+installation and the [optional backend setup](installation.md#optional-backends) to provision these environments.
 You can then select their interpreter in the launcher's **python** field or pass
 `run --python EXE`. The external environment must contain the same multiphy version
 as the desktop application as well as the backend's dependencies. Installing a package

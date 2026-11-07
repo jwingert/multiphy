@@ -84,7 +84,7 @@ def test_pair_logistic_texts_say_held_out_sessions():
         'pair_logistic': inspect.getsource(pair_logistic),
         "NAMES['backend']['pair_logistic'].help": NAMES['backend']['pair_logistic'].help,
         'drift_validation': inspect.getsource(drift_validation),
-        'README.md': (REPO / 'README.md').read_text(encoding='utf-8'),
+        'docs/matching.md': (DOCS / 'matching.md').read_text(encoding='utf-8'),
     }
     for name, text in texts.items():
         assert 'held-out days' not in text, name
@@ -98,9 +98,9 @@ def test_docs_name_launcher_gui():
                  'Extract features', '.extract.lock', 'exits 130', 'Root…', 'waiting', 'Clear',
                  'viewer.md#theme'):
         assert word in text, word
-    readme = (REPO / 'README.md').read_text(encoding='utf-8')
+    architecture = (DOCS / 'architecture.md').read_text(encoding='utf-8')
     for word in ('launch gui', '| `launch/` |'):
-        assert word in readme, word
+        assert word in architecture, word
     source = (DOCS / 'adding_a_source.md').read_text(encoding='utf-8')
     for word in ('`export`, `gui`', 'CLI only'):
         assert word in source, word

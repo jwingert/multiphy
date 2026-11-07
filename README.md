@@ -2,11 +2,10 @@
 
 # multiphy — cross-day single-unit matching and curation
 
-Matching units across days in a semi-chronic preparation, where the probe goes
-in afresh each day and the brain moves. The stimulus-response fingerprint is a
-central source of evidence; multichannel waveform and firing-pattern evidence
-can be compared through the same interface. Performance on chronic implants or
-within-session temporal splits does not by itself establish reinsertion accuracy.
+multiphy is an app to help track the same neurons across days in in vivo
+electrophysiology recordings. It supports multiple matching algorithms out of
+the box, with a unified graphical interface for visualizing, comparing and
+curating their results.
 
 <img width="3745" height="1750" alt="image" src="https://github.com/user-attachments/assets/7430c879-784c-406e-b27f-55cd0e24dc31" />
 
